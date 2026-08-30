@@ -8,13 +8,25 @@ import androidx.navigation.toRoute
 import com.vibethroughcode.ftree.ui.people.PeopleScreen
 import com.vibethroughcode.ftree.ui.person.PersonDetailScreen
 import com.vibethroughcode.ftree.ui.person.PersonEditScreen
+import com.vibethroughcode.ftree.ui.tree.TreeScreen
 import com.vibethroughcode.ftree.ui.relative.AddRelativeScreen
 
 @Composable
 fun FTreeApp() {
     val navController = rememberNavController()
 
-    NavHost(navController = navController, startDestination = PeopleRoute) {
+    NavHost(navController = navController, startDestination = TreeRoute) {
+        composable<TreeRoute> {
+            TreeScreen(
+                onOpenPerson = { navController.navigate(PersonRoute(it)) },
+                onOpenPeople = { navController.navigate(PeopleRoute) },
+                onAddPerson = { navController.navigate(EditPersonRoute()) },
+                onAddRelative = { anchorId, kind ->
+                    navController.navigate(AddRelativeRoute(anchorId, kind))
+                },
+            )
+        }
+
         composable<PeopleRoute> {
             PeopleScreen(
                 onOpenPerson = { navController.navigate(PersonRoute(it)) },
@@ -44,9 +56,11 @@ fun FTreeApp() {
                 onSaved = { personId ->
                     if (route.personId == null) {
                         // A newly added person opens straight onto their own page, which is where
-                        // the next thing you want to do — add a relative — will live.
+                        // the next thing you want to do — add a relative — lives. Only the form is
+                        // dropped from the back stack, so going back returns to wherever the add
+                        // started rather than always to the chart.
                         navController.navigate(PersonRoute(personId)) {
-                            popUpTo(PeopleRoute)
+                            popUpTo<EditPersonRoute> { inclusive = true }
                         }
                     } else {
                         navController.popBackStack()
