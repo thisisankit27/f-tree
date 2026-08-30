@@ -139,6 +139,20 @@
     <string name="photo_change">Change photo</string>
     <string name="photo_remove">Remove photo</string>
 
+    <!-- Import and export -->
+    <string name="menu_more">More</string>
+    <string name="export_tree">Export your tree</string>
+    <string name="export_default_name">family-tree-%1$s.ftree</string>
+    <string name="export_done">Exported %1$d people and %2$d connections.</string>
+    <string name="export_done_photos">Exported %1$d people, %2$d connections and %3$d photos.</string>
+    <string name="export_failed">Couldn\'t write that file. Try somewhere else.</string>
+    <string name="export_empty">There is nobody in your tree to export yet.</string>
+    <string name="about">About f-tree</string>
+    <string name="about_body">A local-first family tree. Everything stays on this device: no account, no cloud, no backend. Share a tree by exporting it to a file; importing one merges it into yours instead of replacing it.</string>
+    <string name="about_version">Version %1$s</string>
+    <string name="about_licences">Open source licences</string>
+    <string name="about_fonts">Literata and JetBrains Mono are used under the SIL Open Font Licence 1.1.</string>
+
     <!-- Shared -->
     <string name="a11y_person_avatar">Photo of %1$s</string>
     <string name="a11y_unknown_avatar">Unknown person</string>

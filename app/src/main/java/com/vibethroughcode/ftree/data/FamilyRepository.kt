@@ -189,6 +189,10 @@ class FamilyRepository(
     }
 
     suspend fun originsOf(personIds: List<String>): List<PersonOrigin> = origins.originsOf(personIds)
+
+    /** Whole-tree reads, used only by export. Everything else asks a narrower question. */
+    suspend fun allPeople(): List<Person> = people.allPeople()
+    suspend fun allRelationships(): List<Relationship> = relationships.allRelationships()
 }
 
 class RelationshipRejectedException(val reason: RelationshipRejection) :

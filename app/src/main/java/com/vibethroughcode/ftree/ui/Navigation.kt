@@ -23,6 +23,9 @@ data class PersonRoute(val personId: String)
 @Serializable
 data class EditPersonRoute(val personId: String? = null)
 
+@Serializable
+data object AboutRoute
+
 /** Picking who to attach to [anchorPersonId] as a [kind]. */
 @Serializable
 data class AddRelativeRoute(val anchorPersonId: String, val kind: RelativeKind)
