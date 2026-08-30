@@ -8,6 +8,7 @@ import androidx.navigation.toRoute
 import com.vibethroughcode.ftree.ui.people.PeopleScreen
 import com.vibethroughcode.ftree.ui.person.PersonDetailScreen
 import com.vibethroughcode.ftree.ui.person.PersonEditScreen
+import com.vibethroughcode.ftree.ui.transfer.AboutScreen
 import com.vibethroughcode.ftree.ui.tree.TreeScreen
 import com.vibethroughcode.ftree.ui.relative.AddRelativeScreen
 
@@ -24,7 +25,12 @@ fun FTreeApp() {
                 onAddRelative = { anchorId, kind ->
                     navController.navigate(AddRelativeRoute(anchorId, kind))
                 },
+                onAbout = { navController.navigate(AboutRoute) },
             )
+        }
+
+        composable<AboutRoute> {
+            AboutScreen(onBack = { navController.popBackStack() })
         }
 
         composable<PeopleRoute> {

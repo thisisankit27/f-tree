@@ -1,5 +1,7 @@
 package com.vibethroughcode.ftree.ui.tree
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -15,11 +17,14 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CenterFocusStrong
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.PersonAddAlt
 import androidx.compose.material.icons.filled.UnfoldMore
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -27,6 +32,8 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -51,9 +58,15 @@ import com.vibethroughcode.ftree.ui.common.PersonRow
 import com.vibethroughcode.ftree.ui.common.TreeGlyph
 import com.vibethroughcode.ftree.ui.common.displayName
 import com.vibethroughcode.ftree.ui.common.relativeKindLabel
+import com.vibethroughcode.ftree.transfer.TreeDocument
+import com.vibethroughcode.ftree.ui.transfer.TransferMessages
+import com.vibethroughcode.ftree.ui.transfer.TransferViewModel
+import com.vibethroughcode.ftree.ui.transfer.defaultExportName
 
 const val TreePeopleButtonTag = "tree-people"
 const val TreeAddButtonTag = "tree-add"
+const val TreeMenuTag = "tree-menu"
+const val TreeExportTag = "tree-export"
 const val TreeFocusHereTag = "tree-focus-here"
 const val TreeOpenPersonTag = "tree-open-person"
 
@@ -64,15 +77,27 @@ fun TreeScreen(
     onOpenPeople: () -> Unit,
     onAddPerson: () -> Unit,
     onAddRelative: (String, RelativeKind) -> Unit,
+    onAbout: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: TreeViewModel = viewModel(factory = FTreeViewModels.Factory),
+    transferViewModel: TransferViewModel = viewModel(factory = FTreeViewModels.Factory),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     var selected by remember { mutableStateOf<Person?>(null) }
+    var menuOpen by remember { mutableStateOf(false) }
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    // Export owns its result message, so the snackbar host lives on the screen that shows it.
+    val exportPicker = rememberLauncherForActivityResult(
+        ActivityResultContracts.CreateDocument(TreeDocument.MIME_TYPE)
+    ) { uri -> uri?.let(transferViewModel::export) }
+
+    TransferMessages(transferViewModel, snackbarHostState)
     val sheetState = rememberModalBottomSheetState()
 
     Scaffold(
         modifier = modifier,
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             CenterAlignedTopAppBar(
                 title = { Text(stringResource(R.string.tree_title)) },
@@ -92,6 +117,26 @@ fun TreeScreen(
                         Icon(
                             Icons.AutoMirrored.Filled.List,
                             contentDescription = stringResource(R.string.tree_people),
+                        )
+                    }
+                    IconButton(
+                        onClick = { menuOpen = true },
+                        modifier = Modifier.testTag(TreeMenuTag),
+                    ) {
+                        Icon(
+                            Icons.Default.MoreVert,
+                            contentDescription = stringResource(R.string.menu_more),
+                        )
+                    }
+                    DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.export_tree)) },
+                            onClick = { menuOpen = false; exportPicker.launch(defaultExportName()) },
+                            modifier = Modifier.testTag(TreeExportTag),
+                        )
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.about)) },
+                            onClick = { menuOpen = false; onAbout() },
                         )
                     }
                 },

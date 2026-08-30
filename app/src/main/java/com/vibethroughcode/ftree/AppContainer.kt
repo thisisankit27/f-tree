@@ -4,6 +4,8 @@ import android.content.Context
 import com.vibethroughcode.ftree.data.FTreeDatabase
 import com.vibethroughcode.ftree.data.FamilyRepository
 import com.vibethroughcode.ftree.data.PhotoStore
+import com.vibethroughcode.ftree.transfer.TreeExporter
+import com.vibethroughcode.ftree.transfer.TreeIdentity
 
 /**
  * Hand-rolled dependency wiring.
@@ -17,4 +19,6 @@ class AppContainer(context: Context) {
     val database: FTreeDatabase by lazy { FTreeDatabase.build(context) }
     val familyRepository: FamilyRepository by lazy { FamilyRepository(database, photoStore) }
     val photoStore: PhotoStore by lazy { PhotoStore(context.applicationContext) }
+    val treeIdentity: TreeIdentity by lazy { TreeIdentity(context.applicationContext) }
+    val exporter: TreeExporter by lazy { TreeExporter(familyRepository, photoStore, treeIdentity) }
 }
