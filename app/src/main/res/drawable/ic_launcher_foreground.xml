@@ -1,0 +1,18 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Three-generation glyph: one ancestor, a couple, two children. -->
+    <group android:translateX="0" android:translateY="0">
+        <path
+            android:strokeColor="#F2E8D5"
+            android:strokeWidth="2.6"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round"
+            android:pathData="M54,36 L54,46 M40,58 L68,58 M40,58 L40,52 M68,58 L68,52 M54,46 L54,52 M40,52 L68,52" />
+        <path android:fillColor="#F2E8D5" android:pathData="M54,26m-6,0a6,6 0,1 1,12 0a6,6 0,1 1,-12 0" />
+        <path android:fillColor="#8FC7A1" android:pathData="M40,66m-6,0a6,6 0,1 1,12 0a6,6 0,1 1,-12 0" />
+        <path android:fillColor="#8FC7A1" android:pathData="M68,66m-6,0a6,6 0,1 1,12 0a6,6 0,1 1,-12 0" />
+    </group>
+</vector>
