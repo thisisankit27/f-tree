@@ -12,6 +12,7 @@ import com.vibethroughcode.ftree.data.FamilyRepository
  * repository directly against an in-memory database.
  */
 class AppContainer(context: Context) {
-    private val database: FTreeDatabase by lazy { FTreeDatabase.build(context) }
+    /** Public so instrumented tests can call `clearAllTables()` between runs. */
+    val database: FTreeDatabase by lazy { FTreeDatabase.build(context) }
     val familyRepository: FamilyRepository by lazy { FamilyRepository(database) }
 }

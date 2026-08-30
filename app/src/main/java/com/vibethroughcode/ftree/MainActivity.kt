@@ -4,23 +4,17 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
+import com.vibethroughcode.ftree.ui.FTreeApp
+import com.vibethroughcode.ftree.ui.theme.FTreeTheme
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         setContent {
-            MaterialTheme {
-                Placeholder()
+            FTreeTheme {
+                FTreeApp()
             }
         }
     }
-}
-
-@Composable
-private fun Placeholder() {
-    Text("f-tree")
 }

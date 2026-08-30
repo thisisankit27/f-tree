@@ -1,4 +1,78 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">f-tree</string>
+
+    <!-- People list -->
+    <string name="people_title">Family</string>
+    <string name="people_search_hint">Search by name</string>
+    <string name="people_search_open">Search</string>
+    <string name="people_search_close">Close search</string>
+    <string name="people_add">Add a person</string>
+    <string name="people_count">%1$d in your tree</string>
+    <string name="people_no_matches">No one matches “%1$s”.</string>
+
+    <!-- Empty state -->
+    <string name="empty_title">Build your family tree</string>
+    <string name="empty_body">Start with yourself, or with the oldest relative you know. You can add the rest around them, and record the people whose names you never learned.</string>
+    <string name="empty_action">Add your first person</string>
+
+    <!-- Person -->
+    <string name="person_unknown">Unknown</string>
+    <string name="person_unknown_of">Unknown %1$s</string>
+    <string name="person_edit">Edit</string>
+    <string name="person_born">Born %1$s</string>
+    <string name="person_died">Died %1$s</string>
+    <string name="person_age">%1$d years old</string>
+    <string name="person_age_at_death">%1$d years old</string>
+    <string name="person_no_dates">No dates recorded</string>
+    <string name="person_notes">Notes</string>
+    <string name="person_not_found">That person is no longer in your tree.</string>
+
+    <!-- Edit -->
+    <string name="edit_new_title">Add a person</string>
+    <string name="edit_existing_title">Edit person</string>
+    <string name="edit_name">Name</string>
+    <string name="edit_name_hint">Leave blank if you don\'t know it</string>
+    <string name="edit_gender">Gender</string>
+    <string name="edit_born">Born</string>
+    <string name="edit_died">Died</string>
+    <string name="edit_date_hint">Year, or a fuller date</string>
+    <string name="edit_date_support">1938, 1938-04, or 1938-04-17</string>
+    <string name="edit_date_invalid">Use a year like 1938, or 1938-04-17</string>
+    <string name="edit_death_before_birth">This is earlier than the birth date</string>
+    <string name="edit_deceased">No longer living</string>
+    <string name="edit_notes">Notes</string>
+    <string name="edit_notes_hint">Anything worth remembering</string>
+    <string name="edit_save">Save</string>
+    <string name="edit_cancel">Cancel</string>
+    <string name="edit_back">Back</string>
+    <string name="edit_discard_title">Discard changes?</string>
+    <string name="edit_discard_body">Your edits to this person won\'t be kept.</string>
+    <string name="edit_discard_confirm">Discard</string>
+    <string name="edit_discard_keep">Keep editing</string>
+
+    <string name="gender_male">Male</string>
+    <string name="gender_female">Female</string>
+    <string name="gender_other">Other</string>
+    <string name="gender_unspecified">Not recorded</string>
+
+    <!-- Delete -->
+    <string name="delete_person">Delete person</string>
+    <string name="delete_title">Delete %1$s?</string>
+    <string name="delete_title_unknown">Delete this person?</string>
+    <string name="delete_body_connected">%1$s is connected to %2$d other people. Choose what happens to those connections.</string>
+    <string name="delete_body_isolated">This person has no connections to anyone else in your tree.</string>
+    <string name="delete_keep_shape">Keep as unknown</string>
+    <string name="delete_keep_shape_detail">Clears their details but keeps their place in the tree, so the family still joins up.</string>
+    <string name="delete_remove">Delete completely</string>
+    <string name="delete_remove_detail">Removes them and their %1$d connections. This can\'t be undone.</string>
+    <string name="delete_remove_detail_isolated">Removes them from your tree. This can\'t be undone.</string>
+    <string name="delete_cancel">Cancel</string>
+    <string name="deleted_toast">Deleted</string>
+    <string name="kept_as_unknown_toast">Kept as an unknown person</string>
+
+    <!-- Shared -->
+    <string name="a11y_person_avatar">Photo of %1$s</string>
+    <string name="a11y_unknown_avatar">Unknown person</string>
+    <string name="dash">—</string>
 </resources>
