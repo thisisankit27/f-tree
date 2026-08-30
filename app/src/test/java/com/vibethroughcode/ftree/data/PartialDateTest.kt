@@ -66,6 +66,14 @@ class PartialDateTest {
     }
 
     @Test
+    fun `displays only as precisely as the date is known`() {
+        val uk = java.util.Locale.UK
+        assertEquals("1938", PartialDate.parse("1938")!!.display(uk))
+        assertEquals("April 1938", PartialDate.parse("1938-04")!!.display(uk))
+        assertEquals("17 April 1938", PartialDate.parse("1938-04-17")!!.display(uk))
+    }
+
+    @Test
     fun `years between is null when the end precedes the start`() {
         val born = PartialDate.parse("1990")!!
         val died = PartialDate.parse("1980")!!
