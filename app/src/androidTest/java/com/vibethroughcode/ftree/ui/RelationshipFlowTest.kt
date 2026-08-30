@@ -16,7 +16,11 @@ import com.vibethroughcode.ftree.MainActivity
 import com.vibethroughcode.ftree.data.RelativeKind
 import com.vibethroughcode.ftree.ui.person.EditNameFieldTag
 import com.vibethroughcode.ftree.ui.person.EditSaveTag
+import com.vibethroughcode.ftree.ui.person.DeleteCompletelyTag
+import com.vibethroughcode.ftree.ui.person.DeleteKeepAsUnknownTag
+import com.vibethroughcode.ftree.ui.person.PersonDeleteTag
 import com.vibethroughcode.ftree.ui.person.PersonEditTag
+import com.vibethroughcode.ftree.ui.tree.TreePeopleButtonTag
 import com.vibethroughcode.ftree.ui.person.addSectionTag
 import com.vibethroughcode.ftree.ui.relative.AddRelativeNameTag
 import com.vibethroughcode.ftree.ui.relative.AddRelativeSaveTag
@@ -158,6 +162,40 @@ class RelationshipFlowTest {
 
         // Aarav could only ever be refused as a parent, so he is not offered at all.
         assertTrue(rule.onAllNodesWithText("Aarav").fetchSemanticsNodes().isEmpty())
+    }
+
+    @Test
+    fun deletingSomeoneConnectedOffersToKeepTheirPlaceInTheFamily() {
+        addRelative(RelativeKind.PARENT, "Raj Kumar")
+        addRelative(RelativeKind.CHILD, "Aarav")
+
+        rule.onNodeWithTag(PersonDeleteTag).performClick()
+        rule.waitForIdle()
+
+        // Ankit joins his father to his son, so removing him outright would break that link.
+        rule.onNodeWithTag(DeleteKeepAsUnknownTag).performClick()
+        rule.waitForIdle()
+
+        // He is now an unknown person, but the family still joins up through him.
+        rule.onNodeWithText("Unknown").assertIsDisplayed()
+        rule.onNodeWithText("Raj Kumar").assertIsDisplayed()
+        rule.onNodeWithText("Aarav").assertIsDisplayed()
+    }
+
+    @Test
+    fun deletingCompletelyRemovesTheirConnectionsToo() {
+        addRelative(RelativeKind.PARENT, "Raj Kumar")
+
+        rule.onNodeWithTag(PersonDeleteTag).performClick()
+        rule.waitForIdle()
+        rule.onNodeWithTag(DeleteCompletelyTag).performClick()
+        rule.waitForIdle()
+
+        // Raj remains — only Ankit and the link between them are gone.
+        rule.onNodeWithTag(TreePeopleButtonTag).performClick()
+        rule.waitForIdle()
+        rule.onNodeWithText("Raj Kumar").assertIsDisplayed()
+        assertTrue(rule.onAllNodesWithText("Ankit").fetchSemanticsNodes().isEmpty())
     }
 
     @Test
