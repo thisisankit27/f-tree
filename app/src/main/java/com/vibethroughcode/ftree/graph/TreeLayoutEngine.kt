@@ -24,14 +24,13 @@ object TreeLayoutEngine {
      * drifts apart on screen stops looking like a marriage, and children need a single point to
      * descend from.
      */
-    private class Unit(val members: List<String>) {
+    private class Unit(val members: List<String>, val nodeWidth: Float) {
         var x = 0f
         val width: Float
-            get() = members.size * TreeMetrics.NODE_WIDTH +
-                (members.size - 1) * TreeMetrics.COUPLE_GAP
+            get() = members.size * nodeWidth + (members.size - 1) * TreeMetrics.COUPLE_GAP
 
         fun xOf(personId: String): Float =
-            x + members.indexOf(personId) * (TreeMetrics.NODE_WIDTH + TreeMetrics.COUPLE_GAP)
+            x + members.indexOf(personId) * (nodeWidth + TreeMetrics.COUPLE_GAP)
 
         val centerX: Float get() = x + width / 2f
     }
@@ -41,7 +40,10 @@ object TreeLayoutEngine {
         focusId: String,
         generationsUp: Int = 3,
         generationsDown: Int = 3,
+        nodeWidth: Float = TreeMetrics.NODE_WIDTH,
+        nodeHeight: Float = TreeMetrics.NODE_HEIGHT,
     ): TreeLayout {
+        val rowHeight = nodeHeight + TreeMetrics.LEVEL_GAP
         if (focusId !in snapshot.people) return TreeLayout()
 
         val included = collect(snapshot, focusId, generationsUp, generationsDown)
@@ -51,7 +53,7 @@ object TreeLayoutEngine {
         val unitOf = mutableMapOf<String, Unit>()
         val unitsByLevel = mutableMapOf<Int, MutableList<Unit>>()
         levels.entries.groupBy({ it.value }, { it.key }).forEach { (level, ids) ->
-            buildUnits(ids.toSet(), snapshot).forEach { unit ->
+            buildUnits(ids.toSet(), snapshot, nodeWidth).forEach { unit ->
                 unit.members.forEach { unitOf[it] = unit }
                 unitsByLevel.getOrPut(level) { mutableListOf() } += unit
             }
@@ -82,7 +84,7 @@ object TreeLayoutEngine {
         val minLevel = levels.values.minOrNull() ?: 0
         allUnits.forEach { it.x += TreeMetrics.MARGIN - minX }
 
-        fun yOf(level: Int) = TreeMetrics.MARGIN + (level - minLevel) * TreeMetrics.ROW_HEIGHT
+        fun yOf(level: Int) = TreeMetrics.MARGIN + (level - minLevel) * rowHeight
 
         val nodes = levels.mapNotNull { (id, level) ->
             val person = snapshot.people[id] ?: return@mapNotNull null
@@ -92,16 +94,17 @@ object TreeLayoutEngine {
                 x = unitOf.getValue(id).xOf(id),
                 y = yOf(level),
                 isFocus = id == focusId,
+                width = nodeWidth,
+                height = nodeHeight,
             )
         }.sortedBy { it.level }
 
         return TreeLayout(
             nodes = nodes,
-            spouseLinks = spouseLinks(unitsByLevel, ::yOf),
-            descentLinks = descentLinks(included, unitOf, levels, ::yOf),
+            spouseLinks = spouseLinks(unitsByLevel, nodeWidth, nodeHeight, ::yOf),
+            descentLinks = descentLinks(included, unitOf, levels, nodeWidth, nodeHeight, ::yOf),
             width = (allUnits.maxOfOrNull { it.x + it.width } ?: 0f) + TreeMetrics.MARGIN,
-            height = yOf(levels.values.maxOrNull() ?: 0) +
-                TreeMetrics.NODE_HEIGHT + TreeMetrics.MARGIN,
+            height = yOf(levels.values.maxOrNull() ?: 0) + nodeHeight + TreeMetrics.MARGIN,
             focusId = focusId,
             truncated = included.truncated,
         )
@@ -181,7 +184,11 @@ object TreeLayoutEngine {
 
     // ------------------------------------------------------------------ units
 
-    private fun buildUnits(ids: Set<String>, snapshot: FamilySnapshot): List<Unit> {
+    private fun buildUnits(
+        ids: Set<String>,
+        snapshot: FamilySnapshot,
+        nodeWidth: Float,
+    ): List<Unit> {
         val remaining = ids.toMutableSet()
         val units = mutableListOf<Unit>()
 
@@ -198,8 +205,17 @@ object TreeLayoutEngine {
             remaining -= group
 
             // The person with the most partners sits in the middle, so someone who married twice
-            // has a spouse on each side rather than both crowded to one.
-            val ordered = group.sortedByDescending { snapshot.spousesOf[it].orEmpty().count { s -> s in group } }
+            // has a spouse on each side rather than both crowded to one. Ties are broken by birth
+            // and then by id so the order is the same every time: a chart that reshuffles its
+            // couples when the screen rotates is disorienting for no reason.
+            val ordered = group.sortedWith(
+                compareByDescending<String> { id ->
+                    snapshot.spousesOf[id].orEmpty().count { it in group }
+                }.thenBy { id ->
+                    snapshot.people[id]?.birthDate?.let { PartialDate.parse(it)?.year }
+                        ?: Int.MAX_VALUE
+                }.thenBy { it }
+            )
             val members = when (ordered.size) {
                 1, 2 -> ordered
                 else -> {
@@ -208,7 +224,7 @@ object TreeLayoutEngine {
                     rest.take(rest.size / 2) + hub + rest.drop(rest.size / 2)
                 }
             }
-            units += Unit(members)
+            units += Unit(members, nodeWidth)
         }
         return units
     }
@@ -326,14 +342,16 @@ object TreeLayoutEngine {
 
     private fun spouseLinks(
         unitsByLevel: Map<Int, List<Unit>>,
+        nodeWidth: Float,
+        nodeHeight: Float,
         yOf: (Int) -> Float,
     ): List<SpouseLink> = unitsByLevel.flatMap { (level, units) ->
         units.flatMap { unit ->
             unit.members.zipWithNext { a, b ->
                 SpouseLink(
-                    fromX = unit.xOf(a) + TreeMetrics.NODE_WIDTH,
+                    fromX = unit.xOf(a) + nodeWidth,
                     toX = unit.xOf(b),
-                    y = yOf(level) + TreeMetrics.NODE_HEIGHT / 2f,
+                    y = yOf(level) + nodeHeight / 2f,
                 )
             }
         }
@@ -343,6 +361,8 @@ object TreeLayoutEngine {
         included: Included,
         unitOf: Map<String, Unit>,
         levels: Map<String, Int>,
+        nodeWidth: Float,
+        nodeHeight: Float,
         yOf: (Int) -> Float,
     ): List<DescentLink> = included.families.mapNotNull { (parents, children) ->
         val parentLevel = parents.firstNotNullOfOrNull { levels[it] } ?: return@mapNotNull null
@@ -351,14 +371,14 @@ object TreeLayoutEngine {
 
         val parentXs = parents.mapNotNull { id -> unitOf[id]?.xOf(id) }
         if (parentXs.isEmpty()) return@mapNotNull null
-        val originX = parentXs.map { it + TreeMetrics.NODE_WIDTH / 2f }.average().toFloat()
+        val originX = parentXs.map { it + nodeWidth / 2f }.average().toFloat()
 
         val childXs = children
-            .mapNotNull { id -> unitOf[id]?.xOf(id)?.plus(TreeMetrics.NODE_WIDTH / 2f) }
+            .mapNotNull { id -> unitOf[id]?.xOf(id)?.plus(nodeWidth / 2f) }
             .sorted()
         if (childXs.isEmpty()) return@mapNotNull null
 
-        val parentBottom = yOf(parentLevel) + TreeMetrics.NODE_HEIGHT
+        val parentBottom = yOf(parentLevel) + nodeHeight
         val childTop = yOf(childLevel)
         DescentLink(
             originX = originX,

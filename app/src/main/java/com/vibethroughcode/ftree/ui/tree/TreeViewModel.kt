@@ -7,6 +7,7 @@ import com.vibethroughcode.ftree.data.FamilyRepository
 import com.vibethroughcode.ftree.data.Person
 import com.vibethroughcode.ftree.graph.TreeLayout
 import com.vibethroughcode.ftree.graph.TreeLayoutEngine
+import com.vibethroughcode.ftree.graph.TreeMetrics
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -25,6 +26,7 @@ data class TreeUiState(
     val treeIsEmpty: Boolean = false,
     val generationsUp: Int = DEFAULT_GENERATIONS,
     val generationsDown: Int = DEFAULT_GENERATIONS,
+    val textScale: Float = 1f,
 ) {
     companion object {
         const val DEFAULT_GENERATIONS = 3
@@ -68,6 +70,16 @@ class TreeViewModel(
         refresh()
     }
 
+    /**
+     * Tells the chart how large the reader's text is, so cards can grow to hold their words rather
+     * than letting them spill out. Only a real change triggers a relayout.
+     */
+    fun onTextScaleChanged(scale: Float) {
+        if (scale == _uiState.value.textScale) return
+        _uiState.update { it.copy(textScale = scale) }
+        refresh()
+    }
+
     fun showMoreGenerations() {
         _uiState.update {
             it.copy(generationsUp = it.generationsUp + 2, generationsDown = it.generationsDown + 2)
@@ -92,11 +104,14 @@ class TreeViewModel(
                     generationsUp = state.generationsUp,
                     generationsDown = state.generationsDown,
                 )
+                val (nodeWidth, nodeHeight) = TreeMetrics.nodeSizeFor(state.textScale)
                 TreeLayoutEngine.layout(
                     snapshot = snapshot,
                     focusId = anchor,
                     generationsUp = state.generationsUp,
                     generationsDown = state.generationsDown,
+                    nodeWidth = nodeWidth,
+                    nodeHeight = nodeHeight,
                 )
             }
             _uiState.update { it.copy(layout = layout, loading = false, treeIsEmpty = false) }

@@ -118,8 +118,6 @@ fun FamilyChart(
         }
     }
 
-    val nodeWidthPx = with(density) { TreeMetrics.NODE_WIDTH.dp.toPx() }
-    val nodeHeightPx = with(density) { TreeMetrics.NODE_HEIGHT.dp.toPx() }
     val cornerPx = with(density) { 10.dp.toPx() }
     val rulePx = with(density) { 1.5.dp.toPx() }
     val spouseGapPx = with(density) { 2.dp.toPx() }
@@ -159,7 +157,7 @@ fun FamilyChart(
             top = -currentPan.y / currentZoom / unitPx,
             right = (size.width - currentPan.x) / currentZoom / unitPx,
             bottom = (size.height - currentPan.y) / currentZoom / unitPx,
-        ).inflate(TreeMetrics.NODE_WIDTH)
+        ).inflate(TreeMetrics.NODE_WIDTH * 2f)
 
         translate(currentPan.x, currentPan.y) {
             scale(currentZoom, currentZoom, Offset.Zero) {
@@ -198,16 +196,16 @@ fun FamilyChart(
                 }
 
                 layout.nodes.forEach { node ->
-                    if (node.x + TreeMetrics.NODE_WIDTH < visible.left || node.x > visible.right ||
-                        node.y + TreeMetrics.NODE_HEIGHT < visible.top || node.y > visible.bottom
+                    if (node.x + node.width < visible.left || node.x > visible.right ||
+                        node.y + node.height < visible.top || node.y > visible.bottom
                     ) return@forEach
 
                     drawPersonNode(
                         node = node,
                         left = node.x * unitPx,
                         top = node.y * unitPx,
-                        width = nodeWidthPx,
-                        height = nodeHeightPx,
+                        width = node.width * unitPx,
+                        height = node.height * unitPx,
                         measurer = measurer,
                         surface = if (node.isFocus) colors.primaryContainer else colors.surface,
                         onSurface = if (node.isFocus) colors.onPrimaryContainer else colors.onSurface,
