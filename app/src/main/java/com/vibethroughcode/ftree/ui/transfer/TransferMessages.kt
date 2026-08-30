@@ -9,6 +9,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.vibethroughcode.ftree.R
+import com.vibethroughcode.ftree.transfer.ImportProblem
 import java.time.LocalDate
 
 /**
@@ -51,6 +52,34 @@ fun TransferMessages(
         }
 
         TransferOutcome.ExportFailed -> stringResource(R.string.export_failed)
+
+        is TransferOutcome.Imported -> {
+            val result = current.result
+            val base = if (result.peopleMerged > 0) {
+                stringResource(
+                    R.string.import_done_merged,
+                    result.peopleAdded,
+                    result.peopleMerged,
+                    result.relationshipsAdded,
+                )
+            } else {
+                stringResource(R.string.import_done, result.peopleAdded, result.relationshipsAdded)
+            }
+            // Conflicts are reported rather than hidden: the user should know something in the
+            // file disagreed with what they had, even though their own value was kept.
+            if (result.conflicts.isEmpty()) base
+            else base + " " + stringResource(R.string.import_conflicts, result.conflicts.size)
+        }
+
+        is TransferOutcome.ImportFailed -> stringResource(
+            when (current.problem) {
+                ImportProblem.NOT_AN_ARCHIVE -> R.string.import_failed_not_archive
+                ImportProblem.NOT_A_TREE_FILE -> R.string.import_failed_not_tree
+                ImportProblem.FROM_A_NEWER_VERSION -> R.string.import_failed_newer
+                ImportProblem.EMPTY -> R.string.import_failed_empty
+                ImportProblem.UNREADABLE -> R.string.import_failed_unreadable
+            }
+        )
     }
 
     LaunchedEffect(message) {
