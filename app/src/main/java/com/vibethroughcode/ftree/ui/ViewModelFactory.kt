@@ -9,6 +9,7 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import androidx.navigation.toRoute
 import com.vibethroughcode.ftree.FTreeApplication
 import com.vibethroughcode.ftree.data.FamilyRepository
+import com.vibethroughcode.ftree.data.PhotoStore
 import com.vibethroughcode.ftree.ui.people.PeopleViewModel
 import com.vibethroughcode.ftree.ui.person.PersonDetailViewModel
 import com.vibethroughcode.ftree.ui.person.PersonEditViewModel
@@ -17,6 +18,9 @@ import com.vibethroughcode.ftree.ui.tree.TreeViewModel
 
 private fun CreationExtras.repository(): FamilyRepository =
     (this[APPLICATION_KEY] as FTreeApplication).container.familyRepository
+
+private fun CreationExtras.photos(): PhotoStore =
+    (this[APPLICATION_KEY] as FTreeApplication).container.photoStore
 
 /**
  * Wires view models by hand.
@@ -34,7 +38,12 @@ object FTreeViewModels {
         }
         initializer {
             val handle: SavedStateHandle = createSavedStateHandle()
-            PersonEditViewModel(repository(), handle.toRoute<EditPersonRoute>().personId, handle)
+            PersonEditViewModel(
+                repository = repository(),
+                photos = photos(),
+                personId = handle.toRoute<EditPersonRoute>().personId,
+                savedStateHandle = handle,
+            )
         }
         initializer {
             val route = createSavedStateHandle().toRoute<AddRelativeRoute>()
