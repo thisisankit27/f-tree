@@ -6,7 +6,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.vibethroughcode.ftree.R
 import java.time.LocalDate
@@ -22,6 +22,10 @@ fun defaultExportName(today: LocalDate = LocalDate.now()): String = "family-tree
  *
  * Success is stated in terms of what was written, because "exported" alone gives no way to tell a
  * complete file from an empty one.
+ *
+ * The message is resolved during composition rather than inside the effect, so it follows the
+ * current configuration — a language or locale change while the snackbar is up re-reads the right
+ * string instead of showing a stale one.
  */
 @Composable
 fun TransferMessages(
@@ -29,32 +33,29 @@ fun TransferMessages(
     snackbarHostState: SnackbarHostState = remember { SnackbarHostState() },
 ) {
     val outcome by viewModel.outcome.collectAsStateWithLifecycle()
-    val context = LocalContext.current
 
-    LaunchedEffect(outcome) {
-        val current = outcome ?: return@LaunchedEffect
-        val message = when (current) {
-            is TransferOutcome.Exported -> {
-                val summary = current.summary
-                if (summary.photos > 0) {
-                    context.getString(
-                        R.string.export_done_photos,
-                        summary.people,
-                        summary.relationships,
-                        summary.photos,
-                    )
-                } else {
-                    context.getString(R.string.export_done, summary.people, summary.relationships)
-                }
+    val message: String? = when (val current = outcome) {
+        null -> null
+        is TransferOutcome.Exported -> {
+            val summary = current.summary
+            if (summary.photos > 0) {
+                stringResource(
+                    R.string.export_done_photos,
+                    summary.people,
+                    summary.relationships,
+                    summary.photos,
+                )
+            } else {
+                stringResource(R.string.export_done, summary.people, summary.relationships)
             }
-
-            TransferOutcome.ExportFailed -> context.getString(R.string.export_failed)
         }
-        snackbarHostState.showMessage(message)
+
+        TransferOutcome.ExportFailed -> stringResource(R.string.export_failed)
+    }
+
+    LaunchedEffect(message) {
+        if (message == null) return@LaunchedEffect
+        snackbarHostState.showSnackbar(message = message, duration = SnackbarDuration.Long)
         viewModel.clearOutcome()
     }
-}
-
-private suspend fun SnackbarHostState.showMessage(message: String) {
-    showSnackbar(message = message, duration = SnackbarDuration.Long)
 }
