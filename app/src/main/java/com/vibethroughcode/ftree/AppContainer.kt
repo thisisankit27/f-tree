@@ -6,6 +6,7 @@ import com.vibethroughcode.ftree.data.FamilyRepository
 import com.vibethroughcode.ftree.data.PhotoStore
 import com.vibethroughcode.ftree.transfer.TreeExporter
 import com.vibethroughcode.ftree.transfer.TreeIdentity
+import com.vibethroughcode.ftree.transfer.TreeImporter
 
 /**
  * Hand-rolled dependency wiring.
@@ -21,4 +22,14 @@ class AppContainer(context: Context) {
     val photoStore: PhotoStore by lazy { PhotoStore(context.applicationContext) }
     val treeIdentity: TreeIdentity by lazy { TreeIdentity(context.applicationContext) }
     val exporter: TreeExporter by lazy { TreeExporter(familyRepository, photoStore, treeIdentity) }
+    val importer: TreeImporter by lazy {
+        TreeImporter(
+            database = database,
+            repository = familyRepository,
+            photos = photoStore,
+            identity = treeIdentity,
+            exporter = exporter,
+            workingDirectory = context.applicationContext.filesDir,
+        )
+    }
 }

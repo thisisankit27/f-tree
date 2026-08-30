@@ -35,7 +35,11 @@ object FTreeViewModels {
         initializer { TreeViewModel(repository(), createSavedStateHandle()) }
         initializer {
             val app = this[APPLICATION_KEY] as FTreeApplication
-            TransferViewModel(app.container.exporter, app.contentResolver)
+            TransferViewModel(
+                exporter = app.container.exporter,
+                importer = app.container.importer,
+                contentResolver = app.contentResolver,
+            )
         }
         initializer {
             val handle: SavedStateHandle = createSavedStateHandle()

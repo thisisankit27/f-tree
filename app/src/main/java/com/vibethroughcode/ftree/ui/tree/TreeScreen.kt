@@ -59,6 +59,9 @@ import com.vibethroughcode.ftree.ui.common.TreeGlyph
 import com.vibethroughcode.ftree.ui.common.displayName
 import com.vibethroughcode.ftree.ui.common.relativeKindLabel
 import com.vibethroughcode.ftree.transfer.TreeDocument
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
+import com.vibethroughcode.ftree.ui.transfer.ImportReviewScreen
 import com.vibethroughcode.ftree.ui.transfer.TransferMessages
 import com.vibethroughcode.ftree.ui.transfer.TransferViewModel
 import com.vibethroughcode.ftree.ui.transfer.defaultExportName
@@ -67,6 +70,7 @@ const val TreePeopleButtonTag = "tree-people"
 const val TreeAddButtonTag = "tree-add"
 const val TreeMenuTag = "tree-menu"
 const val TreeExportTag = "tree-export"
+const val TreeImportTag = "tree-import"
 const val TreeFocusHereTag = "tree-focus-here"
 const val TreeOpenPersonTag = "tree-open-person"
 
@@ -92,7 +96,18 @@ fun TreeScreen(
         ActivityResultContracts.CreateDocument(TreeDocument.MIME_TYPE)
     ) { uri -> uri?.let(transferViewModel::export) }
 
+    // Any type is accepted: providers disagree about what a .ftree file is, and refusing to show
+    // the user's own export because a provider called it octet-stream would be absurd. The file
+    // itself is validated on read.
+    val importPicker = rememberLauncherForActivityResult(
+        ActivityResultContracts.OpenDocument()
+    ) { uri -> uri?.let(transferViewModel::prepareImport) }
+
     TransferMessages(transferViewModel, snackbarHostState)
+
+    val importPlan by transferViewModel.plan.collectAsStateWithLifecycle()
+    val importDecisions by transferViewModel.decisions.collectAsStateWithLifecycle()
+    val allPeople by viewModel.allPeople.collectAsStateWithLifecycle()
     val sheetState = rememberModalBottomSheetState()
 
     Scaffold(
@@ -135,6 +150,14 @@ fun TreeScreen(
                             modifier = Modifier.testTag(TreeExportTag),
                         )
                         DropdownMenuItem(
+                            text = { Text(stringResource(R.string.import_tree)) },
+                            onClick = {
+                                menuOpen = false
+                                importPicker.launch(arrayOf("*/*"))
+                            },
+                            modifier = Modifier.testTag(TreeImportTag),
+                        )
+                        DropdownMenuItem(
                             text = { Text(stringResource(R.string.about)) },
                             onClick = { menuOpen = false; onAbout() },
                         )
@@ -170,6 +193,29 @@ fun TreeScreen(
                     onSelect = { selected = it },
                 )
             }
+        }
+    }
+
+    // Shown over the chart rather than as a navigation destination: the plan is a live object that
+    // cannot be handed through a route, and backing out must leave the tree untouched.
+    importPlan?.let { plan ->
+        Dialog(
+            onDismissRequest = transferViewModel::cancelImport,
+            properties = DialogProperties(
+                usePlatformDefaultWidth = false,
+                // Fills the screen properly instead of leaving the scrim showing behind the
+                // status and navigation bars.
+                decorFitsSystemWindows = false,
+            ),
+        ) {
+            ImportReviewScreen(
+                plan = plan,
+                decisions = importDecisions,
+                localPeople = allPeople,
+                onDecision = transferViewModel::setDecision,
+                onConfirm = transferViewModel::confirmImport,
+                onCancel = transferViewModel::cancelImport,
+            )
         }
     }
 

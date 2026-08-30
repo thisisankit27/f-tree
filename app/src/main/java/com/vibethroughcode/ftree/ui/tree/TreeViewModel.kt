@@ -4,12 +4,16 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.vibethroughcode.ftree.data.FamilyRepository
+import com.vibethroughcode.ftree.data.Person
 import com.vibethroughcode.ftree.graph.TreeLayout
 import com.vibethroughcode.ftree.graph.TreeLayoutEngine
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -42,6 +46,14 @@ class TreeViewModel(
     var focusId: String?
         get() = savedStateHandle[FOCUS_KEY]
         private set(value) { savedStateHandle[FOCUS_KEY] = value }
+
+    /**
+     * Everyone, keyed by id — used only by the import review, which has to show what each proposed
+     * match would be merged into.
+     */
+    val allPeople: StateFlow<Map<String, Person>> = repository.observeAllPeople()
+        .map { people -> people.associateBy { it.id } }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyMap())
 
     init {
         refresh()
