@@ -24,6 +24,7 @@ import com.vibethroughcode.ftree.ui.person.EditNameFieldTag
 import com.vibethroughcode.ftree.ui.person.EditSaveTag
 import com.vibethroughcode.ftree.ui.person.PersonDeleteTag
 import com.vibethroughcode.ftree.ui.person.PersonEditTag
+import com.vibethroughcode.ftree.ui.tree.TreePeopleButtonTag
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
@@ -64,6 +65,12 @@ class PersonFlowTest {
 
     private fun goBack() {
         rule.onNodeWithContentDescription("Back").performClick()
+        rule.waitForIdle()
+    }
+
+    /** Home is the chart; the list of everyone is one tap away from it. */
+    private fun openPeopleList() {
+        rule.onNodeWithTag(TreePeopleButtonTag).performClick()
         rule.waitForIdle()
     }
 
@@ -137,6 +144,7 @@ class PersonFlowTest {
     fun peopleAreListedAndSearchable() {
         addFirstPerson("Ankit Kumar")
         goBack()
+        openPeopleList()
 
         rule.onNodeWithTag(PeopleAddFabTag).performClick()
         rule.waitForIdle()
@@ -177,10 +185,14 @@ class PersonFlowTest {
     fun dataSurvivesTheScreenBeingRecreated() {
         addFirstPerson("Ankit Kumar", "1990")
         goBack()
+        openPeopleList()
 
         rule.activity.runOnUiThread { rule.activity.recreate() }
         rule.waitForIdle()
 
+        // The list is asserted rather than the chart because chart text is painted onto a canvas
+        // and carries no semantics of its own. The navigation state survives recreation, so the
+        // list is still the screen in front of us.
         rule.onNodeWithText("Ankit Kumar").assertIsDisplayed()
     }
 }
