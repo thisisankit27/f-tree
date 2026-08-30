@@ -20,9 +20,10 @@ jobs:
           distribution: temurin
           java-version: '21'
 
+      # Installs cmdline-tools and accepts the SDK licences. The platform itself is left to
+      # AGP: platform 37 uses the new SDK minor-version id (`platforms;android-37.0`), which the
+      # runner's bundled cmdline-tools is too old to resolve.
       - uses: android-actions/setup-android@v3
-        with:
-          packages: 'platforms;android-37 build-tools;36.0.0'
 
       - uses: gradle/actions/setup-gradle@v4
 
