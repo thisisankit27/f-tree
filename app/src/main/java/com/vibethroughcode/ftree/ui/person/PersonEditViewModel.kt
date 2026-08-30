@@ -1,5 +1,6 @@
 package com.vibethroughcode.ftree.ui.person
 
+import android.net.Uri
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -7,6 +8,7 @@ import com.vibethroughcode.ftree.data.FamilyRepository
 import com.vibethroughcode.ftree.data.Gender
 import com.vibethroughcode.ftree.data.PartialDate
 import com.vibethroughcode.ftree.data.Person
+import com.vibethroughcode.ftree.data.PhotoStore
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -23,6 +25,7 @@ data class PersonEditUiState(
     val deathDate: String = "",
     val deceased: Boolean = false,
     val notes: String = "",
+    val photoId: String? = null,
     val isNew: Boolean = true,
     val loaded: Boolean = false,
     val birthProblem: DateProblem? = null,
@@ -38,6 +41,7 @@ data class PersonEditUiState(
 
 class PersonEditViewModel(
     private val repository: FamilyRepository,
+    private val photos: PhotoStore,
     private val personId: String?,
     savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
@@ -64,6 +68,7 @@ class PersonEditViewModel(
                             deathDate = person.deathDate.orEmpty(),
                             deceased = person.deceased,
                             notes = person.notes.orEmpty(),
+                            photoId = person.photoId,
                             isNew = false,
                             loaded = true,
                         )
@@ -76,6 +81,26 @@ class PersonEditViewModel(
     }
 
     fun onNameChange(value: String) = _uiState.update { it.copy(name = value, dirty = true) }
+
+    /**
+     * Copies a picked image into the app's own storage.
+     *
+     * The old photo is removed only after the new one is written, so a failed import never leaves
+     * the person with no picture at all.
+     */
+    fun onPhotoPicked(uri: Uri) {
+        viewModelScope.launch {
+            val saved = photos.save(uri) ?: return@launch
+            val previous = _uiState.value.photoId
+            _uiState.update { it.copy(photoId = saved, dirty = true) }
+            if (previous != null && previous != saved) photos.delete(previous)
+        }
+    }
+
+    fun onPhotoRemoved() {
+        // The file is not deleted until the change is saved, so backing out leaves it intact.
+        _uiState.update { it.copy(photoId = null, dirty = true) }
+    }
     fun onGenderChange(value: Gender) = _uiState.update { it.copy(gender = value, dirty = true) }
     fun onNotesChange(value: String) = _uiState.update { it.copy(notes = value, dirty = true) }
 
@@ -130,9 +155,15 @@ class PersonEditViewModel(
                 deathDate = state.deathDate.trim().ifBlank { null },
                 deceased = state.deceased,
                 notes = state.notes.trim().ifBlank { null },
+                photoId = state.photoId,
                 updatedAt = System.currentTimeMillis(),
             )
             if (original == null) repository.addPerson(updated) else repository.updatePerson(updated)
+
+            // Only now is a discarded photo actually removed from disk.
+            val removed = original?.photoId
+            if (removed != null && removed != state.photoId) photos.delete(removed)
+
             onSaved(updated.id)
         }
     }

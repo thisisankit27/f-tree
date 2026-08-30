@@ -27,7 +27,7 @@ class FamilyRepositoryTest {
         db = Room.inMemoryDatabaseBuilder(context, FTreeDatabase::class.java)
             .addCallback(FTreeDatabase.enforceForeignKeys)
             .build()
-        repository = FamilyRepository(db)
+        repository = FamilyRepository(db, PhotoStore(context))
     }
 
     @After

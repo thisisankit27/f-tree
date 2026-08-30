@@ -1,6 +1,21 @@
 package com.vibethroughcode.ftree.ui.person
 
+import android.net.Uri
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.filled.AddAPhoto
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import coil3.compose.AsyncImage
+import com.vibethroughcode.ftree.ui.common.photoFile
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -53,6 +68,8 @@ const val EditBornFieldTag = "edit-born"
 const val EditDiedFieldTag = "edit-died"
 const val EditNotesFieldTag = "edit-notes"
 const val EditSaveTag = "edit-save"
+const val EditPhotoTag = "edit-photo"
+const val EditPhotoRemoveTag = "edit-photo-remove"
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -103,6 +120,12 @@ fun PersonEditScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             Spacer(Modifier.height(4.dp))
+
+            PhotoField(
+                photoId = state.photoId,
+                onPick = viewModel::onPhotoPicked,
+                onRemove = viewModel::onPhotoRemoved,
+            )
 
             OutlinedTextField(
                 value = state.name,
@@ -242,6 +265,81 @@ private fun GenderChips(selected: Gender, onSelect: (Gender) -> Unit) {
                     onClick = { onSelect(gender) },
                     label = { Text(stringResource(label)) },
                 )
+            }
+        }
+    }
+}
+
+/**
+ * The photo control.
+ *
+ * Uses the system photo picker, which hands back one image the user chose and nothing else — so
+ * the app never asks for permission to read the gallery, and there is no permission prompt to
+ * explain or to have denied.
+ */
+@Composable
+private fun PhotoField(
+    photoId: String?,
+    onPick: (Uri) -> Unit,
+    onRemove: () -> Unit,
+) {
+    val picker = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia(),
+    ) { uri -> uri?.let(onPick) }
+
+    fun launch() = picker.launch(
+        PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+    )
+
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
+    ) {
+        if (photoId != null) {
+            AsyncImage(
+                model = LocalContext.current.photoFile(photoId),
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier
+                    .size(80.dp)
+                    .clip(CircleShape)
+                    .clickable(onClick = ::launch)
+                    .testTag(EditPhotoTag),
+            )
+        } else {
+            Box(
+                modifier = Modifier
+                    .size(80.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+                    .clickable(onClick = ::launch)
+                    .testTag(EditPhotoTag),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    Icons.Default.AddAPhoto,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+
+        Column {
+            TextButton(onClick = ::launch) {
+                Text(
+                    stringResource(
+                        if (photoId == null) R.string.photo_add else R.string.photo_change
+                    )
+                )
+            }
+            if (photoId != null) {
+                TextButton(onClick = onRemove, modifier = Modifier.testTag(EditPhotoRemoveTag)) {
+                    Text(
+                        text = stringResource(R.string.photo_remove),
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                }
             }
         }
     }

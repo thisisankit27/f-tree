@@ -3,6 +3,7 @@ package com.vibethroughcode.ftree
 import android.content.Context
 import com.vibethroughcode.ftree.data.FTreeDatabase
 import com.vibethroughcode.ftree.data.FamilyRepository
+import com.vibethroughcode.ftree.data.PhotoStore
 
 /**
  * Hand-rolled dependency wiring.
@@ -14,5 +15,6 @@ import com.vibethroughcode.ftree.data.FamilyRepository
 class AppContainer(context: Context) {
     /** Public so instrumented tests can call `clearAllTables()` between runs. */
     val database: FTreeDatabase by lazy { FTreeDatabase.build(context) }
-    val familyRepository: FamilyRepository by lazy { FamilyRepository(database) }
+    val familyRepository: FamilyRepository by lazy { FamilyRepository(database, photoStore) }
+    val photoStore: PhotoStore by lazy { PhotoStore(context.applicationContext) }
 }

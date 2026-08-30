@@ -134,6 +134,11 @@
     <string name="tree_loading">Laying out your family</string>
     <string name="a11y_chart">Family tree chart, centred on %1$s, showing %2$d people. Use the people list for a readable list of everyone and their relationships.</string>
 
+    <!-- Photos -->
+    <string name="photo_add">Add a photo</string>
+    <string name="photo_change">Change photo</string>
+    <string name="photo_remove">Remove photo</string>
+
     <!-- Shared -->
     <string name="a11y_person_avatar">Photo of %1$s</string>
     <string name="a11y_unknown_avatar">Unknown person</string>

@@ -20,6 +20,11 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import coil3.compose.AsyncImage
+import com.vibethroughcode.ftree.data.PhotoStore
+import java.io.File
 import com.vibethroughcode.ftree.R
 import com.vibethroughcode.ftree.data.Person
 import com.vibethroughcode.ftree.ui.theme.FTreeTheme
@@ -42,6 +47,22 @@ fun PersonAvatar(
         stringResource(R.string.a11y_unknown_avatar)
     } else {
         stringResource(R.string.a11y_person_avatar, person.name!!)
+    }
+
+    val photo = person.photoId
+    if (photo != null) {
+        // Coil decodes lazily and caches, so a long list of faces costs one decode each rather
+        // than a bitmap per row held in memory.
+        AsyncImage(
+            model = LocalContext.current.photoFile(photo),
+            contentDescription = description,
+            contentScale = ContentScale.Crop,
+            modifier = modifier
+                .size(diameter)
+                .clip(CircleShape)
+                .background(MaterialTheme.colorScheme.surfaceContainerHigh),
+        )
+        return
     }
 
     if (person.isUnnamed) {
@@ -92,3 +113,13 @@ fun PersonAvatar(
         }
     }
 }
+
+
+/**
+ * Resolves a stored photo id to a file.
+ *
+ * The database holds only the file name, so the path is rebuilt here rather than persisted —
+ * which is what lets photos survive a reinstall or a restore onto another device.
+ */
+internal fun android.content.Context.photoFile(photoId: String): File =
+    File(File(filesDir, PhotoStore.DIRECTORY), photoId)

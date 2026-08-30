@@ -27,6 +27,7 @@ enum class DeletionMode {
  */
 class FamilyRepository(
     private val db: FTreeDatabase,
+    private val photos: PhotoStore,
     private val people: PersonDao = db.personDao(),
     private val relationships: RelationshipDao = db.relationshipDao(),
     private val origins: PersonOriginDao = db.personOriginDao(),
@@ -75,11 +76,17 @@ class FamilyRepository(
         people.update(person.copy(updatedAt = System.currentTimeMillis()))
     }
 
-    suspend fun deletePerson(id: String, mode: DeletionMode) = db.withTransaction {
-        when (mode) {
-            DeletionMode.KEEP_AS_UNKNOWN -> people.clearDetails(id)
-            DeletionMode.DELETE_COMPLETELY -> people.deleteById(id)
+    suspend fun deletePerson(id: String, mode: DeletionMode) {
+        // Read the photo before the row goes, so the file can be cleaned up afterwards rather
+        // than being left behind as an orphan nothing will ever reference again.
+        val photoId = people.findById(id)?.photoId
+        db.withTransaction {
+            when (mode) {
+                DeletionMode.KEEP_AS_UNKNOWN -> people.clearDetails(id)
+                DeletionMode.DELETE_COMPLETELY -> people.deleteById(id)
+            }
         }
+        photos.delete(photoId)
     }
 
     /**
