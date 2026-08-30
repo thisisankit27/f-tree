@@ -264,6 +264,39 @@ class TreeLayoutEngineTest {
     }
 
     @Test
+    fun `the same family always lays out the same way`() {
+        val snapshot = nuclearFamily()
+
+        val first = TreeLayoutEngine.layout(snapshot, "me")
+        val second = TreeLayoutEngine.layout(snapshot, "me")
+
+        // A chart that reshuffles its couples between two identical runs -- on rotation, say --
+        // is disorienting for no reason.
+        assertEquals(
+            first.nodes.map { it.person.id to it.x },
+            second.nodes.map { it.person.id to it.x },
+        )
+    }
+
+    @Test
+    fun `cards grow with the reader's text size`() {
+        val snapshot = nuclearFamily()
+
+        val normal = TreeLayoutEngine.layout(snapshot, "me")
+        val (wide, tall) = TreeMetrics.nodeSizeFor(1.8f)
+        val large = TreeLayoutEngine.layout(snapshot, "me", nodeWidth = wide, nodeHeight = tall)
+
+        assertTrue(large.node("me")!!.width > normal.node("me")!!.width)
+        assertTrue(large.height > normal.height)
+        // And nothing overlaps at the larger size either.
+        large.nodes.groupBy { it.level }.forEach { (_, row) ->
+            row.sortedBy { it.x }.zipWithNext { left, right ->
+                assertTrue(right.x >= left.x + left.width - 0.01f)
+            }
+        }
+    }
+
+    @Test
     fun `a wide family stays laid out in reasonable time`() {
         val builder = Builder()
         builder.person("root", "1900")
