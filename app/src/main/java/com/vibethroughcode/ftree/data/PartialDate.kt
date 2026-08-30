@@ -2,6 +2,9 @@ package com.vibethroughcode.ftree.data
 
 import java.time.DateTimeException
 import java.time.LocalDate
+import java.time.format.DateTimeFormatter
+import java.time.format.FormatStyle
+import java.util.Locale
 
 /**
  * A date that may be known only to the year or the month.
@@ -38,6 +41,20 @@ data class PartialDate(
     /** True when the two dates could describe the same day, allowing for differing precision. */
     fun isCompatibleWith(other: PartialDate): Boolean =
         !earliest().isAfter(other.latest()) && !other.earliest().isAfter(latest())
+
+    /**
+     * How the date reads to a person: `1938`, `April 1938`, `17 April 1938`.
+     *
+     * Only as precise as what is known — showing `1938-01-01` for "sometime in 1938" would be
+     * claiming a day nobody recorded.
+     */
+    fun display(locale: Locale = Locale.getDefault()): String = when {
+        month == null -> year.toString()
+        day == null -> DateTimeFormatter.ofPattern("LLLL yyyy", locale).format(earliest())
+        else -> DateTimeFormatter.ofLocalizedDate(FormatStyle.LONG)
+            .withLocale(locale)
+            .format(earliest())
+    }
 
     override fun compareTo(other: PartialDate): Int = earliest().compareTo(other.earliest())
 
