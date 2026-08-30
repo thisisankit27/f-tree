@@ -38,12 +38,14 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -108,6 +110,10 @@ fun TreeScreen(
     val importPlan by transferViewModel.plan.collectAsStateWithLifecycle()
     val importDecisions by transferViewModel.decisions.collectAsStateWithLifecycle()
     val allPeople by viewModel.allPeople.collectAsStateWithLifecycle()
+
+    // The chart is drawn, not composed, so it has to be told about the reader's text size itself.
+    val textScale = LocalDensity.current.fontScale
+    LaunchedEffect(textScale) { viewModel.onTextScaleChanged(textScale) }
     val sheetState = rememberModalBottomSheetState()
 
     Scaffold(
