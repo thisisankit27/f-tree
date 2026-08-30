@@ -44,9 +44,21 @@ class FamilyRepository(
     fun observeEdgesOf(id: String): Flow<List<Relationship>> = relationships.observeEdgesOf(id)
 
     suspend fun person(id: String): Person? = people.findById(id)
+
+    /** Who the chart should open on when the user has not chosen. */
+    suspend fun mostConnectedPersonId(): String? = people.mostConnectedPersonId()
     suspend fun relationshipCount(id: String): Int = relationships.edgeCount(id)
 
     suspend fun edgesBetween(a: String, b: String): List<Relationship> = relationships.edgesBetween(a, b)
+
+    private val neighbourhood = NeighbourhoodLoader(people, relationships)
+
+    /** The bounded slice of the tree the chart draws. */
+    suspend fun loadNeighbourhood(
+        focusId: String,
+        generationsUp: Int,
+        generationsDown: Int,
+    ) = neighbourhood.load(focusId, generationsUp, generationsDown)
 
     suspend fun ancestorIdsOf(personId: String): Set<String> =
         FamilyGraph.ancestorsOf(personId) { relationships.parentIdsOf(it) }

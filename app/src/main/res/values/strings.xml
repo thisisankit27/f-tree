@@ -119,6 +119,21 @@
     <string name="rejected_cycle">That would make someone their own ancestor.</string>
     <string name="rejected_contradiction">They\'re already recorded as parent and child.</string>
 
+    <!-- Tree -->
+    <string name="tree_title">Family tree</string>
+    <string name="tree_people">All people</string>
+    <string name="tree_open_person">Open %1$s</string>
+    <string name="tree_focus_here">Centre the tree here</string>
+    <string name="tree_add_relative">Add a relative</string>
+    <string name="kind_parent">Parent</string>
+    <string name="kind_spouse">Spouse</string>
+    <string name="kind_child">Child</string>
+    <string name="kind_sibling">Sibling</string>
+    <string name="tree_more_generations">Show more generations</string>
+    <string name="tree_truncated">More generations exist beyond this view.</string>
+    <string name="tree_loading">Laying out your family</string>
+    <string name="a11y_chart">Family tree chart, centred on %1$s, showing %2$d people. Use the people list for a readable list of everyone and their relationships.</string>
+
     <!-- Shared -->
     <string name="a11y_person_avatar">Photo of %1$s</string>
     <string name="a11y_unknown_avatar">Unknown person</string>

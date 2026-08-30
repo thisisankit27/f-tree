@@ -95,6 +95,35 @@ interface RelationshipDao {
     @Query("SELECT toPersonId FROM relationships WHERE fromPersonId = :personId AND type = 'PARENT'")
     suspend fun childIdsOf(personId: String): List<String>
 
+    @Query("SELECT DISTINCT fromPersonId FROM relationships WHERE toPersonId IN (:ids) AND type = 'PARENT'")
+    suspend fun parentIdsOfAll(ids: List<String>): List<String>
+
+    @Query("SELECT DISTINCT toPersonId FROM relationships WHERE fromPersonId IN (:ids) AND type = 'PARENT'")
+    suspend fun childIdsOfAll(ids: List<String>): List<String>
+
+    @Query(
+        """
+        SELECT DISTINCT CASE WHEN fromPersonId IN (:ids) THEN toPersonId ELSE fromPersonId END
+        FROM relationships
+        WHERE type = 'SPOUSE' AND (fromPersonId IN (:ids) OR toPersonId IN (:ids))
+        """
+    )
+    suspend fun spouseIdsOfAll(ids: List<String>): List<String>
+
+    /**
+     * Every edge whose *both* ends are in the given set.
+     *
+     * Deliberately not "every edge touching these people": the chart only draws connections between
+     * people it is already showing, and asking for the rest would pull in the whole tree.
+     */
+    @Query(
+        """
+        SELECT * FROM relationships
+        WHERE fromPersonId IN (:ids) AND toPersonId IN (:ids)
+        """
+    )
+    suspend fun edgesAmong(ids: List<String>): List<Relationship>
+
     @Query("SELECT fromPersonId FROM relationships WHERE toPersonId = :personId AND type = 'PARENT'")
     suspend fun parentIdsOf(personId: String): List<String>
 

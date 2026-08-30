@@ -64,6 +64,15 @@ fun addRelativeLabel(kind: RelativeKind): Int = when (kind) {
     RelativeKind.SIBLING -> R.string.add_sibling
 }
 
+/** The bare word for a relationship kind, for use in a chip or a menu. */
+@StringRes
+fun relativeKindLabel(kind: RelativeKind): Int = when (kind) {
+    RelativeKind.PARENT -> R.string.kind_parent
+    RelativeKind.SPOUSE -> R.string.kind_spouse
+    RelativeKind.CHILD -> R.string.kind_child
+    RelativeKind.SIBLING -> R.string.kind_sibling
+}
+
 @StringRes
 fun addRelativeTitle(kind: RelativeKind): Int = when (kind) {
     RelativeKind.PARENT -> R.string.add_relative_title_parent
