@@ -1,6 +1,7 @@
 package com.vibethroughcode.ftree.ui.common
 
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -25,18 +26,20 @@ import com.vibethroughcode.ftree.ui.theme.FTreeTheme
  * The name is set in the serif and the years in the mono, so a glance separates who someone is
  * from what is recorded about them, and the year column lines up down the list.
  */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun PersonRow(
     person: Person,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     supporting: String? = null,
+    onLongClick: (() -> Unit)? = null,
 ) {
     val accents = FTreeTheme.accents
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick)
+            .combinedClickable(onClick = onClick, onLongClick = onLongClick)
             // Comfortably above the 48dp minimum touch target, even at a single line.
             .defaultMinSize(minHeight = 64.dp)
             .padding(horizontal = 20.dp, vertical = 10.dp),

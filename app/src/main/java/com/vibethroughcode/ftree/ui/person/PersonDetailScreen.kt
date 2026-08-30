@@ -12,14 +12,17 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -38,10 +41,15 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.vibethroughcode.ftree.R
 import com.vibethroughcode.ftree.data.PartialDate
 import com.vibethroughcode.ftree.data.Person
+import com.vibethroughcode.ftree.data.RelativeKind
 import com.vibethroughcode.ftree.ui.FTreeViewModels
 import com.vibethroughcode.ftree.ui.common.PersonAvatar
 import com.vibethroughcode.ftree.ui.common.SectionRule
+import com.vibethroughcode.ftree.ui.common.PersonRow
+import com.vibethroughcode.ftree.ui.common.addRelativeLabel
 import com.vibethroughcode.ftree.ui.common.displayName
+import com.vibethroughcode.ftree.ui.common.relativeRoleLabel
+import com.vibethroughcode.ftree.ui.common.sectionTitle
 import com.vibethroughcode.ftree.ui.theme.FTreeText
 import com.vibethroughcode.ftree.ui.theme.FTreeTheme
 
@@ -54,11 +62,14 @@ const val PersonEditTag = "person-edit"
 fun PersonDetailScreen(
     onBack: () -> Unit,
     onEdit: (String) -> Unit,
+    onOpenPerson: (String) -> Unit,
+    onAddRelative: (String, RelativeKind) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: PersonDetailViewModel = viewModel(factory = FTreeViewModels.Factory),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     var confirmingDelete by remember { mutableStateOf(false) }
+    var pendingRemoval by remember { mutableStateOf<Person?>(null) }
 
     // A person can disappear underneath this screen — deleted here, or removed by an import — so
     // leaving is driven by the data rather than assumed at the moment of the tap.
@@ -109,22 +120,57 @@ fun PersonDetailScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 20.dp),
+                .verticalScroll(rememberScrollState()),
         ) {
-            PersonHeader(person)
+            PersonHeader(person, Modifier.padding(horizontal = 20.dp))
+
+            RelativeKind.entries.forEach { kind ->
+                RelativeSection(
+                    kind = kind,
+                    relatives = state.of(kind),
+                    onOpen = onOpenPerson,
+                    onAdd = { onAddRelative(viewModel.personId, kind) },
+                    onRemove = { other -> pendingRemoval = other },
+                )
+            }
 
             if (!person.notes.isNullOrBlank()) {
-                SectionRule(stringResource(R.string.person_notes))
+                SectionRule(
+                    label = stringResource(R.string.person_notes),
+                    modifier = Modifier.padding(horizontal = 20.dp),
+                )
                 Text(
                     text = person.notes!!,
                     style = MaterialTheme.typography.bodyMedium,
-                    modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 4.dp),
                 )
             }
 
             Spacer(Modifier.height(40.dp))
         }
+    }
+
+    pendingRemoval?.let { other ->
+        val subject = other.displayName()
+        val anchor = state.person?.displayName().orEmpty()
+        AlertDialog(
+            onDismissRequest = { pendingRemoval = null },
+            title = { Text(stringResource(R.string.remove_relationship_title)) },
+            text = { Text(stringResource(R.string.remove_relationship_body, subject, anchor)) },
+            confirmButton = {
+                TextButton(onClick = {
+                    viewModel.removeRelationshipWith(other.id)
+                    pendingRemoval = null
+                }) {
+                    Text(stringResource(R.string.remove_relationship_confirm))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { pendingRemoval = null }) {
+                    Text(stringResource(R.string.delete_cancel))
+                }
+            },
+        )
     }
 
     if (confirmingDelete) {
@@ -141,10 +187,10 @@ fun PersonDetailScreen(
 }
 
 @Composable
-private fun PersonHeader(person: Person) {
+private fun PersonHeader(person: Person, modifier: Modifier = Modifier) {
     val accents = FTreeTheme.accents
     Row(
-        modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+        modifier = modifier.fillMaxWidth().padding(top = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(20.dp),
     ) {
@@ -191,3 +237,52 @@ private fun LifeLine(person: Person) {
         }
     }
 }
+
+/**
+ * One group of relatives, headed by a ruled label with the add action on the rule itself.
+ *
+ * A section with nobody in it is still shown, because the empty rule is what tells you the
+ * question has been asked — an absent "Parents" heading reads as "not supported", while an empty
+ * one reads as "not recorded yet", which is the whole subject of this app.
+ */
+@Composable
+private fun RelativeSection(
+    kind: RelativeKind,
+    relatives: List<Person>,
+    onOpen: (String) -> Unit,
+    onAdd: () -> Unit,
+    onRemove: (Person) -> Unit,
+) {
+    SectionRule(
+        label = sectionTitle(kind, relatives.size),
+        modifier = Modifier.padding(horizontal = 20.dp),
+        trailing = {
+            IconButton(onClick = onAdd, modifier = Modifier.testTag(addSectionTag(kind))) {
+                Icon(
+                    Icons.Default.Add,
+                    contentDescription = stringResource(addRelativeLabel(kind)),
+                )
+            }
+        },
+    )
+
+    if (relatives.isEmpty()) {
+        Text(
+            text = stringResource(addRelativeLabel(kind)),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(start = 20.dp, bottom = 4.dp),
+        )
+    } else {
+        relatives.forEach { relative ->
+            PersonRow(
+                person = relative,
+                onClick = { onOpen(relative.id) },
+                onLongClick = { onRemove(relative) },
+                supporting = stringResource(relativeRoleLabel(kind, relative.gender)),
+            )
+        }
+    }
+}
+
+fun addSectionTag(kind: RelativeKind): String = "add-relative-" + kind.name.lowercase()

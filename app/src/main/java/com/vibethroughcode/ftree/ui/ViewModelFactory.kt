@@ -12,6 +12,7 @@ import com.vibethroughcode.ftree.data.FamilyRepository
 import com.vibethroughcode.ftree.ui.people.PeopleViewModel
 import com.vibethroughcode.ftree.ui.person.PersonDetailViewModel
 import com.vibethroughcode.ftree.ui.person.PersonEditViewModel
+import com.vibethroughcode.ftree.ui.relative.AddRelativeViewModel
 
 private fun CreationExtras.repository(): FamilyRepository =
     (this[APPLICATION_KEY] as FTreeApplication).container.familyRepository
@@ -32,6 +33,10 @@ object FTreeViewModels {
         initializer {
             val handle: SavedStateHandle = createSavedStateHandle()
             PersonEditViewModel(repository(), handle.toRoute<EditPersonRoute>().personId, handle)
+        }
+        initializer {
+            val route = createSavedStateHandle().toRoute<AddRelativeRoute>()
+            AddRelativeViewModel(repository(), route.anchorPersonId, route.kind)
         }
     }
 }

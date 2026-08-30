@@ -71,8 +71,63 @@
     <string name="deleted_toast">Deleted</string>
     <string name="kept_as_unknown_toast">Kept as an unknown person</string>
 
+    <!-- Relationships -->
+    <string name="section_parents">Parents</string>
+    <string name="section_children">Children</string>
+    <string name="section_siblings">Siblings</string>
+
+    <string name="role_father">Father</string>
+    <string name="role_mother">Mother</string>
+    <string name="role_parent">Parent</string>
+    <string name="role_husband">Husband</string>
+    <string name="role_wife">Wife</string>
+    <string name="role_spouse">Spouse</string>
+    <string name="role_son">Son</string>
+    <string name="role_daughter">Daughter</string>
+    <string name="role_child">Child</string>
+    <string name="role_brother">Brother</string>
+    <string name="role_sister">Sister</string>
+    <string name="role_sibling">Sibling</string>
+
+    <string name="add_parent">Add a parent</string>
+    <string name="add_spouse">Add a spouse</string>
+    <string name="add_child">Add a child</string>
+    <string name="add_sibling">Add a sibling</string>
+
+    <string name="add_relative_title_parent">Add a parent for %1$s</string>
+    <string name="add_relative_title_spouse">Add a spouse for %1$s</string>
+    <string name="add_relative_title_child">Add a child for %1$s</string>
+    <string name="add_relative_title_sibling">Add a sibling for %1$s</string>
+
+    <string name="add_relative_new">New person</string>
+    <string name="add_relative_new_detail">Add someone who isn\'t in your tree yet</string>
+    <string name="add_relative_unknown">Someone whose name I don\'t know</string>
+    <string name="add_relative_unknown_detail">Records the connection now; you can name them later</string>
+    <string name="add_relative_existing">In your tree</string>
+    <string name="add_relative_name_hint">Their name</string>
+    <string name="add_relative_save">Add</string>
+    <string name="add_relative_nobody_else">Nobody else is in your tree yet.</string>
+
+    <string name="relationship_removed">Relationship removed</string>
+    <string name="remove_relationship_title">Remove this relationship?</string>
+    <string name="remove_relationship_body">%1$s stays in your tree. Only the connection between them and %2$s is removed.</string>
+    <string name="remove_relationship_confirm">Remove</string>
+    <string name="remove_relationship_open">Open %1$s</string>
+
+    <string name="rejected_self">Someone can\'t be their own relative.</string>
+    <string name="rejected_duplicate">That relationship is already recorded.</string>
+    <string name="rejected_cycle">That would make someone their own ancestor.</string>
+    <string name="rejected_contradiction">They\'re already recorded as parent and child.</string>
+
     <!-- Shared -->
     <string name="a11y_person_avatar">Photo of %1$s</string>
     <string name="a11y_unknown_avatar">Unknown person</string>
     <string name="dash">—</string>
+
+    <!-- The only section header where the count changes the word; a person may have had
+         several spouses over their lifetime. -->
+    <plurals name="section_spouses">
+        <item quantity="one">Spouse</item>
+        <item quantity="other">Spouses</item>
+    </plurals>
 </resources>

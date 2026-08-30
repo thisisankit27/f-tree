@@ -26,6 +26,16 @@ interface RelationshipDao {
     @Query("SELECT COUNT(*) FROM relationships WHERE fromPersonId = :personId OR toPersonId = :personId")
     suspend fun edgeCount(personId: String): Int
 
+    /** Every edge directly joining two people, in either direction and of any type. */
+    @Query(
+        """
+        SELECT * FROM relationships
+        WHERE (fromPersonId = :a AND toPersonId = :b)
+           OR (fromPersonId = :b AND toPersonId = :a)
+        """
+    )
+    suspend fun edgesBetween(a: String, b: String): List<Relationship>
+
     @Query(
         """
         SELECT p.* FROM people p
