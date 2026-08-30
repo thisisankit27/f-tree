@@ -9,6 +9,10 @@ import kotlinx.serialization.Serializable
  * Serializable objects rather than string templates, so a missing or misspelled argument is a
  * compile error instead of a crash on a device.
  */
+/** The chart is home; it is what the app is for. */
+@Serializable
+data object TreeRoute
+
 @Serializable
 data object PeopleRoute
 

@@ -53,7 +53,8 @@ class RelationshipFlowTest {
 
     /** Adds a named relative of [kind] to whoever's page is open. */
     private fun addRelative(kind: RelativeKind, name: String) {
-        rule.onNodeWithTag(addSectionTag(kind)).performScrollTo().performClick()
+        rule.onNodeWithTag(addSectionTag(kind), useUnmergedTree = true)
+            .performScrollTo().performClick()
         rule.waitForIdle()
         rule.onNodeWithTag(AddRelativeNameTag).performTextInput(name)
         rule.onNodeWithTag(AddRelativeSaveTag).performScrollTo().performClick()
@@ -73,7 +74,8 @@ class RelationshipFlowTest {
 
     @Test
     fun aRelativeIsLabelledByTheRoleTheyPlay() {
-        rule.onNodeWithTag(addSectionTag(RelativeKind.PARENT)).performScrollTo().performClick()
+        rule.onNodeWithTag(addSectionTag(RelativeKind.PARENT), useUnmergedTree = true)
+            .performScrollTo().performClick()
         rule.waitForIdle()
         rule.onNodeWithTag(AddRelativeNameTag).performTextInput("Raj Kumar")
         rule.onNodeWithText("Male").performClick()
@@ -86,7 +88,8 @@ class RelationshipFlowTest {
 
     @Test
     fun aRelativeWhoseNameIsUnknownIsStillARealPerson() {
-        rule.onNodeWithTag(addSectionTag(RelativeKind.PARENT)).performScrollTo().performClick()
+        rule.onNodeWithTag(addSectionTag(RelativeKind.PARENT), useUnmergedTree = true)
+            .performScrollTo().performClick()
         rule.waitForIdle()
         rule.onNodeWithTag(AddRelativeUnknownTag).performScrollTo().performClick()
         rule.waitForIdle()
@@ -96,7 +99,8 @@ class RelationshipFlowTest {
 
     @Test
     fun anUnknownRelativeCanBeNamedLaterWithoutLosingTheConnection() {
-        rule.onNodeWithTag(addSectionTag(RelativeKind.PARENT)).performScrollTo().performClick()
+        rule.onNodeWithTag(addSectionTag(RelativeKind.PARENT), useUnmergedTree = true)
+            .performScrollTo().performClick()
         rule.waitForIdle()
         rule.onNodeWithTag(AddRelativeUnknownTag).performScrollTo().performClick()
         rule.waitForIdle()
@@ -148,7 +152,8 @@ class RelationshipFlowTest {
     fun aDescendantIsNotOfferedAsAPossibleParent() {
         addRelative(RelativeKind.CHILD, "Aarav")
 
-        rule.onNodeWithTag(addSectionTag(RelativeKind.PARENT)).performScrollTo().performClick()
+        rule.onNodeWithTag(addSectionTag(RelativeKind.PARENT), useUnmergedTree = true)
+            .performScrollTo().performClick()
         rule.waitForIdle()
 
         // Aarav could only ever be refused as a parent, so he is not offered at all.
@@ -160,7 +165,8 @@ class RelationshipFlowTest {
         addRelative(RelativeKind.PARENT, "Raj Kumar")
 
         // Try to add the same person as a parent a second time.
-        rule.onNodeWithTag(addSectionTag(RelativeKind.PARENT)).performScrollTo().performClick()
+        rule.onNodeWithTag(addSectionTag(RelativeKind.PARENT), useUnmergedTree = true)
+            .performScrollTo().performClick()
         rule.waitForIdle()
         rule.onNodeWithText("Raj Kumar").performScrollTo().performClick()
         rule.waitForIdle()

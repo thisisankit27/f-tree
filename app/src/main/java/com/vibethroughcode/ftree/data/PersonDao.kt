@@ -50,6 +50,25 @@ interface PersonDao {
     @Query("SELECT * FROM people")
     suspend fun allPeople(): List<Person>
 
+    /**
+     * The best person to open the chart on when nothing has been chosen yet.
+     *
+     * The most connected person is almost always the one who built the tree, or the ancestor they
+     * built it around — either way a far more useful first view than whoever happens to sort first,
+     * which tends to be a leaf with nothing above or below them.
+     */
+    @Query(
+        """
+        SELECT p.id FROM people p
+        LEFT JOIN relationships r
+          ON r.fromPersonId = p.id OR r.toPersonId = p.id
+        GROUP BY p.id
+        ORDER BY COUNT(r.id) DESC, p.createdAt ASC
+        LIMIT 1
+        """
+    )
+    suspend fun mostConnectedPersonId(): String?
+
     @Insert(onConflict = OnConflictStrategy.ABORT)
     suspend fun insert(person: Person)
 
