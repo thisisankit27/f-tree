@@ -44,6 +44,7 @@ import com.vibethroughcode.ftree.R
 import com.vibethroughcode.ftree.ui.FTreeViewModels
 import com.vibethroughcode.ftree.ui.common.EmptyState
 import com.vibethroughcode.ftree.ui.common.PersonRow
+import com.vibethroughcode.ftree.ui.common.peopleCount
 import com.vibethroughcode.ftree.ui.common.TreeGlyph
 import com.vibethroughcode.ftree.ui.theme.FTreeText
 
@@ -152,7 +153,7 @@ fun PeopleScreen(
                     }
                     item {
                         Text(
-                            text = stringResource(R.string.people_count, state.people.size),
+                            text = stringResource(R.string.people_count, peopleCount(state.people.size)),
                             style = FTreeText.recordSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.fillMaxWidth().padding(20.dp),

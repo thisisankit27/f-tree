@@ -10,6 +10,9 @@ import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.vibethroughcode.ftree.R
 import com.vibethroughcode.ftree.transfer.ImportProblem
+import com.vibethroughcode.ftree.ui.common.connectionCount
+import com.vibethroughcode.ftree.ui.common.peopleCount
+import com.vibethroughcode.ftree.ui.common.photoCount
 import java.time.LocalDate
 
 /**
@@ -42,12 +45,16 @@ fun TransferMessages(
             if (summary.photos > 0) {
                 stringResource(
                     R.string.export_done_photos,
-                    summary.people,
-                    summary.relationships,
-                    summary.photos,
+                    peopleCount(summary.people),
+                    connectionCount(summary.relationships),
+                    photoCount(summary.photos),
                 )
             } else {
-                stringResource(R.string.export_done, summary.people, summary.relationships)
+                stringResource(
+                    R.string.export_done,
+                    peopleCount(summary.people),
+                    connectionCount(summary.relationships),
+                )
             }
         }
 
@@ -58,12 +65,16 @@ fun TransferMessages(
             val base = if (result.peopleMerged > 0) {
                 stringResource(
                     R.string.import_done_merged,
-                    result.peopleAdded,
+                    peopleCount(result.peopleAdded),
                     result.peopleMerged,
-                    result.relationshipsAdded,
+                    connectionCount(result.relationshipsAdded),
                 )
             } else {
-                stringResource(R.string.import_done, result.peopleAdded, result.relationshipsAdded)
+                stringResource(
+                    R.string.import_done,
+                    peopleCount(result.peopleAdded),
+                    connectionCount(result.relationshipsAdded),
+                )
             }
             // Conflicts are reported rather than hidden: the user should know something in the
             // file disagreed with what they had, even though their own value was kept.

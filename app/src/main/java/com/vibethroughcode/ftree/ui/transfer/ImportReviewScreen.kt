@@ -38,6 +38,8 @@ import com.vibethroughcode.ftree.data.Person
 import com.vibethroughcode.ftree.transfer.ImportPlan
 import com.vibethroughcode.ftree.transfer.PersonMatch
 import com.vibethroughcode.ftree.transfer.PersonRecord
+import com.vibethroughcode.ftree.ui.common.connectionCount
+import com.vibethroughcode.ftree.ui.common.peopleCount
 import com.vibethroughcode.ftree.ui.theme.FTreeText
 
 const val ImportConfirmTag = "import-confirm"
@@ -94,26 +96,26 @@ fun ImportReviewScreen(
                     Text(
                         text = stringResource(
                             R.string.import_summary,
-                            plan.document.people.size,
-                            plan.document.relationships.size,
+                            peopleCount(plan.document.people.size),
+                            connectionCount(plan.document.relationships.size),
                         ),
                         style = MaterialTheme.typography.bodyLarge,
                     )
                     Text(
-                        text = stringResource(R.string.import_adds, adding),
+                        text = stringResource(R.string.import_adds, peopleCount(adding)),
                         style = FTreeText.record,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     if (merging > 0) {
                         Text(
-                            text = stringResource(R.string.import_merges, merging),
+                            text = stringResource(R.string.import_merges, peopleCount(merging)),
                             style = FTreeText.record,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
                     if (plan.certainMatches > 0) {
                         Text(
-                            text = stringResource(R.string.import_recognised, plan.certainMatches),
+                            text = stringResource(R.string.import_recognised, peopleCount(plan.certainMatches)),
                             style = FTreeText.record,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
