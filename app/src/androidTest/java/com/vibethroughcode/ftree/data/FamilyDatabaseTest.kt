@@ -165,6 +165,20 @@ class FamilyDatabaseTest {
     }
 
     @Test
+    fun childrenAreOrderedByBirthWithUnknownDatesLast() = runTest {
+        person("me")
+        person("youngest", "Youngest", birth = "2015")
+        person("unknown", "Unknown birthday")
+        person("eldest", "Eldest", birth = "2005")
+        listOf("youngest", "unknown", "eldest").forEach { parentOf("me", it) }
+
+        assertEquals(
+            listOf("Eldest", "Youngest", "Unknown birthday"),
+            edges.observeChildren("me").first().map { it.name },
+        )
+    }
+
+    @Test
     fun siblingsAreDerivedFromSharedParents() = runTest {
         person("father"); person("mother")
         person("me", "Me"); person("sister", "Sister")

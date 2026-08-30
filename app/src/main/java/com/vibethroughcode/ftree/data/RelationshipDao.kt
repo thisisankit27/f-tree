@@ -40,7 +40,7 @@ interface RelationshipDao {
         SELECT p.* FROM people p
         JOIN relationships r ON r.toPersonId = p.id
         WHERE r.fromPersonId = :personId AND r.type = 'PARENT'
-        ORDER BY p.birthDate
+        ORDER BY CASE WHEN p.birthDate IS NULL THEN 1 ELSE 0 END, p.birthDate
         """
     )
     fun observeChildren(personId: String): Flow<List<Person>>
