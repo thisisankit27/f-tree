@@ -265,6 +265,35 @@ Release builds are minified. **Always install and exercise a release build befor
 R8 has broken this app once already, by renaming an enum that navigation resolves by name and that
 the database persists by name. `app/proguard-rules.pro` explains what must be kept and why.
 
+## The site
+
+`site/` is the public landing page and install guide, deployed to GitHub Pages by
+`.github/workflows/pages.yml` on any push to `main` that touches it. There is no build step —
+edit the HTML and push.
+
+It reads version, size, release date, SHA-256 and the download count from the GitHub Releases API
+at run time, so cutting a release updates the site with no edit here, and the download count is
+real asset downloads rather than a third-party tracker. There is no analytics script on either
+page. Asset paths are relative, so the site works both at `thisisankit27.github.io/f-tree/` and at
+a custom domain.
+
+To preview it locally:
+
+```bash
+python3 -m http.server 8731 --directory site
+```
+
+### Custom domain
+
+The domain is claimed by a `site/CNAME` file. Add it only once DNS resolves — claiming it earlier
+redirects the working `github.io` URL to a hostname that does not answer yet. For a subdomain,
+add a `CNAME` record pointing `ftree` at `thisisankit27.github.io`, wait for it to resolve, then:
+
+```bash
+printf 'ftree.vibethroughcode.com' > site/CNAME
+git add site/CNAME && git commit -m "chore(site): claim the custom domain" && git push
+```
+
 ## Toolchain
 
 | | |
