@@ -14,3 +14,6 @@ local.properties
 /keystore.properties
 *.jks
 *.keystore
+
+# Playwright MCP scratch output
+.playwright-mcp/

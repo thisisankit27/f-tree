@@ -1,0 +1,55 @@
+name: Site
+
+# The landing page at site/ is a plain static site with no build step. It deploys from
+# the Actions artifact rather than a branch so it can live in site/ without colliding
+# with docs/, and so main stays the only branch in the repository.
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'site/**'
+      - '.github/workflows/pages.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Never cancel a deploy that is already publishing; queue behind it instead.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Check the pages are intact
+        run: |
+          set -euo pipefail
+          for f in site/index.html site/thanks/index.html site/style.css site/app.js; do
+            test -s "$f" || { echo "missing or empty: $f"; exit 1; }
+          done
+          # Every local asset referenced by the HTML must actually exist, so a renamed
+          # screenshot fails here rather than showing up as a broken image in public.
+          missing=0
+          while read -r page ref; do
+            case "$ref" in http*|mailto:*|\#*|data:*) continue ;; esac
+            target="$(dirname "$page")/${ref%%[?#]*}"
+            [ -e "$target" ] || { echo "broken reference in $page -> $ref"; missing=1; }
+          done < <(grep -oE '(src|href)="[^"]+"' -r site --include='*.html' \
+                   | sed -E 's/:(src|href)="/ /; s/"$//')
+          test "$missing" -eq 0
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v4
+        with:
+          path: site
+      - id: deploy
+        uses: actions/deploy-pages@v4
