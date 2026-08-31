@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Installing f-tree</title>
+<meta name="description" content="How to install the f-tree APK on Android: the browser warning, allowing installs from this source, the Play Protect prompt, and how to verify the file you downloaded.">
+<meta name="robots" content="noindex">
+<link rel="icon" href="../favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,600;0,7..72,700;1,7..72,400&family=JetBrains+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+
+<header class="masthead">
+  <div class="shell">
+    <a class="wordmark" href="../">
+      <svg width="26" height="26" viewBox="0 0 32 32" aria-hidden="true">
+        <rect width="32" height="32" rx="7" fill="#2A5138"/>
+        <g fill="none" stroke="#CDE6D5" stroke-width="1.7" stroke-linecap="round">
+          <circle cx="11" cy="9.5" r="3.1"/><circle cx="21" cy="9.5" r="3.1"/>
+          <path d="M14.1 9.5h3.8"/><path d="M16 12.6v3.4M9 16h14M9 16v2.6M23 16v2.6"/>
+          <circle cx="9" cy="22" r="3.1"/>
+          <circle cx="23" cy="22" r="3.1" stroke="#E3C38C" stroke-dasharray="2.2 2"/>
+        </g>
+      </svg>
+      f-tree
+    </a>
+    <nav><a class="nav-link" href="../">Back to the start</a></nav>
+  </div>
+</header>
+
+<main>
+
+<section class="band" style="padding-bottom:0">
+  <div class="shell" style="max-width:780px">
+    <p class="eyebrow">Thank you</p>
+    <h1 style="font-size:clamp(32px,4.6vw,48px);line-height:1.1;font-weight:600;letter-spacing:-0.02em;margin:0 0 18px">
+      That's f-tree on its way.
+    </h1>
+    <p class="lede" style="max-width:38em">
+      Android asks a few pointed questions before it will install an app that didn't come
+      from the Play Store. All of them are expected here. Below is each one, what it means,
+      and what to tap.
+    </p>
+
+    <p style="margin:28px 0 0">
+      <a class="btn btn-primary" id="apk-link"
+         href="https://github.com/thisisankit27/f-tree/releases/latest">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M12 3v12m0 0l-4.5-4.5M12 15l4.5-4.5M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/>
+        </svg>
+        Download the APK
+      </a>
+    </p>
+    <p class="status-line" id="dl-status">Starting your download…</p>
+  </div>
+</section>
+
+<section class="band">
+  <div class="shell" style="max-width:780px">
+    <h2 class="rule-label">Installing</h2>
+
+    <ol class="steps">
+      <li>
+        <h3>Your browser will call it risky</h3>
+        <p>
+          Chrome warns about every APK it ever downloads, regardless of what's in it, because
+          a file that can install software deserves a second look. Choose <b>Download</b> or
+          <b>Keep</b> to continue.
+        </p>
+        <p class="quote"><b>“This type of file can harm your device.”</b> — Download anyway</p>
+      </li>
+
+      <li>
+        <h3>Open the file and allow this one source</h3>
+        <p>
+          Tap the finished download in your notifications, or find it in <b>Files → Downloads</b>.
+          The first time an app installs something, Android asks whether that app is allowed to.
+          Turn the switch on, then come back with the back gesture.
+        </p>
+        <p class="quote">
+          <b>“For your security, your phone isn't allowed to install unknown apps from this
+          source.”</b> — Settings → Allow from this source → back
+        </p>
+        <p>
+          This permission belongs to whichever app opened the file — usually Chrome or Files —
+          not to f-tree. You can switch it back off afterwards.
+        </p>
+      </li>
+
+      <li>
+        <h3>Play Protect will want a word</h3>
+        <p>
+          Google scans apps it hasn't seen before. f-tree is new and installed by very few
+          people, so it has no reputation yet — that, and nothing else, is what this warning
+          is about. Choose <b>More details</b>, then <b>Install anyway</b>.
+        </p>
+        <p class="quote"><b>“Unsafe app blocked”</b> or <b>“App scan recommended”</b> — More details → Install anyway</p>
+        <div class="notice">
+          <span aria-hidden="true">◌</span>
+          <span>
+            <strong>Don't take my word for it.</strong> This is exactly the prompt that protects
+            people from bad APKs, and clicking past it is a habit worth keeping rare. The
+            checksum below lets you confirm the file you downloaded is byte-for-byte the one
+            GitHub built from the public source — and the app requests no permissions at all,
+            which you can see on this screen before you install.
+          </span>
+        </div>
+      </li>
+
+      <li>
+        <h3>Open f-tree</h3>
+        <p>
+          Start with yourself, or with the oldest relative you can name. Add the family around
+          them, and use <b>Unknown</b> freely for anyone whose name you never learned — you can
+          fill it in years later without disturbing anything you've built.
+        </p>
+      </li>
+    </ol>
+  </div>
+</section>
+
+<section class="band band-sunk">
+  <div class="shell" style="max-width:780px">
+    <p class="rule-label">Checking what you got</p>
+    <div class="slab">
+      <h2 style="font-size:26px;margin-bottom:14px">Verify the download</h2>
+      <p>
+        Every release is built by GitHub Actions from the public source and signed with my
+        key. The checksum below is published by GitHub, not by this page. On a computer, run
+        <code>sha256sum</code> (or <code>certutil -hashfile … SHA256</code> on Windows) against
+        the file you downloaded and compare — if the two strings match, the file is untouched.
+      </p>
+      <dl class="facts">
+        <div><dt>File</dt><dd id="fact-file">the latest release APK</dd></div>
+        <div><dt>Size</dt><dd id="fact-size">about 2 MB</dd></div>
+        <div><dt>Released</dt><dd id="fact-date">see the release page</dd></div>
+        <div><dt>SHA-256</dt><dd class="hash" id="fact-sha">published on the release page</dd></div>
+        <div><dt>Signed by</dt><dd class="hash">395d8e62649589a120870a35625bd52183c04a54bcef4c8f9c40e30f1267e634</dd></div>
+        <div><dt>Release notes</dt><dd><a id="fact-notes" href="https://github.com/thisisankit27/f-tree/releases/latest">on GitHub</a></dd></div>
+      </dl>
+      <p class="spec" style="margin-top:20px">
+        The signing certificate above stays the same for every release. An update signed by
+        any other key will refuse to install over this one — which is the point of it.
+      </p>
+    </div>
+  </div>
+</section>
+
+<section class="band">
+  <div class="shell" style="max-width:780px">
+    <h2 class="rule-label">If it goes wrong</h2>
+    <div class="entries">
+      <div class="entry">
+        <h3>“App not installed”</h3>
+        <p>
+          Usually an older f-tree signed with a different key is already on the phone.
+          Uninstall it and try again. Exporting your tree first is wise — uninstalling
+          takes its data with it.
+        </p>
+      </div>
+      <div class="entry">
+        <h3>Install does nothing</h3>
+        <p>
+          The download probably finished as a partial file. Delete it from
+          <b>Files → Downloads</b> and download it once more.
+        </p>
+      </div>
+      <div class="entry">
+        <h3>Older than Android 8</h3>
+        <p>
+          f-tree needs Android 8.0 (Oreo) or newer and won't install below that. There's no
+          workaround for it.
+        </p>
+      </div>
+      <div class="entry">
+        <h3>Something else</h3>
+        <p>
+          <a href="https://github.com/thisisankit27/f-tree/issues/new">Open an issue</a> and
+          say what your phone is and what it showed you.
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer class="footer">
+  <div class="shell">
+    <span>f-tree — built by <a href="https://github.com/thisisankit27">thisisankit27</a>. MIT licensed.</span>
+    <nav>
+      <a href="../">Home</a>
+      <a href="https://github.com/thisisankit27/f-tree">Source</a>
+      <a href="https://github.com/thisisankit27/f-tree/releases">Releases</a>
+    </nav>
+  </div>
+</footer>
+
+<script src="../app.js"></script>
+</body>
+</html>
