@@ -1,0 +1,600 @@
+/*
+ * f-tree — site styles.
+ *
+ * The palette and the three typographic voices are lifted directly from the app
+ * (ui/theme/Color.kt, ui/theme/Type.kt) so the site and the product read as the same
+ * object. Brass keeps the single job it has in the app: marking what is not known.
+ */
+
+:root {
+  color-scheme: light;
+
+  --bone: #f7f6f1;
+  --bone-raised: #fffffe;
+  --bone-dim: #efeee7;
+  --bone-sunk: #e9e8e1;
+
+  --ink: #1a1c1a;
+  --ink-soft: #414942;
+  --ink-faint: #656d65;   /* 4.6:1 on the sunk band, the lowest-contrast ground it lands on */
+
+  --forest: #2a5138;
+  --forest-deep: #0c2417;
+  --sage: #cde6d5;
+  --sage-line: #5e8c6d;
+
+  --brass: #8a6420;
+  --brass-surface: #f7eedc;
+
+  --rule: #c1c9c0;
+  --rule-strong: #9aa69b;
+
+  --serif: "Literata", Georgia, "Times New Roman", serif;
+  --mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+
+  --gutter: clamp(20px, 5vw, 64px);
+  --measure: 1220px;
+}
+
+* { box-sizing: border-box; }
+
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  margin: 0;
+  background: var(--bone);
+  color: var(--ink);
+  font-family: var(--serif);
+  font-size: 17px;
+  line-height: 1.65;
+  font-variant-numeric: oldstyle-nums;
+  -webkit-font-smoothing: antialiased;
+}
+
+.shell {
+  max-width: var(--measure);
+  margin: 0 auto;
+  padding-inline: var(--gutter);
+}
+
+a { color: var(--forest); text-underline-offset: 3px; text-decoration-thickness: 1px; }
+a:focus-visible,
+button:focus-visible,
+input:focus-visible {
+  outline: 2px solid var(--forest);
+  outline-offset: 3px;
+  border-radius: 2px;
+}
+
+/* ---------------------------------------------------------------- masthead */
+
+.masthead {
+  border-bottom: 1px solid var(--rule);
+  background: var(--bone);
+  position: sticky;
+  top: 0;
+  z-index: 20;
+}
+.masthead .shell {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  height: 62px;
+}
+.wordmark {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  font-family: var(--serif);
+  font-weight: 700;
+  font-size: 19px;
+  letter-spacing: -0.015em;
+  color: var(--ink);
+  text-decoration: none;
+}
+.wordmark svg { display: block; }
+
+.masthead nav {
+  display: flex;
+  align-items: center;
+  gap: 26px;
+  font-family: var(--sans);
+  font-size: 14px;
+}
+.masthead nav a {
+  color: var(--ink-soft);
+  text-decoration: none;
+}
+.masthead nav a:hover { color: var(--forest); text-decoration: underline; }
+.masthead .nav-cta {
+  font-family: var(--sans);
+  font-size: 14px;
+  font-weight: 500;
+  color: #fff;
+  background: var(--forest);
+  padding: 8px 16px;
+  border-radius: 999px;
+  text-decoration: none;
+}
+.masthead .nav-cta:hover { background: var(--forest-deep); text-decoration: none; }
+@media (max-width: 620px) {
+  .masthead nav .nav-link { display: none; }
+}
+
+/* ------------------------------------------------------- register headings */
+/*
+ * The letterspaced mono label with a hairline running off to the right is the
+ * section heading from the app's person screen. Reusing it here is the page's
+ * main structural device.
+ */
+
+.rule-label {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin: 0 0 28px;
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+.rule-label::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--rule);
+}
+
+/*
+ * Where a section has no display heading of its own, the rule label is the heading and
+ * is marked up as an h2. This must out-specify `.band h2`, which sets the display size.
+ */
+h2.rule-label,
+.band h2.rule-label {
+  font-size: 11px;
+  line-height: 1.5;
+  font-weight: 500;
+  letter-spacing: 0.16em;
+  margin: 0 0 28px;
+}
+
+/* -------------------------------------------------------------------- hero */
+
+.hero {
+  display: grid;
+  grid-template-columns: minmax(0, 0.92fr) minmax(0, 1.08fr);
+  gap: clamp(32px, 5vw, 72px);
+  align-items: center;
+  /* padding-block, not the `padding` shorthand: .hero sits on the same element as
+     .shell, and the shorthand would reset .shell's padding-inline to zero. */
+  padding-block: clamp(48px, 7vw, 92px) clamp(40px, 6vw, 76px);
+}
+@media (max-width: 900px) {
+  .hero { grid-template-columns: 1fr; gap: 40px; }
+}
+
+.eyebrow {
+  margin: 0 0 22px;
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--brass);
+}
+
+.hero h1 {
+  margin: 0 0 22px;
+  font-size: clamp(34px, 4.3vw, 52px);
+  line-height: 1.08;
+  font-weight: 600;
+  letter-spacing: -0.022em;
+  text-wrap: balance;
+}
+.hero h1 em {
+  font-style: normal;
+  color: var(--brass);
+}
+
+.lede {
+  margin: 0 0 32px;
+  font-size: clamp(17px, 1.5vw, 19px);
+  line-height: 1.6;
+  color: var(--ink-soft);
+  max-width: 30em;
+}
+
+/* ------------------------------------------------------------------ button */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 11px;
+  font-family: var(--sans);
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 1;
+  padding: 17px 27px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background-color .15s ease, border-color .15s ease, transform .15s ease;
+}
+.btn:hover { text-decoration: none; }
+.btn:active { transform: translateY(1px); }
+
+.btn-primary { background: var(--forest); color: #fff; }
+.btn-primary:hover { background: var(--forest-deep); }
+
+.btn-quiet {
+  background: transparent;
+  color: var(--forest);
+  border-color: var(--rule-strong);
+}
+.btn-quiet:hover { border-color: var(--forest); background: var(--bone-dim); }
+
+.cta-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px 20px;
+}
+
+/* Spec line + live download counter, both in the records voice. */
+.spec {
+  margin: 18px 0 0;
+  font-family: var(--mono);
+  font-size: 12.5px;
+  color: var(--ink-faint);
+  letter-spacing: 0.01em;
+}
+.spec span { white-space: nowrap; }
+.spec .sep { color: var(--rule-strong); padding: 0 3px; }
+
+.counter {
+  margin: 26px 0 0;
+  padding-top: 18px;
+  border-top: 1px solid var(--rule);
+  font-family: var(--mono);
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--ink-faint);
+  max-width: 34em;
+}
+.counter b {
+  display: inline-block;
+  margin-bottom: 2px;
+  font-weight: 500;
+  font-size: 33px;
+  color: var(--forest);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+.counter[data-state="loading"] b { color: var(--rule-strong); }
+
+/* ------------------------------------------------------------- hero chart */
+
+.chart-frame {
+  background: var(--bone-raised);
+  border: 1px solid var(--rule);
+  border-radius: 14px;
+  padding: 10px 10px 0;
+  box-shadow: 0 1px 2px rgba(12, 36, 23, .04), 0 12px 32px -18px rgba(12, 36, 23, .22);
+}
+.chart-stage { position: relative; }
+.chart-stage svg { display: block; width: 100%; height: auto; }
+
+.chart-caption {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  margin: 0;
+  padding: 12px 12px 14px;
+  border-top: 1px solid var(--rule);
+  font-family: var(--mono);
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--ink-faint);
+}
+.chart-caption .marker { color: var(--brass); flex: none; }
+.chart-caption button {
+  font: inherit;
+  color: var(--forest);
+  background: none;
+  border: 0;
+  padding: 0;
+  margin-left: 6px;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* Chart node notation, matching the app's chart. */
+.node-card { fill: var(--bone-raised); stroke: var(--rule-strong); stroke-width: 1.25; }
+.node-name { font-family: var(--serif); font-size: 15px; font-weight: 600; fill: var(--ink); }
+.node-years {
+  font-family: var(--mono);
+  font-size: 11.5px;
+  fill: var(--ink-faint);
+  font-variant-numeric: tabular-nums lining-nums;
+}
+.link-line { stroke: var(--sage-line); stroke-width: 1.5; fill: none; }
+
+.node-unknown .node-card {
+  fill: var(--brass-surface);
+  stroke: var(--brass);
+  stroke-dasharray: 7 5;
+}
+.node-unknown .node-name { fill: var(--brass); font-style: italic; }
+
+/* The one interactive node. */
+.node-slot { cursor: pointer; }
+.node-slot:hover .node-card { stroke-width: 2; }
+.node-slot:focus-visible { outline: none; }
+.node-slot:focus-visible .node-card { stroke-width: 2.5; stroke-dasharray: none; }
+
+.node-named .node-card { fill: var(--sage); stroke: var(--forest); stroke-dasharray: none; }
+.node-named .node-name { fill: var(--forest-deep); font-style: normal; }
+
+.name-input {
+  position: absolute;
+  font-family: var(--serif);
+  font-size: 15px;
+  font-weight: 600;
+  text-align: center;
+  color: var(--forest-deep);
+  background: var(--bone-raised);
+  border: 2px solid var(--forest);
+  border-radius: 8px;
+  padding: 0 8px;
+}
+
+/* --------------------------------------------------------------- sections */
+
+.band { padding: clamp(52px, 7vw, 92px) 0; }
+.band-sunk { background: var(--bone-dim); border-block: 1px solid var(--rule); }
+.band-deep { background: var(--forest-deep); color: #dfe7e0; }
+
+/* Note: h2.rule-label deliberately out-specifies this — see the rule above the hero. */
+.band h2 {
+  margin: 0 0 18px;
+  font-size: clamp(27px, 3.4vw, 38px);
+  line-height: 1.14;
+  font-weight: 600;
+  letter-spacing: -0.018em;
+  text-wrap: balance;
+}
+.band p { margin: 0 0 18px; color: var(--ink-soft); max-width: 34em; }
+.band-deep p { color: #b3c4b8; }
+
+.split {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: clamp(32px, 5vw, 72px);
+  align-items: center;
+}
+@media (max-width: 860px) { .split { grid-template-columns: 1fr; } }
+
+/* Feature entries, set as register rows rather than a card grid. */
+.entries { display: grid; gap: 0; }
+.entry {
+  display: grid;
+  grid-template-columns: 232px minmax(0, 1fr);
+  gap: 28px;
+  padding: 26px 0;
+  border-top: 1px solid var(--rule);
+}
+.entry:last-child { border-bottom: 1px solid var(--rule); }
+.entry h3 {
+  margin: 0;
+  font-size: 19px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.entry p { margin: 0; color: var(--ink-soft); font-size: 16px; }
+@media (max-width: 700px) {
+  .entry { grid-template-columns: 1fr; gap: 8px; }
+}
+
+/* Negative-space list: what the app deliberately does not do. */
+.nots { list-style: none; margin: 0; padding: 0; display: grid; gap: 0; }
+.nots li {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  padding: 13px 0;
+  border-bottom: 1px solid rgba(179, 196, 184, .22);
+  font-family: var(--mono);
+  font-size: 14px;
+  color: #dfe7e0;
+}
+.nots li::before {
+  content: "no";
+  flex: none;
+  color: var(--brass-surface);
+  opacity: .8;
+  font-size: 11px;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+}
+
+.shot {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 18px;
+  border: 1px solid var(--rule);
+  background: var(--bone-raised);
+}
+.shot-narrow { max-width: 360px; }
+
+.gallery {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 250px;
+  gap: 22px;
+  overflow-x: auto;
+  padding-bottom: 14px;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: thin;
+}
+.gallery figure { margin: 0; scroll-snap-align: start; }
+.gallery figcaption {
+  margin-top: 12px;
+  font-family: var(--mono);
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--ink-faint);
+}
+
+/* ------------------------------------------------------------ download slab */
+
+.slab {
+  background: var(--bone-raised);
+  border: 1px solid var(--rule);
+  border-radius: 16px;
+  padding: clamp(26px, 4vw, 44px);
+}
+.facts {
+  margin: 26px 0 0;
+  border-top: 1px solid var(--rule);
+  font-family: var(--mono);
+  font-size: 13px;
+}
+.facts div {
+  display: grid;
+  grid-template-columns: 118px minmax(0, 1fr);
+  gap: 18px;
+  padding: 11px 0;
+  border-bottom: 1px solid var(--rule);
+}
+.facts dt { color: var(--ink-faint); letter-spacing: .04em; }
+.facts dd { margin: 0; color: var(--ink); overflow-wrap: anywhere; }
+@media (max-width: 560px) {
+  .facts div { grid-template-columns: 1fr; gap: 2px; }
+}
+
+/* ------------------------------------------------------------------ footer */
+
+.footer {
+  border-top: 1px solid var(--rule);
+  padding: 40px 0 56px;
+  font-family: var(--sans);
+  font-size: 14px;
+  color: var(--ink-faint);
+}
+.footer .shell {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px 32px;
+  align-items: center;
+  justify-content: space-between;
+}
+.footer nav { display: flex; flex-wrap: wrap; gap: 22px; }
+.footer a { color: var(--ink-soft); text-decoration: none; }
+.footer a:hover { color: var(--forest); text-decoration: underline; }
+
+/* ------------------------------------------------------------- thanks page */
+
+.steps { list-style: none; counter-reset: step; margin: 0; padding: 0; }
+.steps > li {
+  counter-increment: step;
+  position: relative;
+  padding: 0 0 30px 62px;
+  border-left: 1px solid var(--rule);
+  margin-left: 17px;
+}
+.steps > li:last-child { border-left-color: transparent; padding-bottom: 0; }
+.steps > li::before {
+  content: counter(step);
+  position: absolute;
+  left: -18px;
+  top: -2px;
+  width: 35px;
+  height: 35px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--sage);
+  color: var(--forest-deep);
+  font-family: var(--mono);
+  font-size: 13px;
+  font-weight: 500;
+}
+.steps h3 {
+  margin: 4px 0 8px;
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.steps p { margin: 0 0 10px; color: var(--ink-soft); max-width: 36em; }
+
+.quote {
+  margin: 12px 0 0;
+  padding: 12px 16px;
+  background: var(--bone-dim);
+  border-left: 2px solid var(--rule-strong);
+  border-radius: 0 6px 6px 0;
+  font-family: var(--mono);
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--ink-soft);
+}
+.quote b { font-weight: 500; color: var(--ink); }
+
+.notice {
+  display: flex;
+  gap: 14px;
+  padding: 18px 20px;
+  background: var(--brass-surface);
+  border: 1px solid #e3c38c;
+  border-radius: 12px;
+  font-size: 15.5px;
+  line-height: 1.55;
+  color: #4a3810;
+}
+.notice strong { color: #2c1d00; }
+
+.hash {
+  font-family: var(--mono);
+  font-size: 12.5px;
+  overflow-wrap: anywhere;
+  color: var(--ink);
+}
+
+.status-line {
+  margin: 22px 0 0;
+  font-family: var(--mono);
+  font-size: 13px;
+  color: var(--ink-faint);
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px; height: 1px;
+  margin: -1px; padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .001ms !important;
+  }
+}
+
+/* The numbered rail costs too much of a phone's width at its desktop indent. */
+@media (max-width: 620px) {
+  .steps > li { padding-left: 46px; margin-left: 14px; }
+  .steps > li::before { left: -15px; width: 29px; height: 29px; font-size: 12px; }
+}
