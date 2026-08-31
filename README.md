@@ -277,5 +277,7 @@ framework, no networking, no analytics.
 
 ## Licence
 
-Not yet chosen. Bundled fonts (Literata, JetBrains Mono) are used under the SIL Open Font Licence
-1.1; the licence texts ship in the app and are surfaced on its About screen.
+[MIT](LICENSE) — use it, change it, ship it; just keep the copyright notice.
+
+The bundled fonts (Literata, JetBrains Mono) are separately licensed under the SIL Open Font Licence
+1.1. Their licence texts ship inside the app and are surfaced on its About screen.
