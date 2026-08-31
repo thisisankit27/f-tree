@@ -8,6 +8,12 @@ on:
 permissions:
   contents: write
 
+env:
+  # Not a secret — an alias is just a label on a key inside the keystore, and it is useless without
+  # the keystore and its password. Keeping it here rather than in a secret makes it visible and
+  # editable, and removes a way for the build to fail with an unhelpful message.
+  KEY_ALIAS: ftree
+
 jobs:
   release:
     runs-on: ubuntu-latest
@@ -44,11 +50,19 @@ jobs:
         env:
           KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
-          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: |
           # Written outside the workspace so it can never be picked up by a build artefact.
           printf '%s' "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.jks"
+
+          # Fail here, with a message that says what is wrong, rather than several minutes later
+          # inside Gradle with "No key with alias '***' found".
+          if ! keytool -list -keystore "$RUNNER_TEMP/release.jks" \
+               -storepass "$KEYSTORE_PASSWORD" -alias "$KEY_ALIAS" >/dev/null 2>&1; then
+            echo "::error::No key '$KEY_ALIAS' in the keystore, or KEYSTORE_PASSWORD is wrong."
+            exit 1
+          fi
+
           cat > keystore.properties <<EOF
           storeFile=$RUNNER_TEMP/release.jks
           storePassword=$KEYSTORE_PASSWORD

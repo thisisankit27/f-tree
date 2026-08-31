@@ -254,7 +254,7 @@ git tag -a v0.2.0 -m "f-tree 0.2.0" && git push origin v0.2.0
 
 [`.github/workflows/release.yml`](.github/workflows/release.yml) checks the tag matches the app's
 version, runs the tests, builds a signed APK from the keystore held in repository secrets
-(`KEYSTORE_BASE64`, `KEYSTORE_PASSWORD`, `KEY_ALIAS`, `KEY_PASSWORD`), verifies the signature, and
+(`KEYSTORE_BASE64`, `KEYSTORE_PASSWORD`, `KEY_PASSWORD`; the key alias is not secret and lives in the workflow), verifies the signature, and
 attaches it to the release. Write the release notes by hand first if you want them; the workflow
 attaches to an existing release rather than replacing it.
 
