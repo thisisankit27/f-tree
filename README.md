@@ -277,6 +277,50 @@ real asset downloads rather than a third-party tracker. There is no analytics sc
 page. Asset paths are relative, so the site works both at `thisisankit27.github.io/f-tree/` and at
 a custom domain.
 
+### The viewer
+
+`site/playground/` is a browser-only reader for an exported `.ftree`. Where the app draws the
+family *around one person* a few relationships deep — the right answer on a phone — the viewer
+draws the whole archive at once, on a tablet or a television, **including the people no
+relationship reaches**, who the app has nowhere to put at all.
+
+It is plain ES modules, no build, no dependencies:
+
+| | |
+|---|---|
+| `archive.js` | reads the ZIP and validates the document |
+| `model.js` | derives siblings, family units, components, kinship terms |
+| `layout.js` | generations, crossing reduction, coordinates, packing |
+| `chart.js` | the canvas renderer |
+| `main.js` | the interface |
+
+Three decisions in there are load-bearing:
+
+**The ZIP is read through its central directory, never the local file headers.** The app writes
+the archive with `java.util.zip.ZipOutputStream`, which for DEFLATED entries emits a local header
+with the CRC and both sizes zeroed and puts the real values in a trailing data descriptor. A reader
+that trusts the local header sees a length of zero for every entry.
+`tools/make_sample_tree.py` therefore emits one fixture through an unseekable stream so CI keeps
+testing that path.
+
+**Semantic zoom is what makes a large archive readable.** Drawing every name at every scale gives a
+grey wash the moment a whole family is on screen, so the chart draws less as it pulls back: at a
+distance the cards are plain shapes and what you read is the shape of the family — how many
+generations, how wide each got, and where the record has holes, because an unknown person keeps
+their brass dashed edge at every scale.
+
+**Generation ranking is compacted after it is assigned.** Longest-path ranking alone strands a
+person whose only child married into a deeper part of the family several rows above them, trailing
+a connector the height of the chart.
+
+Everything happens in the tab. The file is never uploaded, there is no analytics on the page, and
+the only thing stored is four display preferences in `localStorage`.
+
+```bash
+python3 tools/make_sample_tree.py /tmp/fixtures   # .ftree files, including odd ones
+node tools/check_layout.mjs /tmp/fixtures         # layout invariants, run in CI
+```
+
 To preview it locally:
 
 ```bash
