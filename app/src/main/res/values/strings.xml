@@ -9,6 +9,11 @@
     <string name="people_search_close">Close search</string>
     <string name="people_add">Add a person</string>
     <string name="people_count">%1$s in your tree</string>
+    <string name="people_filter_everyone">Everyone</string>
+    <string name="people_filter_living">Living</string>
+    <string name="people_count_living">%1$d living, of %2$s in your tree</string>
+    <string name="people_count_living_matching">%1$d living, of %2$s matching</string>
+    <string name="people_none_living">Everyone matching this is recorded as no longer living.</string>
     <string name="people_no_matches">No one matches “%1$s”.</string>
 
     <!-- Empty state -->

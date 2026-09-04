@@ -1,6 +1,10 @@
 package com.vibethroughcode.ftree.ui.people
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.material3.FilterChip
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -48,6 +52,9 @@ import com.vibethroughcode.ftree.ui.common.peopleCount
 import com.vibethroughcode.ftree.ui.common.TreeGlyph
 import com.vibethroughcode.ftree.ui.theme.FTreeText
 
+const val PeopleFilterEveryoneTag = "people-filter-everyone"
+const val PeopleFilterLivingTag = "people-filter-living"
+const val PeopleCountTag = "people-count"
 const val PeopleListTag = "people-list"
 const val PeopleSearchFieldTag = "people-search-field"
 const val PeopleAddFabTag = "people-add-fab"
@@ -126,7 +133,14 @@ fun PeopleScreen(
             }
         },
     ) { padding ->
-        Box(Modifier.fillMaxSize().padding(padding)) {
+        Column(Modifier.fillMaxSize().padding(padding)) {
+            if (!state.isEmptyTree) {
+                PeopleFilterRow(
+                    filter = state.filter,
+                    onFilterChange = viewModel::onFilterChange,
+                )
+            }
+            Box(Modifier.fillMaxSize()) {
             when {
                 state.isEmptyTree -> EmptyState(
                     title = stringResource(R.string.empty_title),
@@ -143,6 +157,15 @@ fun PeopleScreen(
                     modifier = Modifier.align(Alignment.TopCenter).padding(32.dp),
                 )
 
+                // Matching nobody and matching only the dead are different answers, and saying
+                // "no one matches" to the second would be wrong.
+                state.hasNoneLiving -> Text(
+                    text = stringResource(R.string.people_none_living),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.align(Alignment.TopCenter).padding(32.dp),
+                )
+
                 else -> LazyColumn(
                     modifier = Modifier.fillMaxSize().testTag(PeopleListTag),
                     // Room for the extended FAB to sit over without covering the last row.
@@ -153,14 +176,68 @@ fun PeopleScreen(
                     }
                     item {
                         Text(
-                            text = stringResource(R.string.people_count, peopleCount(state.people.size)),
+                            text = countLine(state),
                             style = FTreeText.recordSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.fillMaxWidth().padding(20.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(20.dp)
+                                .testTag(PeopleCountTag),
                         )
                     }
                 }
             }
+            }
         }
     }
+}
+
+/**
+ * Everyone, or only the living.
+ *
+ * A filter rather than a sort, because "who is still with us" is a question people ask of a family
+ * record, and the answer is a shorter list rather than a reordering of the same one.
+ */
+@Composable
+private fun PeopleFilterRow(
+    filter: PeopleFilter,
+    onFilterChange: (PeopleFilter) -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp, vertical = 4.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        FilterChip(
+            selected = filter == PeopleFilter.EVERYONE,
+            onClick = { onFilterChange(PeopleFilter.EVERYONE) },
+            label = { Text(stringResource(R.string.people_filter_everyone)) },
+            modifier = Modifier.testTag(PeopleFilterEveryoneTag),
+        )
+        FilterChip(
+            selected = filter == PeopleFilter.LIVING,
+            onClick = { onFilterChange(PeopleFilter.LIVING) },
+            label = { Text(stringResource(R.string.people_filter_living)) },
+            modifier = Modifier.testTag(PeopleFilterLivingTag),
+        )
+    }
+}
+
+/** The count under the list, phrased for whichever question is being asked of it. */
+@Composable
+private fun countLine(state: PeopleUiState): String = when {
+    state.filter == PeopleFilter.EVERYONE ->
+        stringResource(R.string.people_count, peopleCount(state.people.size))
+    // Only the total is pluralised; "11 people living, of 13 people" says people twice.
+    state.query.isBlank() -> stringResource(
+        R.string.people_count_living,
+        state.people.size,
+        peopleCount(state.matchCount),
+    )
+    else -> stringResource(
+        R.string.people_count_living_matching,
+        state.people.size,
+        peopleCount(state.matchCount),
+    )
 }

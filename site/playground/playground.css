@@ -33,6 +33,8 @@
   --brass-surface: #f7eedc;
   --rule: #d8d7cd;
   --rule-strong: #b9b8ac;
+  /* Matches chart.js's `departed`: the ground for somebody no longer living. */
+  --departed: #eae8de;
   --shadow: 0 10px 34px rgba(20, 30, 22, .13);
 
   /* One multiplier for every size in the chrome, so "big screen" is a single number. */
@@ -70,6 +72,7 @@
   --brass-surface: #2c2618;
   --rule: #2b332b;
   --rule-strong: #465146;
+  --departed: #11160f;
   --shadow: 0 10px 34px rgba(0, 0, 0, .45);
   color-scheme: dark;
 }
@@ -737,7 +740,11 @@ kbd {
 .k-unknown { width: 20px; height: 12px; border: 1.5px dashed var(--brass); border-radius: 3px; background: var(--brass-surface); }
 .k-couple { width: 20px; height: 7px; border-top: 1.5px solid var(--forest); border-bottom: 1.5px solid var(--forest); }
 .k-descent { width: 20px; height: 10px; border-left: 1.5px solid var(--rule-strong); border-bottom: 1.5px solid var(--rule-strong); }
-.k-died { width: 20px; height: 12px; border: 1.5px solid var(--rule-strong); border-top-width: 3px; border-radius: 3px; }
+.k-died {
+  width: 20px; height: 12px; border-radius: 3px;
+  border: 1.5px solid var(--rule-strong); border-top-width: 3px;
+  background: var(--departed);
+}
 .k-sib { width: 20px; height: 8px; border: 1.5px dashed var(--rule-strong); border-bottom: 0; }
 .k-alone { width: 20px; height: 12px; border: 1.5px dashed var(--rule-strong); border-radius: 3px; }
 

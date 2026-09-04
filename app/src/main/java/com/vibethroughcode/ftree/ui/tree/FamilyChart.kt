@@ -193,6 +193,7 @@ fun FamilyChart(
                         height = node.height * unitPx,
                         measurer = measurer,
                         colors = CardColors(
+                            deceasedSurface = accents.deceasedSurface,
                             surface = if (node.isFocus) colors.primaryContainer else colors.surface,
                             onSurface = if (node.isFocus) colors.onPrimaryContainer else colors.onSurface,
                             muted = colors.onSurfaceVariant,

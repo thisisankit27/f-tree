@@ -32,6 +32,9 @@ export const PALETTES = {
     spouseLink: '#5e8c6d',
     frame: '#dcdcd2',
     band: '#e7e6de',
+    /* The ground for somebody no longer living: a shade into the paper, never a lower opacity,
+       which already means "not related to the person you selected". */
+    departed: '#eae8de',
   },
   dark: {
     ground: '#10150f',
@@ -48,6 +51,7 @@ export const PALETTES = {
     spouseLink: '#8fc7a1',
     frame: '#28312a',
     band: '#182018',
+    departed: '#11160f',
   },
 };
 
@@ -556,7 +560,10 @@ export class Chart {
 
       // Fill and border. An unknown person keeps the app's dashed brass edge at every scale, so
       // the holes in a record stay visible even when the chart is too small to read.
-      ctx.fillStyle = isSelected ? c.sageContainer : unknown ? c.brassSurface : c.raised;
+      ctx.fillStyle = isSelected ? c.sageContainer
+        : unknown ? c.brassSurface
+        : person.deceased ? c.departed
+        : c.raised;
       roundRect(ctx, node.x, node.y, NODE_W, NODE_H, 10);
       ctx.fill();
 

@@ -119,6 +119,16 @@ data class FTreeAccents(
     val unknownSurface: Color,
     val spouseLink: Color,
     val rule: Color,
+    /**
+     * The ground a card sits on for somebody no longer living.
+     *
+     * A *fill*, deliberately, and not a reduced opacity: the whole-tree chart already fades cards
+     * to mean "not related to the person you selected", and one visual idea cannot carry two
+     * meanings. Living people are on fresh raised paper, the departed a shade into the ground —
+     * which is legible at a glance across a whole chart and still legible with the names too small
+     * to read.
+     */
+    val deceasedSurface: Color,
 )
 
 val LightAccents = FTreeAccents(
@@ -126,6 +136,7 @@ val LightAccents = FTreeAccents(
     unknownSurface = Color(0xFFF7EEDC),
     spouseLink = Color(0xFF5E8C6D),
     rule = Color(0xFF9AA69B),
+    deceasedSurface = Color(0xFFEAE8DE),
 )
 
 val DarkAccents = FTreeAccents(
@@ -133,4 +144,5 @@ val DarkAccents = FTreeAccents(
     unknownSurface = Color(0xFF2C2618),
     spouseLink = Sage,
     rule = Color(0xFF5C665C),
+    deceasedSurface = Color(0xFF11160F),
 )

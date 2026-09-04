@@ -37,6 +37,8 @@ enum class CardDetail {
 
 data class CardColors(
     val surface: Color,
+    /** The ground for somebody no longer living. Both charts pass it; the card decides. */
+    val deceasedSurface: Color,
     val onSurface: Color,
     val muted: Color,
     val outline: Color,
@@ -72,7 +74,12 @@ fun DrawScope.drawPersonCard(
             )
         )
     }
-    drawPath(path, colors.surface, alpha = alpha)
+    val departed = person.isNoLongerLiving
+    drawPath(
+        path = path,
+        color = if (departed && !emphasised) colors.deceasedSurface else colors.surface,
+        alpha = alpha,
+    )
 
     drawPath(
         path = path,
@@ -99,14 +106,14 @@ fun DrawScope.drawPersonCard(
      * Drawn before the text and outside the detail check, so it survives to the scale where cards
      * are plain shapes. At a distance the chart then still shows which generations have passed.
      */
-    if (person.isNoLongerLiving) {
+    if (departed) {
         val inset = cornerPx * 0.9f
-        val y = top + rulePx * 1.6f
+        val y = top + rulePx * 1.7f
         drawLine(
             color = colors.muted,
             start = Offset(left + inset, y),
             end = Offset(left + width - inset, y),
-            strokeWidth = rulePx * 1.6f,
+            strokeWidth = rulePx * 1.8f,
             alpha = alpha,
         )
     }

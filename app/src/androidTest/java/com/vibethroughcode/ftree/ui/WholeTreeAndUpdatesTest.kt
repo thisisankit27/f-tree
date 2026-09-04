@@ -2,6 +2,10 @@ package com.vibethroughcode.ftree.ui
 
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsOff
+import androidx.compose.ui.test.assertTextContains
+import com.vibethroughcode.ftree.ui.people.PeopleCountTag
+import com.vibethroughcode.ftree.ui.people.PeopleFilterEveryoneTag
+import com.vibethroughcode.ftree.ui.people.PeopleFilterLivingTag
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
@@ -142,5 +146,59 @@ class WholeTreeAndUpdatesTest {
         rule.onNodeWithTag(NavSettingsTag).performClick()
         rule.onNodeWithText("Export your tree").assertIsDisplayed()
         rule.onNodeWithText("Import a tree").assertIsDisplayed()
+    }
+
+    /**
+     * "Who is still with us" is a question people ask of a family record, and the answer is a
+     * shorter list rather than a reordering of the same one.
+     */
+    @Test
+    fun thePeopleListCanBeNarrowedToTheLiving() {
+        val repository = app.container.familyRepository
+        runBlocking {
+            repository.addPerson(Person(name = "Shyam Lal", birthDate = "1905", deathDate = "1978"))
+            repository.addPerson(Person(name = "Vinod Kumar", birthDate = "1962"))
+            repository.addPerson(Person(name = "Ankit Kumar", birthDate = "1990"))
+        }
+        rule.onNodeWithTag(NavPeopleTag).performClick()
+        rule.waitUntil(5_000) {
+            rule.onAllNodesWithText("Shyam Lal").fetchSemanticsNodes().isNotEmpty()
+        }
+
+        rule.onNodeWithTag(PeopleFilterLivingTag).performClick()
+        rule.waitUntil(5_000) {
+            rule.onAllNodesWithText("Shyam Lal").fetchSemanticsNodes().isEmpty()
+        }
+        rule.onNodeWithText("Vinod Kumar").assertIsDisplayed()
+        rule.onNodeWithText("Ankit Kumar").assertIsDisplayed()
+
+        // And it says how many that leaves, against the whole tree.
+        rule.onNodeWithTag(PeopleCountTag).assertTextContains("2 living, of 3 people in your tree")
+
+        rule.onNodeWithTag(PeopleFilterEveryoneTag).performClick()
+        rule.waitUntil(5_000) {
+            rule.onAllNodesWithText("Shyam Lal").fetchSemanticsNodes().isNotEmpty()
+        }
+        rule.onNodeWithTag(PeopleCountTag).assertTextContains("3 people in your tree")
+    }
+
+    /** A death date alone is enough; the flag is not the only way a record says somebody died. */
+    @Test
+    fun aDeathDateAloneIsEnoughToBeFilteredOut() {
+        runBlocking {
+            app.container.familyRepository.addPerson(
+                Person(name = "Hari Lal", birthDate = "1902", deathDate = "1970", deceased = false)
+            )
+            app.container.familyRepository.addPerson(Person(name = "Neha Kumar", birthDate = "1993"))
+        }
+        rule.onNodeWithTag(NavPeopleTag).performClick()
+        rule.waitUntil(5_000) {
+            rule.onAllNodesWithText("Hari Lal").fetchSemanticsNodes().isNotEmpty()
+        }
+        rule.onNodeWithTag(PeopleFilterLivingTag).performClick()
+        rule.waitUntil(5_000) {
+            rule.onAllNodesWithText("Hari Lal").fetchSemanticsNodes().isEmpty()
+        }
+        rule.onNodeWithText("Neha Kumar").assertIsDisplayed()
     }
 }

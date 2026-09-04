@@ -304,6 +304,7 @@ fun WholeFamilyChart(
                         height = TreeMetrics.NODE_HEIGHT * unitPx,
                         measurer = measurer,
                         colors = CardColors(
+                            deceasedSurface = accents.deceasedSurface,
                             surface = if (isSelected) colors.primaryContainer else colors.surface,
                             onSurface = if (isSelected) colors.onPrimaryContainer else colors.onSurface,
                             muted = colors.onSurfaceVariant,
