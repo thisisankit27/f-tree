@@ -381,6 +381,19 @@ h2.rule-label,
 }
 @media (max-width: 860px) { .split { grid-template-columns: 1fr; } }
 
+/* The viewer shot is a landscape screen, so it earns more of the row than a phone screenshot. */
+.split-wide { grid-template-columns: minmax(0, 0.86fr) minmax(0, 1.14fr); }
+@media (max-width: 860px) { .split-wide { grid-template-columns: 1fr; } }
+
+.shot-wide { max-width: 100%; }
+.shot-link { display: block; border-radius: 18px; }
+.shot-link:focus-visible { outline: 2px solid var(--forest); outline-offset: 4px; }
+.shot-link .shot { transition: border-color .15s, transform .15s; }
+.shot-link:hover .shot { border-color: var(--rule-strong); }
+@media (prefers-reduced-motion: no-preference) {
+  .shot-link:hover .shot { transform: translateY(-2px); }
+}
+
 /* Feature entries, set as register rows rather than a card grid. */
 .entries { display: grid; gap: 0; }
 .entry {
