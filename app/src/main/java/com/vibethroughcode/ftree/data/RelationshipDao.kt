@@ -16,6 +16,10 @@ interface RelationshipDao {
     @Query("SELECT * FROM relationships")
     suspend fun allRelationships(): List<Relationship>
 
+    /** Every edge, observed. Only the whole-tree chart needs this; every other read is narrow. */
+    @Query("SELECT * FROM relationships")
+    fun observeAllRelationships(): Flow<List<Relationship>>
+
     /** Every edge touching this person, in either direction. */
     @Query("SELECT * FROM relationships WHERE fromPersonId = :personId OR toPersonId = :personId")
     suspend fun edgesOf(personId: String): List<Relationship>

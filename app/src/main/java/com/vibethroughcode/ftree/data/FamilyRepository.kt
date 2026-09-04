@@ -2,10 +2,12 @@ package com.vibethroughcode.ftree.data
 
 import androidx.room.withTransaction
 import com.vibethroughcode.ftree.graph.FamilyGraph
+import com.vibethroughcode.ftree.graph.FamilySnapshot
 import com.vibethroughcode.ftree.graph.RelationshipCheck
 import com.vibethroughcode.ftree.graph.RelationshipRejection
 import com.vibethroughcode.ftree.graph.RelationshipRules
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
 
 /** What to do with a person's relationships when the person is removed. */
 enum class DeletionMode {
@@ -191,6 +193,28 @@ class FamilyRepository(
     suspend fun originsOf(personIds: List<String>): List<PersonOrigin> = origins.originsOf(personIds)
 
     /** Whole-tree reads, used only by export. Everything else asks a narrower question. */
+    /**
+     * The entire graph, observed.
+     *
+     * Deliberately the one wide read in here. Every other query is narrow because the graph is
+     * expected to reach thousands of people; this exists for the whole-tree chart, which cannot be
+     * drawn from a neighbourhood by definition — the people it must show are exactly the ones no
+     * neighbourhood reaches.
+     */
+    fun observeWholeGraph(): Flow<FamilySnapshot> =
+        combine(observeAllPeople(), relationships.observeAllRelationships()) { everyone, edges ->
+            val byId = everyone.associateBy { it.id }
+            FamilySnapshot(
+                people = byId,
+                parentEdges = edges.filter { it.type == RelationshipType.PARENT }
+                    .map { it.fromPersonId to it.toPersonId },
+                spouseEdges = edges.filter { it.type == RelationshipType.SPOUSE }
+                    .map { it.fromPersonId to it.toPersonId },
+                siblingEdges = edges.filter { it.type == RelationshipType.SIBLING }
+                    .map { it.fromPersonId to it.toPersonId },
+            )
+        }
+
     suspend fun allPeople(): List<Person> = people.allPeople()
     suspend fun allRelationships(): List<Relationship> = relationships.allRelationships()
 }
