@@ -48,6 +48,16 @@ data class Person(
     /** True when this person carries no identifying information yet. */
     val isUnnamed: Boolean get() = name.isNullOrBlank()
 
+    /**
+     * Whether the record says this person has died.
+     *
+     * [deceased] and [deathDate] are independent: a file can carry a death date without the flag,
+     * and the flag without a date for somebody known to have died at an unknown time. A card shows
+     * "1905-1978" on the strength of the date alone, so anything drawing a mark for it has to use
+     * the same test, or one card states two different things at once.
+     */
+    val isNoLongerLiving: Boolean get() = deceased || deathDate != null
+
     val birth: PartialDate? get() = PartialDate.parse(birthDate)
     val death: PartialDate? get() = PartialDate.parse(deathDate)
 

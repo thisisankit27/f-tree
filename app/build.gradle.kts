@@ -25,6 +25,19 @@ android {
         versionName = "0.1.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        // Where the optional updater looks. Here rather than in Kotlin so a fork points at its own
+        // releases by editing one line, and so the single network endpoint is visible in the build.
+        buildConfigField(
+            "String",
+            "UPDATE_RELEASE_URL",
+            "\"https://api.github.com/repos/thisisankit27/f-tree/releases/latest\"",
+        )
+        buildConfigField(
+            "String",
+            "RELEASES_PAGE_URL",
+            "\"https://github.com/thisisankit27/f-tree/releases\"",
+        )
     }
 
     signingConfigs {

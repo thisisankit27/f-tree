@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Only the updates directory inside the app's own cache is shared, and only with whoever is
+    handed the intent. Nothing under it belongs to the family record.
+-->
+<paths>
+    <cache-path name="updates" path="updates/" />
+</paths>

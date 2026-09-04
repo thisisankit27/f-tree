@@ -2,6 +2,7 @@ package com.vibethroughcode.ftree.ui
 
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
@@ -19,8 +20,9 @@ import com.vibethroughcode.ftree.ui.person.EditSaveTag
 import com.vibethroughcode.ftree.ui.person.DeleteCompletelyTag
 import com.vibethroughcode.ftree.ui.person.DeleteKeepAsUnknownTag
 import com.vibethroughcode.ftree.ui.person.PersonDeleteTag
+import com.vibethroughcode.ftree.ui.person.PersonMenuTag
 import com.vibethroughcode.ftree.ui.person.PersonEditTag
-import com.vibethroughcode.ftree.ui.tree.TreePeopleButtonTag
+import com.vibethroughcode.ftree.ui.NavPeopleTag
 import com.vibethroughcode.ftree.ui.person.addSectionTag
 import com.vibethroughcode.ftree.ui.relative.AddRelativeNameTag
 import com.vibethroughcode.ftree.ui.relative.AddRelativeSaveTag
@@ -169,6 +171,7 @@ class RelationshipFlowTest {
         addRelative(RelativeKind.PARENT, "Raj Kumar")
         addRelative(RelativeKind.CHILD, "Aarav")
 
+        rule.onNodeWithTag(PersonMenuTag).performClick()
         rule.onNodeWithTag(PersonDeleteTag).performClick()
         rule.waitForIdle()
 
@@ -186,13 +189,19 @@ class RelationshipFlowTest {
     fun deletingCompletelyRemovesTheirConnectionsToo() {
         addRelative(RelativeKind.PARENT, "Raj Kumar")
 
+        rule.onNodeWithTag(PersonMenuTag).performClick()
         rule.onNodeWithTag(PersonDeleteTag).performClick()
         rule.waitForIdle()
         rule.onNodeWithTag(DeleteCompletelyTag).performClick()
-        rule.waitForIdle()
+
+        // Deleting pops this screen, and the navigation bar only exists once a top-level
+        // destination is back on screen — a frame after the pop, not at waitForIdle.
+        rule.waitUntil(5_000) {
+            rule.onAllNodesWithTag(NavPeopleTag).fetchSemanticsNodes().isNotEmpty()
+        }
 
         // Raj remains — only Ankit and the link between them are gone.
-        rule.onNodeWithTag(TreePeopleButtonTag).performClick()
+        rule.onNodeWithTag(NavPeopleTag).performClick()
         rule.waitForIdle()
         rule.onNodeWithText("Raj Kumar").assertIsDisplayed()
         assertTrue(rule.onAllNodesWithText("Ankit").fetchSemanticsNodes().isEmpty())

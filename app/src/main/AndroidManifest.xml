@@ -1,6 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
+    <!--
+        The only two permissions the app asks for, and both exist solely for the optional updater.
+        Nothing requests them until update checking is switched on in Settings, which is off until
+        somebody turns it on: UpdateRepository refuses to make a request while the preference is
+        false, so this is a property of the code rather than of the interface.
+
+        The tree itself never goes near the network. There is no sync, no account and no backend to
+        have one with.
+    -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+
     <application
         android:name=".FTreeApplication"
         android:allowBackup="true"
@@ -20,6 +32,21 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!--
+            Hands the downloaded APK to the system installer as a content URI. Exported false with
+            granted URI permissions, so the file is readable by the installer for the length of one
+            intent and by nothing else.
+        -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.updates"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/update_paths" />
+        </provider>
     </application>
 
 </manifest>

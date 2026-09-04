@@ -131,6 +131,8 @@ class TreeViewModel(
     }
 
     private companion object {
-        const val FOCUS_KEY = "tree-focus"
+        /** Matches TreeRoute's argument name, so navigating to a person and restoring one
+         *  after process death write to the same place. */
+        const val FOCUS_KEY = "focusId"
     }
 }

@@ -23,8 +23,9 @@ import com.vibethroughcode.ftree.ui.person.EditBornFieldTag
 import com.vibethroughcode.ftree.ui.person.EditNameFieldTag
 import com.vibethroughcode.ftree.ui.person.EditSaveTag
 import com.vibethroughcode.ftree.ui.person.PersonDeleteTag
+import com.vibethroughcode.ftree.ui.person.PersonMenuTag
 import com.vibethroughcode.ftree.ui.person.PersonEditTag
-import com.vibethroughcode.ftree.ui.tree.TreePeopleButtonTag
+import com.vibethroughcode.ftree.ui.NavPeopleTag
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
@@ -70,7 +71,7 @@ class PersonFlowTest {
 
     /** Home is the chart; the list of everyone is one tap away from it. */
     private fun openPeopleList() {
-        rule.onNodeWithTag(TreePeopleButtonTag).performClick()
+        rule.onNodeWithTag(NavPeopleTag).performClick()
         rule.waitForIdle()
     }
 
@@ -166,6 +167,7 @@ class PersonFlowTest {
     fun deletingSomeoneWithNoConnectionsOffersOnlyRemoval() {
         addFirstPerson("Ankit Kumar")
 
+        rule.onNodeWithTag(PersonMenuTag).performClick()
         rule.onNodeWithTag(PersonDeleteTag).performClick()
         rule.waitForIdle()
 

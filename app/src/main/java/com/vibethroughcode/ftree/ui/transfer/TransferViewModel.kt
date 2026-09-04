@@ -11,7 +11,12 @@ import com.vibethroughcode.ftree.transfer.ImportProblem
 import com.vibethroughcode.ftree.transfer.ImportResult
 import com.vibethroughcode.ftree.transfer.TreeExporter
 import com.vibethroughcode.ftree.transfer.TreeImporter
+import com.vibethroughcode.ftree.data.FamilyRepository
+import com.vibethroughcode.ftree.data.Person
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
@@ -28,6 +33,7 @@ class TransferViewModel(
     private val exporter: TreeExporter,
     private val importer: TreeImporter,
     private val contentResolver: ContentResolver,
+    repository: FamilyRepository,
 ) : ViewModel() {
 
     /**
@@ -36,6 +42,14 @@ class TransferViewModel(
      * Nothing is written while this is non-null; the plan describes what an import *would* do and
      * is thrown away untouched if the user backs out.
      */
+    /**
+     * Everyone, keyed by id. Used only by the import review, which has to show what each proposed
+     * match would be merged into.
+     */
+    val localPeople: StateFlow<Map<String, Person>> = repository.observeAllPeople()
+        .map { people -> people.associateBy { it.id } }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyMap())
+
     private val _plan = MutableStateFlow<ImportPlan?>(null)
     val plan: StateFlow<ImportPlan?> = _plan.asStateFlow()
 

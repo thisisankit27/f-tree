@@ -52,4 +52,14 @@ class PersonTest {
         val person = Person(name = "Grandfather", birthDate = "1938", deceased = true)
         assertNull(person.age(today))
     }
+
+    @Test
+    fun `a death date alone means the person has died, flag or no flag`() {
+        // The two fields are independent, and a card prints "1905-1978" on the date alone. The
+        // chart's memorial rule has to agree with the text on the same card.
+        assertTrue(Person(deathDate = "1978").isNoLongerLiving)
+        assertTrue(Person(deceased = true).isNoLongerLiving)
+        assertTrue(Person(deceased = true, deathDate = "1978").isNoLongerLiving)
+        assertFalse(Person(birthDate = "1990").isNoLongerLiving)
+    }
 }
