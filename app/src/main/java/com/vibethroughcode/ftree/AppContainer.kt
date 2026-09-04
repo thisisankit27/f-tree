@@ -7,6 +7,11 @@ import com.vibethroughcode.ftree.data.PhotoStore
 import com.vibethroughcode.ftree.transfer.TreeExporter
 import com.vibethroughcode.ftree.transfer.TreeIdentity
 import com.vibethroughcode.ftree.transfer.TreeImporter
+import com.vibethroughcode.ftree.update.ApkGuard
+import com.vibethroughcode.ftree.update.UpdateClient
+import com.vibethroughcode.ftree.update.UpdateInstaller
+import com.vibethroughcode.ftree.update.UpdatePreferences
+import com.vibethroughcode.ftree.update.UpdateRepository
 
 /**
  * Hand-rolled dependency wiring.
@@ -30,6 +35,21 @@ class AppContainer(context: Context) {
             identity = treeIdentity,
             exporter = exporter,
             workingDirectory = context.applicationContext.filesDir,
+        )
+    }
+
+    val updatePreferences: UpdatePreferences by lazy { UpdatePreferences(context) }
+
+    /**
+     * Built lazily like everything else, which also means the updater's objects do not exist at
+     * all in a session where nobody opens Settings.
+     */
+    val updateRepository: UpdateRepository by lazy {
+        UpdateRepository(
+            preferences = updatePreferences,
+            client = UpdateClient(),
+            guard = ApkGuard(context.applicationContext),
+            installer = UpdateInstaller(context.applicationContext),
         )
     }
 }
