@@ -2,6 +2,7 @@ package com.vibethroughcode.ftree.ui
 
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
@@ -192,7 +193,12 @@ class RelationshipFlowTest {
         rule.onNodeWithTag(PersonDeleteTag).performClick()
         rule.waitForIdle()
         rule.onNodeWithTag(DeleteCompletelyTag).performClick()
-        rule.waitForIdle()
+
+        // Deleting pops this screen, and the navigation bar only exists once a top-level
+        // destination is back on screen — a frame after the pop, not at waitForIdle.
+        rule.waitUntil(5_000) {
+            rule.onAllNodesWithTag(NavPeopleTag).fetchSemanticsNodes().isNotEmpty()
+        }
 
         // Raj remains — only Ankit and the link between them are gone.
         rule.onNodeWithTag(NavPeopleTag).performClick()
