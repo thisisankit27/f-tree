@@ -19,8 +19,9 @@ import com.vibethroughcode.ftree.ui.person.EditSaveTag
 import com.vibethroughcode.ftree.ui.person.DeleteCompletelyTag
 import com.vibethroughcode.ftree.ui.person.DeleteKeepAsUnknownTag
 import com.vibethroughcode.ftree.ui.person.PersonDeleteTag
+import com.vibethroughcode.ftree.ui.person.PersonMenuTag
 import com.vibethroughcode.ftree.ui.person.PersonEditTag
-import com.vibethroughcode.ftree.ui.tree.TreePeopleButtonTag
+import com.vibethroughcode.ftree.ui.NavPeopleTag
 import com.vibethroughcode.ftree.ui.person.addSectionTag
 import com.vibethroughcode.ftree.ui.relative.AddRelativeNameTag
 import com.vibethroughcode.ftree.ui.relative.AddRelativeSaveTag
@@ -169,6 +170,7 @@ class RelationshipFlowTest {
         addRelative(RelativeKind.PARENT, "Raj Kumar")
         addRelative(RelativeKind.CHILD, "Aarav")
 
+        rule.onNodeWithTag(PersonMenuTag).performClick()
         rule.onNodeWithTag(PersonDeleteTag).performClick()
         rule.waitForIdle()
 
@@ -186,13 +188,14 @@ class RelationshipFlowTest {
     fun deletingCompletelyRemovesTheirConnectionsToo() {
         addRelative(RelativeKind.PARENT, "Raj Kumar")
 
+        rule.onNodeWithTag(PersonMenuTag).performClick()
         rule.onNodeWithTag(PersonDeleteTag).performClick()
         rule.waitForIdle()
         rule.onNodeWithTag(DeleteCompletelyTag).performClick()
         rule.waitForIdle()
 
         // Raj remains — only Ankit and the link between them are gone.
-        rule.onNodeWithTag(TreePeopleButtonTag).performClick()
+        rule.onNodeWithTag(NavPeopleTag).performClick()
         rule.waitForIdle()
         rule.onNodeWithText("Raj Kumar").assertIsDisplayed()
         assertTrue(rule.onAllNodesWithText("Ankit").fetchSemanticsNodes().isEmpty())

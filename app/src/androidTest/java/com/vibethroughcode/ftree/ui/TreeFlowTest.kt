@@ -21,7 +21,7 @@ import com.vibethroughcode.ftree.data.RelativeKind
 import com.vibethroughcode.ftree.ui.person.EditNameFieldTag
 import com.vibethroughcode.ftree.ui.person.EditSaveTag
 import com.vibethroughcode.ftree.ui.tree.FamilyChartTag
-import com.vibethroughcode.ftree.ui.tree.TreePeopleButtonTag
+import com.vibethroughcode.ftree.ui.NavPeopleTag
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -104,7 +104,7 @@ class TreeFlowTest {
     fun thePeopleListIsReachableFromTheChart() {
         seedFamily()
 
-        rule.onNodeWithTag(TreePeopleButtonTag).performClick()
+        rule.onNodeWithTag(NavPeopleTag).performClick()
         rule.waitForIdle()
 
         rule.onNodeWithText("Vinod Kumar").assertIsDisplayed()

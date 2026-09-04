@@ -121,7 +121,6 @@
 
     <!-- Tree -->
     <string name="tree_title">Family tree</string>
-    <string name="tree_people">All people</string>
     <string name="tree_open_person">Open %1$s</string>
     <string name="tree_focus_here">Centre the tree here</string>
     <string name="tree_add_relative">Add a relative</string>
@@ -140,7 +139,6 @@
     <string name="photo_remove">Remove photo</string>
 
     <!-- Import and export -->
-    <string name="menu_more">More</string>
     <string name="export_tree">Export your tree</string>
     <string name="export_default_name">family-tree-%1$s.ftree</string>
     <string name="export_done">Exported %1$s and %2$s.</string>
@@ -175,10 +173,7 @@
     <string name="import_local_label">Yours</string>
     <string name="import_incoming_label">In the file</string>
 
-    <string name="about">About f-tree</string>
     <string name="about_body">A local-first family tree. Everything stays on this device: no account, no cloud, no backend. Share a tree by exporting it to a file; importing one merges it into yours instead of replacing it.</string>
-    <string name="about_version">Version %1$s</string>
-    <string name="about_licences">Open source licences</string>
     <string name="about_fonts">f-tree is open source under the MIT licence. Literata and JetBrains Mono are used under the SIL Open Font Licence 1.1.</string>
 
     <!-- Shared -->
@@ -206,4 +201,95 @@
         <item quantity="one">%d photo</item>
         <item quantity="other">%d photos</item>
     </plurals>
+
+    <!-- Bottom navigation -->
+    <string name="nav_tree">Tree</string>
+    <string name="nav_people">People</string>
+    <string name="nav_settings">Settings</string>
+
+    <!-- Chart modes -->
+    <string name="tree_mode_focused">Around one person</string>
+    <string name="tree_mode_whole">Everyone</string>
+    <string name="tree_mode_label">Chart view</string>
+    <string name="tree_focused_on">Centred on %1$s</string>
+    <string name="tree_recentre">Recentre</string>
+
+    <!-- The whole-tree chart -->
+    <string name="whole_group_family">%1$d people · %2$d generations</string>
+    <string name="whole_group_unconnected">Not connected to anyone · %1$d</string>
+    <plurals name="whole_summary">
+        <item quantity="one">%1$d person</item>
+        <item quantity="other">%1$d people</item>
+    </plurals>
+    <plurals name="whole_summary_families">
+        <item quantity="one">%1$d family</item>
+        <item quantity="other">%1$d families</item>
+    </plurals>
+    <plurals name="whole_summary_unconnected">
+        <item quantity="one">%1$d with no relatives recorded</item>
+        <item quantity="other">%1$d with no relatives recorded</item>
+    </plurals>
+    <plurals name="whole_summary_unnamed">
+        <item quantity="one">%1$d without a name</item>
+        <item quantity="other">%1$d without a name</item>
+    </plurals>
+    <string name="whole_empty_title">Nobody to show yet</string>
+    <string name="whole_empty_body">This view draws everyone in your tree at once, including the people no relationship reaches. Add someone and they will appear here.</string>
+    <string name="whole_unconnected_note">%1$d of these has no recorded relatives. The other chart cannot show them at all.</string>
+    <string name="whole_unconnected_note_plural">%1$d of these have no recorded relatives. The other chart cannot show them at all.</string>
+    <string name="a11y_whole_chart">Chart of the whole tree, showing %1$d people, %2$d of whom have no recorded relatives. Use the people list for a readable list of everyone and their relationships.</string>
+
+    <!-- Settings -->
+    <string name="settings_title">Settings</string>
+    <string name="settings_section_updates">Updates</string>
+    <string name="settings_section_data">Your data</string>
+    <string name="settings_section_about">About</string>
+
+    <string name="settings_updates_toggle">Check for updates</string>
+    <string name="settings_updates_explainer">Off unless you turn it on. This is the only thing in f-tree that uses the network — it asks GitHub whether a newer release exists. Your tree is never sent anywhere.</string>
+    <string name="settings_updates_keeps_data">Updating installs over this copy, so your family stays exactly as it is. Nothing to export first.</string>
+    <string name="settings_updates_check_now">Check now</string>
+    <string name="settings_updates_checking">Looking for a newer version…</string>
+    <string name="settings_updates_current">You are on the latest version.</string>
+    <string name="settings_updates_never_checked">Not checked yet.</string>
+    <string name="settings_updates_last_checked">Checked %1$s.</string>
+    <string name="settings_update_available">Version %1$s is available</string>
+    <string name="settings_update_size">%1$s · replaces this copy, keeping your tree</string>
+    <string name="settings_update_download">Download</string>
+    <string name="settings_update_downloading">Downloading… %1$d%%</string>
+    <string name="settings_update_verifying">Checking the download…</string>
+    <string name="settings_update_ready">Version %1$s is ready to install</string>
+    <string name="settings_update_ready_body">Checked against the checksum GitHub published, and signed with the same key as this copy — so it updates in place and your family is carried over.</string>
+    <string name="settings_update_install">Install</string>
+    <string name="settings_update_skip">Skip this version</string>
+    <string name="settings_update_cancel">Cancel</string>
+    <string name="settings_update_notes">What changed</string>
+    <string name="settings_update_permission_title">Android needs your permission</string>
+    <string name="settings_update_permission_body">To install an update, f-tree needs permission to install apps. You can switch it back off afterwards.</string>
+    <string name="settings_update_permission_action">Open settings</string>
+
+    <string name="update_failed_network">Could not reach GitHub. Check your connection and try again.</string>
+    <string name="update_failed_server">GitHub returned something unexpected. Try again later.</string>
+    <string name="update_failed_rate_limited">GitHub is rate-limiting this connection. Try again in a while.</string>
+    <string name="update_failed_no_releases">There are no releases to check against yet.</string>
+    <string name="update_failed_insecure">That download was not offered over a secure connection, so it was refused.</string>
+    <string name="update_failed_truncated">The download ended early. Try again.</string>
+    <string name="update_failed_storage">There was not enough room to save the download.</string>
+    <string name="update_failed_checksum">The download did not match the checksum GitHub published for it, so it was discarded.</string>
+    <string name="update_failed_signature">That download is signed with a different key, so it cannot update this copy. Install it by hand only if you are certain where it came from — it would replace the app, and your tree with it.</string>
+    <string name="update_failed_wrong_package">That download is a different app.</string>
+    <string name="update_failed_install_not_permitted">Android has not been given permission to install apps from f-tree.</string>
+
+    <string name="settings_export">Export your tree</string>
+    <string name="settings_export_body">Writes everyone, every connection and every photo to a single .ftree file.</string>
+    <string name="settings_import">Import a tree</string>
+    <string name="settings_import_body">Merges another .ftree into yours. Nothing of yours is replaced, and a backup is written first.</string>
+    <string name="settings_version">Version %1$s</string>
+    <string name="settings_source">Source and releases</string>
+    <string name="settings_permissions_title">Permissions</string>
+    <string name="settings_permissions_body">Two, both only for the updater above: internet access to ask GitHub about releases, and permission to install an update. Nothing else in the app touches the network.</string>
+
+    <!-- Person detail -->
+    <string name="person_show_on_tree">Show on the tree</string>
+    <string name="person_more">More</string>
 </resources>

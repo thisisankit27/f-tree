@@ -17,6 +17,10 @@ import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material.icons.filled.AccountTree
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -55,6 +59,7 @@ import com.vibethroughcode.ftree.ui.theme.FTreeTheme
 
 const val PersonNameTag = "person-name"
 const val PersonDeleteTag = "person-delete"
+const val PersonMenuTag = "person-menu"
 const val PersonEditTag = "person-edit"
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -64,11 +69,13 @@ fun PersonDetailScreen(
     onEdit: (String) -> Unit,
     onOpenPerson: (String) -> Unit,
     onAddRelative: (String, RelativeKind) -> Unit,
+    onShowOnTree: (String) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: PersonDetailViewModel = viewModel(factory = FTreeViewModels.Factory),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     var confirmingDelete by remember { mutableStateOf(false) }
+    var menuOpen by remember { mutableStateOf(false) }
     var pendingRemoval by remember { mutableStateOf<Person?>(null) }
 
     // A person can disappear underneath this screen — deleted here, or removed by an import — so
@@ -91,19 +98,38 @@ fun PersonDetailScreen(
                     }
                 },
                 actions = {
+                    IconButton(onClick = { onShowOnTree(viewModel.personId) }) {
+                        Icon(
+                            Icons.Default.AccountTree,
+                            contentDescription = stringResource(R.string.person_show_on_tree),
+                        )
+                    }
                     IconButton(
                         onClick = { onEdit(viewModel.personId) },
                         modifier = Modifier.testTag(PersonEditTag),
                     ) {
                         Icon(Icons.Default.Edit, contentDescription = stringResource(R.string.person_edit))
                     }
+                    // Delete sits behind the overflow rather than beside edit. Two icons of equal
+                    // weight, one of which removes a person from the family, is a mis-tap waiting
+                    // to happen.
                     IconButton(
-                        onClick = { confirmingDelete = true },
-                        modifier = Modifier.testTag(PersonDeleteTag),
+                        onClick = { menuOpen = true },
+                        modifier = Modifier.testTag(PersonMenuTag),
                     ) {
                         Icon(
-                            Icons.Default.DeleteOutline,
-                            contentDescription = stringResource(R.string.delete_person),
+                            Icons.Default.MoreVert,
+                            contentDescription = stringResource(R.string.person_more),
+                        )
+                    }
+                    DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.delete_person)) },
+                            leadingIcon = {
+                                Icon(Icons.Default.DeleteOutline, contentDescription = null)
+                            },
+                            onClick = { menuOpen = false; confirmingDelete = true },
+                            modifier = Modifier.testTag(PersonDeleteTag),
                         )
                     }
                 },
