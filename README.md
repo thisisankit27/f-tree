@@ -15,8 +15,12 @@ replacing it**.
   can be named years later without disturbing a single relationship.
 - **A graph, not a tree.** Multiple spouses, children across different marriages, half-siblings,
   adoptive and step relationships, and unknown ancestors all work without special cases.
-- **A focused genealogy chart.** One person's ancestors above and descendants below, with pan, zoom,
-  and tap-to-recentre.
+- **Two charts.** *Around one person* draws their ancestors above and descendants below, with pan,
+  zoom and tap-to-recentre. *Everyone* draws the entire tree at once — every generation, every
+  household, and the people no relationship reaches, whom the focused chart has nowhere to put.
+- **Optional in-app updates.** Off until switched on. Checks GitHub for a newer release and installs
+  it over the running copy, so a new version keeps your tree instead of costing an export and an
+  import.
 - **Export and import as a single `.ftree` file**, with merge semantics that never overwrite.
 - **Photos**, stored inside the app and carried in the export.
 
@@ -70,6 +74,7 @@ The receiver exists only in debug builds.
 data/       Room entities, DAOs, the repository, photo storage
 graph/      pure graph logic: traversal, relationship rules, chart layout
 transfer/   the .ftree format, export, import, duplicate matching
+update/     the optional updater — the only code that touches the network
 ui/         Compose screens, one package per area
 ```
 
@@ -230,6 +235,32 @@ descriptions. The chart grows its cards with the text size so nothing is clipped
 node its own semantics would mean composing a node per person on every pan. The chart therefore
 describes itself and points at the people list, where each person's page spells out every
 relationship as ordinary text. That is a complete alternative route, but it is a limitation.
+
+## Updating in place
+
+`update/` is the only code in the app that opens a socket, and it is deliberately kept in one
+package so that claim is checkable by reading rather than by trust. It is off until switched on in
+Settings: `UpdateRepository` refuses to make a request while the preference is false, so "no network
+unless you ask for it" is a property of the code and not of the interface.
+
+**Why it exists.** Sideloading a new APK over the old one keeps the app's data directory — that is
+ordinary Android behaviour, and it is the whole point. Without an updater, moving to a new version
+means exporting, uninstalling, reinstalling and importing, four steps in which a family can be lost.
+
+**What it checks before installing anything.** Three things, in this order:
+
+1. the download's SHA-256 against the `digest` GitHub publishes for the asset,
+2. that the archive's package name is this app,
+3. that its signing certificate matches the copy already installed.
+
+The third is the one that protects the tree. An APK signed with a different key *cannot* update this
+one — Android refuses it — and the only way to install it would be to uninstall first, taking the
+family with it. Checking here means that is refused by this app with an explanation, rather than
+discovered at the end of a download.
+
+The two permissions the app declares, `INTERNET` and `REQUEST_INSTALL_PACKAGES`, exist only for
+this. The tree itself never goes near the network; there is no sync, no account, and no backend to
+have one with.
 
 ## Releasing
 
