@@ -88,6 +88,29 @@ fun DrawScope.drawPersonCard(
         },
     )
 
+    /*
+     * A memorial rule along the top edge for somebody no longer living.
+     *
+     * Deliberately not a dotted or dashed outline: a broken perimeter already means "name not
+     * known", and one visual idea cannot carry two unrelated meanings on the same chart. It also
+     * has to compose — a person can be unnamed *and* dead, and on this card that reads as a dashed
+     * brass edge with a rule across the top, rather than two dash patterns fighting each other.
+     *
+     * Drawn before the text and outside the detail check, so it survives to the scale where cards
+     * are plain shapes. At a distance the chart then still shows which generations have passed.
+     */
+    if (person.isNoLongerLiving) {
+        val inset = cornerPx * 0.9f
+        val y = top + rulePx * 1.6f
+        drawLine(
+            color = colors.muted,
+            start = Offset(left + inset, y),
+            end = Offset(left + width - inset, y),
+            strokeWidth = rulePx * 1.6f,
+            alpha = alpha,
+        )
+    }
+
     if (detail == CardDetail.SHAPE) return
 
     val textWidth = (width - cornerPx * 2).toInt().coerceAtLeast(1)

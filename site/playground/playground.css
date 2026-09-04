@@ -737,6 +737,7 @@ kbd {
 .k-unknown { width: 20px; height: 12px; border: 1.5px dashed var(--brass); border-radius: 3px; background: var(--brass-surface); }
 .k-couple { width: 20px; height: 7px; border-top: 1.5px solid var(--forest); border-bottom: 1.5px solid var(--forest); }
 .k-descent { width: 20px; height: 10px; border-left: 1.5px solid var(--rule-strong); border-bottom: 1.5px solid var(--rule-strong); }
+.k-died { width: 20px; height: 12px; border: 1.5px solid var(--rule-strong); border-top-width: 3px; border-radius: 3px; }
 .k-sib { width: 20px; height: 8px; border: 1.5px dashed var(--rule-strong); border-bottom: 0; }
 .k-alone { width: 20px; height: 12px; border: 1.5px dashed var(--rule-strong); border-radius: 3px; }
 

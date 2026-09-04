@@ -566,6 +566,26 @@ export class Chart {
       ctx.stroke();
       ctx.setLineDash([]);
 
+      /*
+       * A memorial rule across the top for somebody no longer living.
+       *
+       * Deliberately not a dotted or dashed outline: a broken perimeter already means "name not
+       * known" here, and one visual idea cannot carry two unrelated meanings on the same chart.
+       * It also has to compose - a person can be unnamed and dead, and that reads as a dashed
+       * brass edge with a rule across the top rather than two dash patterns fighting.
+       *
+       * Drawn before the zoom check, so it survives to the scale where cards are plain shapes and
+       * the chart still shows which generations have passed.
+       */
+      if (person.deceased) {
+        ctx.strokeStyle = c.inkFaint;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(node.x + 9, node.y + 3);
+        ctx.lineTo(node.x + NODE_W - 9, node.y + 3);
+        ctx.stroke();
+      }
+
       if (isMatch && !isSelected) {
         ctx.strokeStyle = c.forest;
         ctx.lineWidth = 2.5;
