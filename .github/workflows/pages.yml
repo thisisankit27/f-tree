@@ -47,6 +47,30 @@ jobs:
                    | sed -E 's/:(src|href)="/ /; s/"$//')
           test "$missing" -eq 0
 
+      - name: Check the viewer parses and lays out a real archive
+        run: |
+          set -euo pipefail
+          # Builds .ftree fixtures from the same schema the app writes, including one streamed
+          # through an unseekable zip - which zeroes the local file headers exactly as
+          # java.util.zip.ZipOutputStream does - then asserts the layout invariants: everybody
+          # placed once, nobody overlapping on their row, children below their parents, and the
+          # unconnected people that are the whole point of the page actually on the canvas.
+          python3 tools/make_sample_tree.py "$RUNNER_TEMP/fixtures"
+          node tools/check_layout.mjs "$RUNNER_TEMP/fixtures"
+
+      - name: Check the viewer's module graph resolves
+        run: |
+          set -euo pipefail
+          missing=0
+          while read -r file spec; do
+            target="$(dirname "$file")/$spec"
+            [ -f "$target" ] || { echo "broken import in $file -> $spec"; missing=1; }
+          done < <(grep -rhoE "from '\./[^']+'" site/playground --include='*.js' \
+                   | sed -E "s/from '\.\///; s/'$//" \
+                   | while read -r s; do echo "site/playground/x $s"; done)
+          test "$missing" -eq 0
+          test -s site/playground/sample-family.ftree
+
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v4
         with:
