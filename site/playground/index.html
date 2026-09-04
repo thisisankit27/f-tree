@@ -1,0 +1,205 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Viewer — open a whole f-tree on a big screen</title>
+<meta name="description" content="Open an exported .ftree file and see every person in it at once, including the ones no relationship reaches. Runs entirely in your browser; the file never leaves your device.">
+<meta name="theme-color" content="#f7f6f1">
+<link rel="icon" href="../favicon.svg" type="image/svg+xml">
+<link rel="canonical" href="https://ftree.vibethroughcode.com/playground/">
+
+<meta property="og:type" content="website">
+<meta property="og:title" content="f-tree Viewer — your whole family on one screen">
+<meta property="og:description" content="Open an exported .ftree file on a tablet or a television and see everyone in it, including the people no relationship reaches.">
+<meta property="og:url" content="https://ftree.vibethroughcode.com/playground/">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,600;0,7..72,700;1,7..72,400;1,7..72,600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="playground.css">
+
+<div class="viewer" id="viewer" data-state="empty" data-theme="light">
+
+  <header class="bar">
+    <a class="wordmark" href="../" title="Back to f-tree">
+      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+        <rect x="3" y="3" width="18" height="18" rx="5"/>
+        <circle cx="9" cy="9" r="1.9"/><circle cx="15" cy="9" r="1.9"/><circle cx="12" cy="16" r="1.9"/>
+        <path d="M9 11v1.6h6V11M12 12.6V14"/>
+      </svg>
+      <b>f-tree</b>
+    </a>
+    <span class="bar-tag">Viewer</span>
+
+    <div class="bar-file" data-when="loaded">
+      <span class="file-name" id="file-name"></span>
+      <button type="button" class="link-btn" id="close-file">Close</button>
+    </div>
+
+    <div class="bar-spacer"></div>
+
+    <div class="bar-tools" data-when="loaded">
+      <div class="search" role="search">
+        <label class="sr-only" for="search">Search people</label>
+        <input type="search" id="search" placeholder="Search people" autocomplete="off"
+               spellcheck="false" aria-expanded="false" aria-controls="search-results">
+        <ul class="search-results" id="search-results" role="listbox" hidden></ul>
+      </div>
+
+      <div class="segmented" role="group" aria-label="View">
+        <button type="button" data-view="chart" aria-pressed="true">Chart</button>
+        <button type="button" data-view="index" aria-pressed="false">Index</button>
+      </div>
+
+      <button type="button" class="tool" id="relate-btn" title="How are two people related?">
+        Relate two people
+      </button>
+
+      <div class="zoom" data-when="chart">
+        <button type="button" class="icon" id="zoom-out" aria-label="Zoom out">&minus;</button>
+        <output class="zoom-level" id="zoom-level" aria-live="off">100%</output>
+        <button type="button" class="icon" id="zoom-in" aria-label="Zoom in">+</button>
+        <button type="button" class="tool" id="fit">Fit</button>
+      </div>
+
+      <div class="menu">
+        <button type="button" class="tool" id="display-btn" aria-expanded="false" aria-haspopup="true">
+          Display
+        </button>
+        <div class="menu-panel" id="display-menu" hidden>
+          <button type="button" role="menuitemcheckbox" aria-checked="false" data-toggle="theme">
+            <span>Dark</span><span class="tick">✓</span>
+          </button>
+          <button type="button" role="menuitemcheckbox" aria-checked="true" data-toggle="photos">
+            <span>Photographs</span><span class="tick">✓</span>
+          </button>
+          <button type="button" role="menuitemcheckbox" aria-checked="false" data-toggle="big">
+            <span>Big screen</span><span class="tick">✓</span>
+          </button>
+          <button type="button" role="menuitemcheckbox" aria-checked="true" data-toggle="status">
+            <span>Status bar</span><span class="tick">✓</span>
+          </button>
+          <hr>
+          <button type="button" data-action="fullscreen"><span>Full screen</span></button>
+          <button type="button" data-action="shortcuts"><span>Keyboard shortcuts</span></button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="stage" id="stage">
+
+    <!-- ------------------------------------------------------------ nothing loaded yet -->
+    <section class="opener" id="opener" data-when="empty">
+      <div class="opener-inner">
+        <p class="eyebrow">Big screen · nothing uploaded</p>
+        <h1>Your whole family, all at once.</h1>
+        <p class="lede">
+          The app draws the family around one person, because that is what a phone can show. Open
+          your export here and you get the opposite: every person in the record on one canvas,
+          including the ones no relationship reaches yet.
+        </p>
+
+        <div class="drop" id="drop">
+          <input type="file" id="file" accept=".ftree,.zip,.json,application/zip,application/octet-stream" hidden>
+          <p class="drop-title">Drop a <b>.ftree</b> file here</p>
+          <p class="drop-or">or</p>
+          <button type="button" class="btn primary" id="choose">Choose a file</button>
+          <button type="button" class="btn quiet" id="sample">Open the sample family</button>
+        </div>
+
+        <p class="assurance">
+          <span aria-hidden="true">◌</span>
+          <span>
+            <b>The file never leaves this device.</b> It is unzipped and drawn by the page you are
+            looking at — there is no upload, no server, and nothing to sign into. Turn off your
+            network and it still works.
+          </span>
+        </p>
+
+        <p class="opener-error" id="opener-error" hidden role="alert"></p>
+
+        <p class="opener-foot">
+          No export yet? In the app, open <b>Menu → Export</b> and save the <b>.ftree</b> file, then
+          bring it here. <a href="../">What f-tree is</a>
+        </p>
+      </div>
+    </section>
+
+    <!-- ------------------------------------------------------------ the chart -->
+    <canvas id="canvas" data-when="chart" tabindex="0" role="img" aria-label="Family chart. Use the Index view for a readable list of everyone in this file."></canvas>
+
+    <p class="hint" id="hint" data-when="chart" hidden></p>
+
+    <!-- ------------------------------------------------------------ the index -->
+    <section class="index" id="index" data-when="index" hidden>
+      <div class="index-inner">
+        <h2 class="index-heading">Everyone in this file</h2>
+        <p class="index-note" id="index-note"></p>
+        <ol class="index-list" id="index-list"></ol>
+      </div>
+    </section>
+
+    <!-- ------------------------------------------------------------ one person -->
+    <aside class="panel" id="panel" hidden aria-labelledby="panel-name">
+      <button type="button" class="panel-close" id="panel-close" aria-label="Close">&times;</button>
+      <div class="panel-body" id="panel-body"></div>
+    </aside>
+
+    <!-- ------------------------------------------------------------ two people -->
+    <aside class="relate" id="relate" hidden aria-labelledby="relate-heading">
+      <button type="button" class="panel-close" id="relate-close" aria-label="Close">&times;</button>
+      <h2 id="relate-heading">How are two people related?</h2>
+      <p class="relate-help">
+        Pick two people. The answer works through marriages and adoptions as well as blood, so it
+        can explain a connection no single word covers.
+      </p>
+      <div class="relate-picks">
+        <div class="relate-pick" data-slot="a">
+          <label for="relate-a">First person</label>
+          <input type="search" id="relate-a" autocomplete="off" placeholder="Search">
+          <ul class="search-results" id="relate-a-results" hidden></ul>
+        </div>
+        <div class="relate-pick" data-slot="b">
+          <label for="relate-b">Second person</label>
+          <input type="search" id="relate-b" autocomplete="off" placeholder="Search">
+          <ul class="search-results" id="relate-b-results" hidden></ul>
+        </div>
+      </div>
+      <div class="relate-answer" id="relate-answer"></div>
+    </aside>
+
+    <!-- ------------------------------------------------------------ keyboard help -->
+    <div class="sheet" id="shortcuts" hidden role="dialog" aria-modal="true" aria-labelledby="shortcuts-heading">
+      <div class="sheet-inner">
+        <button type="button" class="panel-close" id="shortcuts-close" aria-label="Close">&times;</button>
+        <h2 id="shortcuts-heading">Keyboard</h2>
+        <dl class="keys">
+          <div><dt><kbd>/</kbd></dt><dd>Search</dd></div>
+          <div><dt><kbd>F</kbd></dt><dd>Fit the whole tree on screen</dd></div>
+          <div><dt><kbd>+</kbd> <kbd>&minus;</kbd></dt><dd>Zoom</dd></div>
+          <div><dt><kbd>&larr;</kbd><kbd>&rarr;</kbd><kbd>&uarr;</kbd><kbd>&darr;</kbd></dt><dd>Move around the chart</dd></div>
+          <div><dt><kbd>Tab</kbd></dt><dd>Step through people, nearest first</dd></div>
+          <div><dt><kbd>D</kbd></dt><dd>Dark or light</dd></div>
+          <div><dt><kbd>I</kbd></dt><dd>Chart or index</dd></div>
+          <div><dt><kbd>R</kbd></dt><dd>Relate two people</dd></div>
+          <div><dt><kbd>Esc</kbd></dt><dd>Close what is open</dd></div>
+        </dl>
+      </div>
+    </div>
+
+    <div class="busy" id="busy" hidden><span></span> Reading the file…</div>
+  </main>
+
+  <footer class="status" id="status" data-when="loaded">
+    <div class="counts" id="counts"></div>
+    <div class="legend" aria-hidden="true">
+      <span class="key"><i class="k-unknown"></i>name not known</span>
+      <span class="key"><i class="k-couple"></i>partners</span>
+      <span class="key"><i class="k-descent"></i>parent to child</span>
+      <span class="key"><i class="k-sib"></i>siblings, parents unknown</span>
+      <span class="key"><i class="k-alone"></i>no recorded relatives</span>
+    </div>
+  </footer>
+
+</div>
+
+<script type="module" src="main.js"></script>
