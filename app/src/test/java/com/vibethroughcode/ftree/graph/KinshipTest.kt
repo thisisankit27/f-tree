@@ -244,4 +244,66 @@ class KinshipTest {
         assertEquals(KinshipTerm.Descendant(2000), relation.term)
         assertTrue("took ${elapsed}ms", elapsed < 2000)
     }
+
+    /*
+     * A SIBLING edge is recorded exactly when the parents are unknown, so these cases have no
+     * ancestor to measure through until one is stood in for them. Caught on a device: an aunt
+     * reachable only through her brother came back as merely "related".
+     */
+
+    @Test
+    fun `an aunt known only as somebody's sister is still an aunt`() {
+        val snapshot = Builder()
+            .person("me", "dad", "aunt")
+            .parentOf("dad", "me")
+            .siblingOf("dad", "aunt")
+            .build()
+
+        val relation = Kinship.relate(snapshot, "me", "aunt") as Relation.Found
+
+        assertEquals(KinshipTerm.ParentsSibling(greats = 0), relation.term)
+        assertFalse("blood, not marriage", relation.byMarriage)
+    }
+
+    @Test
+    fun `the stand-in ancestor is not a person, so nothing can try to name it`() {
+        val snapshot = Builder()
+            .person("elder", "younger")
+            .siblingOf("elder", "younger")
+            .build()
+
+        val relation = Kinship.relate(snapshot, "elder", "younger") as Relation.Found
+
+        assertEquals(KinshipTerm.Sibling, relation.term)
+        assertFalse(relation.sharedAncestorId in snapshot.people)
+        assertEquals("the chain still crosses one edge, not two", 1, relation.steps)
+    }
+
+    @Test
+    fun `three siblings on two edges share one unrecorded parent, not two`() {
+        // Minting a stand-in per edge rather than per group would make the outer two cousins.
+        val snapshot = Builder()
+            .person("a", "b", "c")
+            .siblingOf("a", "b").siblingOf("b", "c")
+            .build()
+
+        assertEquals(
+            KinshipTerm.Sibling,
+            (Kinship.relate(snapshot, "a", "c") as Relation.Found).term,
+        )
+    }
+
+    @Test
+    fun `an explicit edge does not overrule the parents when both are recorded`() {
+        val snapshot = Builder()
+            .person("mum", "one", "two")
+            .parentOf("mum", "one").parentOf("mum", "two")
+            .siblingOf("one", "two")
+            .build()
+
+        val relation = Kinship.relate(snapshot, "one", "two") as Relation.Found
+
+        assertEquals(KinshipTerm.Sibling, relation.term)
+        assertEquals("measured through the mother who is actually recorded", "mum", relation.sharedAncestorId)
+    }
 }

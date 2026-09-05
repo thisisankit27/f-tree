@@ -342,15 +342,57 @@ export function kinshipTerm(u, d, other) {
   return `${base} ${removed} times removed`;
 }
 
+/**
+ * A stand-in parent for each group of people joined by explicit sibling edges.
+ *
+ * An explicit SIBLING edge is only recorded when the parents are *not* known - shared parents
+ * derive siblings on their own. So the edge is a statement that these people share an ancestor
+ * nobody wrote down, and without somebody to measure through, an aunt reachable only through her
+ * brother comes back as merely "related": the gap in the record swallowing a word the family uses
+ * every day. Whole groups, not pairs - three siblings recorded as two edges share one unknown
+ * parent, and a stand-in per edge would make the outer two cousins.
+ *
+ * The stand-in is never shown. It has no name to show, which is the point of it.
+ */
+function standInAncestors(graph) {
+  const groupOf = new Map();
+  const members = new Map();
+  for (const [id, siblings] of graph.explicitSiblings) {
+    for (const s of siblings.values()) {
+      const a = id;
+      const b = s.id;
+      const left = groupOf.get(a);
+      const right = groupOf.get(b);
+      if (left === undefined && right === undefined) {
+        const key = `unrecorded-parent:${members.size}`;
+        groupOf.set(a, key); groupOf.set(b, key);
+        members.set(key, [a, b]);
+      } else if (left === undefined) {
+        groupOf.set(a, right); members.get(right).push(a);
+      } else if (right === undefined) {
+        groupOf.set(b, left); members.get(left).push(b);
+      } else if (left !== right) {
+        for (const m of members.get(right)) groupOf.set(m, left);
+        members.get(left).push(...members.get(right));
+        members.delete(right);
+      }
+    }
+  }
+  return groupOf;
+}
+
 /** Ancestors of a person, with the number of generations up to each. */
-function ancestorDistances(graph, id) {
+function ancestorDistances(graph, id, standIns) {
   const dist = new Map([[id, 0]]);
   const queue = [id];
   while (queue.length) {
     const current = queue.shift();
     const step = dist.get(current) + 1;
-    for (const p of graph.parents(current)) {
-      if (!dist.has(p.id)) { dist.set(p.id, step); queue.push(p.id); }
+    const above = graph.parents(current).map((p) => p.id);
+    const standIn = standIns.get(current);
+    if (standIn !== undefined) above.push(standIn);
+    for (const parent of above) {
+      if (!dist.has(parent)) { dist.set(parent, step); queue.push(parent); }
     }
   }
   return dist;
@@ -370,8 +412,9 @@ export function relate(graph, fromId, toId) {
   if (!graph.people.get(fromId) || !to) return { kind: 'none' };
 
   let term = null;
-  const mine = ancestorDistances(graph, fromId);
-  const theirs = ancestorDistances(graph, toId);
+  const standIns = standInAncestors(graph);
+  const mine = ancestorDistances(graph, fromId, standIns);
+  const theirs = ancestorDistances(graph, toId, standIns);
   let best = null;
   for (const [ancestor, u] of mine) {
     const d = theirs.get(ancestor);

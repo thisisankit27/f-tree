@@ -89,7 +89,7 @@ object Kinship {
         if (fromId !in snapshot.people || toId !in snapshot.people) return Relation.Unrecorded
 
         val chain = shortestChain(snapshot, fromId, toId) ?: return Relation.Unrecorded
-        val shared = nearestSharedAncestor(snapshot, fromId, toId)
+        val shared = nearestSharedAncestor(snapshot, fromId, toId, standInAncestors(snapshot))
         return Relation.Found(
             chain = chain,
             term = shared?.let { termFor(it.up, it.down) },
@@ -128,9 +128,10 @@ object Kinship {
         snapshot: FamilySnapshot,
         fromId: String,
         toId: String,
+        standIns: Map<String, String>,
     ): Shared? {
-        val mine = ancestorDistances(snapshot, fromId)
-        val theirs = ancestorDistances(snapshot, toId)
+        val mine = ancestorDistances(snapshot, fromId, standIns)
+        val theirs = ancestorDistances(snapshot, toId, standIns)
         var best: Shared? = null
         mine.forEach { (ancestor, up) ->
             val down = theirs[ancestor] ?: return@forEach
@@ -147,18 +148,64 @@ object Kinship {
     }
 
     /** Everyone at or above [id], with the number of generations up to each. */
-    private fun ancestorDistances(snapshot: FamilySnapshot, id: String): Map<String, Int> {
+    private fun ancestorDistances(
+        snapshot: FamilySnapshot,
+        id: String,
+        standIns: Map<String, String>,
+    ): Map<String, Int> {
         val distance = linkedMapOf(id to 0)
         val queue = ArrayDeque(listOf(id))
         while (queue.isNotEmpty()) {
             val current = queue.removeFirst()
             val step = distance.getValue(current) + 1
-            snapshot.parentsOf[current].orEmpty().forEach { parent ->
+            val above = snapshot.parentsOf[current].orEmpty() + listOfNotNull(standIns[current])
+            above.forEach { parent ->
                 // The visited check also makes a cycle in bad data terminate rather than hang.
                 if (distance.putIfAbsent(parent, step) == null) queue.addLast(parent)
             }
         }
         return distance
+    }
+
+    /**
+     * A stand-in parent for each group of people joined by explicit sibling edges.
+     *
+     * A SIBLING edge is only ever recorded when the parents are *not* known — shared parents derive
+     * siblings on their own. So an explicit edge is a statement that these people share an ancestor
+     * whom nobody wrote down, and without somebody to measure through, the term calculation has
+     * nothing to work with: an aunt comes back as merely "related", the gap in the record
+     * swallowing a word the family uses every day.
+     *
+     * The stand-in is never shown. It has no name to show, which is the whole point of it, and the
+     * screen already declines to name an ancestor it cannot look up.
+     */
+    private fun standInAncestors(snapshot: FamilySnapshot): Map<String, String> {
+        if (snapshot.siblingEdges.isEmpty()) return emptyMap()
+
+        // Whole groups, not pairs: three siblings recorded as two edges share one unknown parent,
+        // and minting two stand-ins would make one of them their own cousin.
+        val groupOf = HashMap<String, String>()
+        val members = HashMap<String, MutableList<String>>()
+        snapshot.siblingEdges.forEach { (a, b) ->
+            if (a !in snapshot.people || b !in snapshot.people) return@forEach
+            val left = groupOf[a]
+            val right = groupOf[b]
+            when {
+                left == null && right == null -> {
+                    val id = "unrecorded-parent:" + groupOf.size
+                    groupOf[a] = id
+                    groupOf[b] = id
+                    members[id] = mutableListOf(a, b)
+                }
+                left == null -> { groupOf[a] = right!!; members.getValue(right)+= a }
+                right == null -> { groupOf[b] = left; members.getValue(left) += b }
+                left != right -> {
+                    members.getValue(right).forEach { groupOf[it] = left }
+                    members.getValue(left).addAll(members.remove(right).orEmpty())
+                }
+            }
+        }
+        return groupOf
     }
 
     /**
