@@ -93,6 +93,46 @@ async function run(name, { expectPhotos = false } = {}) {
   }
   check('children are drawn below their parents', inverted === 0, `${inverted} inverted`);
 
+  /*
+   * Stronger than "below": a child belongs exactly one row below each parent, and siblings belong
+   * on one row as each other. Ranking people by how far back their ancestry happens to be recorded
+   * satisfies the weaker check and still draws a wrong chart - a grandfather whose own parents are
+   * unknown lands on the top row beside a great-great-grandfather, and his children scatter across
+   * rows according to whom each of them married.
+   */
+  let notOneApart = 0;
+  for (const id of graph.order) {
+    const child = layout.byId.get(id);
+    for (const p of graph.parents(id)) {
+      const parent = layout.byId.get(p.id);
+      if (parent && child && child.level - parent.level !== 1) notOneApart++;
+    }
+  }
+  check('every parent is exactly one row above every child', notOneApart === 0,
+    `${notOneApart} edges spanning the wrong number of rows`);
+
+  let splitSiblings = 0;
+  for (const [parent, kids] of graph.childrenOf) {
+    const rows = new Set();
+    for (const c of kids.values()) {
+      const node = layout.byId.get(c.id);
+      if (node) rows.add(node.level);
+    }
+    if (rows.size > 1) splitSiblings++;
+  }
+  check('siblings share a row whoever each of them married', splitSiblings === 0,
+    `${splitSiblings} sets of siblings spread over more than one row`);
+
+  let splitCouples = 0;
+  for (const [a, set] of graph.spousesOf) {
+    for (const s of set.values()) {
+      const left = layout.byId.get(a);
+      const right = layout.byId.get(s.id);
+      if (a < s.id && left && right && left.level !== right.level) splitCouples++;
+    }
+  }
+  check('partners share a row', splitCouples === 0, `${splitCouples} couples split`);
+
   // Isolated people are the reason this page exists; they must be on the canvas.
   const isolatedPlaced = graph.isolated.every((id) => layout.byId.has(id));
   check('unconnected people are on the canvas', isolatedPlaced,

@@ -198,106 +198,77 @@ object WholeTreeLayoutEngine {
     /**
      * Puts every person on a generation.
      *
-     * Spouses are unioned first so a married pair cannot land a row apart; generations are then the
-     * longest path over parent edges between those unions — longest rather than shortest, or a
-     * person with both a parent and a great-grandparent recorded would sit above one of them.
+     * A generation is a *relative* fact and nothing else: a child stands exactly one row below each
+     * parent, and spouses — and siblings whose parents nobody recorded — stand on the same row as
+     * each other. Those constraints are propagated outward from one seed per connected family,
+     * which fixes every generation exactly, because the offset between two people is the same along
+     * every route between them. [layoutComponent] then normalises each family against its own
+     * topmost member.
      *
-     * Longest-path ranking alone leaves slack, though: somebody whose only child married into a
-     * deeper part of the family gets stranded rows above them trailing a connector the height of
-     * the chart. So a second pass pulls every group down until it sits directly above its earliest
-     * child, which is as far as it can go without overtaking its own parents.
+     * It is worth saying what this deliberately is *not*, because the obvious alternative is wrong
+     * in a way that takes a real family to notice. Ranking people by their longest path down from
+     * the oldest ancestor on record — the textbook layering — makes a person's row depend on how far
+     * back their ancestry happens to be written down. A maternal grandfather whose own parents are
+     * unknown lands on the top row beside a great-great-grandfather from the other side of the
+     * family; worse, his three children come out on different rows from each other, because each
+     * was dragged down by however deep their own spouse's ancestry ran. Generations are not depths.
+     * Two people are one generation apart or they are not, and how much of the record survives
+     * above them cannot change that.
      */
     private fun assignLevels(snapshot: FamilySnapshot): Map<String, Int> {
-        val parent = mutableMapOf<String, String>()
-        snapshot.people.keys.forEach { parent[it] = it }
+        val level = HashMap<String, Int>(snapshot.people.size)
 
-        fun find(x: String): String {
-            var root = x
-            while (parent[root] != root) root = parent[root]!!
-            var cursor = x
-            while (parent[cursor] != root) {
-                val next = parent[cursor]!!
-                parent[cursor] = root
-                cursor = next
-            }
-            return root
-        }
-
-        fun union(a: String, b: String) {
-            val ra = find(a)
-            val rb = find(b)
-            if (ra != rb) parent[ra] = rb
-        }
-
-        snapshot.spouseEdges.forEach { (a, b) ->
-            if (a in snapshot.people && b in snapshot.people) union(a, b)
-        }
-
-        val outs = mutableMapOf<String, MutableSet<String>>()
-        val indegree = mutableMapOf<String, Int>()
-        snapshot.people.keys.forEach {
-            val g = find(it)
-            outs.getOrPut(g) { mutableSetOf() }
-            indegree.putIfAbsent(g, 0)
-        }
-        snapshot.parentEdges.forEach { (from, to) ->
-            if (from !in snapshot.people || to !in snapshot.people) return@forEach
-            val a = find(from)
-            val b = find(to)
-            // A couple who are also parent and child cannot be placed; the app's own rules forbid
-            // it, but a hand-edited import could carry it.
-            if (a == b) return@forEach
-            if (outs.getValue(a).add(b)) indegree[b] = indegree.getValue(b) + 1
-        }
-
-        val level = outs.keys.associateWith { 0 }.toMutableMap()
-        val queue = ArrayDeque(indegree.filterValues { it == 0 }.keys)
-        var placed = 0
-        while (queue.isNotEmpty()) {
-            val g = queue.removeFirst()
-            placed++
-            outs.getValue(g).forEach { next ->
-                level[next] = max(level.getValue(next), level.getValue(g) + 1)
-                indegree[next] = indegree.getValue(next) - 1
-                if (indegree.getValue(next) == 0) queue.addLast(next)
+        /*
+         * Every constraint, as an offset. Derived siblings need no edge of their own — sharing a
+         * parent already puts them on one row — but an explicit sibling edge exists precisely where
+         * the parents are unknown, and without it those two would float apart.
+         */
+        fun stepsFrom(id: String): List<Pair<String, Int>> = buildList {
+            snapshot.parentsOf[id].orEmpty().forEach { add(it to -1) }
+            snapshot.childrenOf[id].orEmpty().forEach { add(it to 1) }
+            snapshot.spousesOf[id].orEmpty().forEach { add(it to 0) }
+            snapshot.siblingEdges.forEach { (a, b) ->
+                if (a == id) add(b to 0) else if (b == id) add(a to 0)
             }
         }
 
-        // Anything left sits in a cycle. Relax it a bounded number of times so a broken file still
-        // draws rather than hanging.
-        if (placed < outs.size) {
-            repeat(40) {
-                var changed = false
-                outs.forEach { (g, children) ->
-                    children.forEach { next ->
-                        if (level.getValue(next) <= level.getValue(g)) {
-                            level[next] = level.getValue(g) + 1
-                            changed = true
-                        }
-                    }
+        snapshot.people.keys.forEach { seed ->
+            if (seed in level) return@forEach
+            level[seed] = 0
+            val queue = ArrayDeque(listOf(seed))
+            while (queue.isNotEmpty()) {
+                val current = queue.removeFirst()
+                val base = level.getValue(current)
+                stepsFrom(current).forEach { (next, delta) ->
+                    if (next !in snapshot.people || next in level) return@forEach
+                    level[next] = base + delta
+                    queue.addLast(next)
                 }
-                if (!changed) return@repeat
             }
         }
 
-        val parents = mutableMapOf<String, MutableSet<String>>()
-        outs.forEach { (g, children) -> children.forEach { parents.getOrPut(it) { mutableSetOf() } += g } }
-        repeat(8) {
+        /*
+         * The constraints can only disagree when the record itself does — somebody married to their
+         * own aunt gives one route saying "same row" and another saying "one row apart", and no
+         * assignment satisfies both. Where that happens the parent edge wins, because a connector
+         * running upward out of a child into their parent is unreadable in a way that a couple
+         * sitting a row apart is not. Bounded, so a cycle in an imported file still draws rather
+         * than hanging.
+         */
+        repeat(40) {
             var changed = false
-            outs.forEach { (g, children) ->
-                if (children.isEmpty()) return@forEach
-                val earliestChild = children.minOf { level.getValue(it) }
-                val floor = parents[g]?.maxOfOrNull { level.getValue(it) + 1 } ?: 0
-                val want = earliestChild - 1
-                if (want > level.getValue(g) && want >= floor) {
-                    level[g] = want
+            snapshot.parentEdges.forEach { (from, to) ->
+                val above = level[from] ?: return@forEach
+                val below = level[to] ?: return@forEach
+                if (below <= above) {
+                    level[to] = above + 1
                     changed = true
                 }
             }
             if (!changed) return@repeat
         }
 
-        return snapshot.people.keys.associateWith { level[find(it)] ?: 0 }
+        return level
     }
 
     /** Connected families, over every edge kind, so nobody is dropped for being unconnected. */

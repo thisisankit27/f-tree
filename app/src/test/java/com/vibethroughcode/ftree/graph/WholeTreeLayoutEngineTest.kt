@@ -285,4 +285,93 @@ class WholeTreeLayoutEngineTest {
         assertEquals(snapshot.people.size, layout.nodes.size)
         assertTrue("layout of ${snapshot.people.size} people took ${elapsed}ms", elapsed < 5000)
     }
+
+    /*
+     * The shape that exposed longest-path ranking, taken from a real 148-person tree.
+     *
+     * One side of the family is written down four generations back; the other stops at a
+     * grandfather whose own parents nobody recorded. Ranked by depth from the oldest ancestor, that
+     * grandfather is a root and lands on the top row beside the great-great-grandfather — and his
+     * children scatter across three rows, each dragged down by however deep their spouse's ancestry
+     * ran. Generations are not depths.
+     */
+    private fun lopsided() = Builder()
+        .person("great-great", "1890").person("great", "1915")
+        .person("grandfather", "1940").person("grandmother", "1944")
+        .person("father", "1968").person("mother", "1972")
+        .person("me", "2002")
+        // The mother's father, with no ancestry recorded above him at all.
+        .person("maternal-grandfather", "1942").person("maternal-grandmother", "1946")
+        // ...and the mother's siblings, who married people with no recorded ancestry either.
+        .person("uncle", "1970").person("uncles-wife", "1974")
+        .person("aunt", "1976").person("aunts-husband", "1973")
+        .parentOf("great-great", "great")
+        .parentOf("great", "grandfather")
+        .parentOf("grandfather", "father").parentOf("grandmother", "father")
+        .parentOf("father", "me").parentOf("mother", "me")
+        .parentOf("maternal-grandfather", "mother").parentOf("maternal-grandmother", "mother")
+        .parentOf("maternal-grandfather", "uncle").parentOf("maternal-grandmother", "uncle")
+        .parentOf("maternal-grandfather", "aunt").parentOf("maternal-grandmother", "aunt")
+        .married("grandfather", "grandmother").married("maternal-grandfather", "maternal-grandmother")
+        .married("father", "mother").married("uncle", "uncles-wife").married("aunt", "aunts-husband")
+        .build()
+
+    @Test
+    fun `both grandfathers stand on one row, however far back either line is recorded`() {
+        val layout = WholeTreeLayoutEngine.layout(lopsided())
+
+        assertEquals(
+            "a grandfather is a grandfather; how much survives above him cannot move his row",
+            layout.node("grandfather")!!.level,
+            layout.node("maternal-grandfather")!!.level,
+        )
+        assertEquals(
+            "and he belongs one row above his own daughter, not four",
+            layout.node("mother")!!.level - 1,
+            layout.node("maternal-grandfather")!!.level,
+        )
+    }
+
+    @Test
+    fun `siblings share a row whoever each of them married`() {
+        val layout = WholeTreeLayoutEngine.layout(lopsided())
+
+        val rows = listOf("mother", "uncle", "aunt").map { layout.node(it)!!.level }
+        assertEquals("three siblings, one generation, one row", 1, rows.distinct().size)
+    }
+
+    @Test
+    fun `every parent is exactly one row above every child`() {
+        val snapshot = lopsided()
+        val layout = WholeTreeLayoutEngine.layout(snapshot)
+
+        snapshot.parentEdges.forEach { (parent, child) ->
+            assertEquals(
+                "$child should sit exactly one row below $parent",
+                layout.node(parent)!!.level + 1,
+                layout.node(child)!!.level,
+            )
+        }
+    }
+
+    @Test
+    fun `a marriage that contradicts the generations still draws downward`() {
+        // Somebody married to their own aunt: one route says "same row", another "one row apart",
+        // and nothing satisfies both. The parent edges are what must not invert.
+        val snapshot = Builder()
+            .person("grandparent").person("parent").person("aunt").person("child")
+            .parentOf("grandparent", "parent").parentOf("grandparent", "aunt")
+            .parentOf("parent", "child")
+            .married("child", "aunt")
+            .build()
+
+        val layout = WholeTreeLayoutEngine.layout(snapshot)
+
+        snapshot.parentEdges.forEach { (parent, child) ->
+            assertTrue(
+                "$child is not below $parent",
+                layout.node(child)!!.level > layout.node(parent)!!.level,
+            )
+        }
+    }
 }
