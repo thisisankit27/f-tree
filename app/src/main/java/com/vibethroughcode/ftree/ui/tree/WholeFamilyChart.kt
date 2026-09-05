@@ -168,7 +168,12 @@ fun WholeFamilyChart(
             currentZoom < SHOW_YEARS -> CardDetail.NAME
             else -> CardDetail.NAME_AND_YEARS
         }
-        val showLabels = currentZoom >= SHOW_LABELS
+        /*
+         * No frame labels while a line is traced. There is exactly one group and it is the answer,
+         * so "3 people · 3 generations" restates the header directly above it — and, drawn above a
+         * group that now sits at the very top of a small chart, collides with it.
+         */
+        val showLabels = currentZoom >= SHOW_LABELS && !tracing
         val dimming = highlighted.isNotEmpty()
 
         val visible = Rect(
