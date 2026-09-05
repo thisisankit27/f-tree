@@ -13,6 +13,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.CompareArrows
 import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.AlertDialog
@@ -60,6 +61,7 @@ import com.vibethroughcode.ftree.ui.theme.FTreeTheme
 const val PersonNameTag = "person-name"
 const val PersonDeleteTag = "person-delete"
 const val PersonMenuTag = "person-menu"
+const val PersonRelateTag = "person-relate"
 const val PersonEditTag = "person-edit"
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -70,6 +72,7 @@ fun PersonDetailScreen(
     onOpenPerson: (String) -> Unit,
     onAddRelative: (String, RelativeKind) -> Unit,
     onShowOnTree: (String) -> Unit,
+    onRelate: (String) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: PersonDetailViewModel = viewModel(factory = FTreeViewModels.Factory),
 ) {
@@ -123,6 +126,16 @@ fun PersonDetailScreen(
                         )
                     }
                     DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+                        // Starting from the person whose page this is, because "how am I related
+                        // to them" is nearly always asked about somebody already in front of you.
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.relation_open_from_person)) },
+                            leadingIcon = {
+                                Icon(Icons.Default.CompareArrows, contentDescription = null)
+                            },
+                            onClick = { menuOpen = false; onRelate(viewModel.personId) },
+                            modifier = Modifier.testTag(PersonRelateTag),
+                        )
                         DropdownMenuItem(
                             text = { Text(stringResource(R.string.delete_person)) },
                             leadingIcon = {

@@ -15,6 +15,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CenterFocusStrong
+import androidx.compose.material.icons.filled.CompareArrows
 import androidx.compose.material.icons.filled.PersonAddAlt
 import androidx.compose.material.icons.filled.UnfoldMore
 import androidx.compose.material3.AssistChip
@@ -66,6 +67,9 @@ const val TreeFocusHereTag = "tree-focus-here"
 const val TreeOpenPersonTag = "tree-open-person"
 const val TreeModeFocusedTag = "tree-mode-focused"
 const val TreeModeWholeTag = "tree-mode-whole"
+const val TreeRelateTag = "tree-relate"
+const val TreeRelateFromTag = "tree-relate-from"
+const val TreeClearTraceTag = "tree-clear-trace"
 
 /**
  * Which chart is on screen.
@@ -83,7 +87,11 @@ fun TreeScreen(
     onOpenPerson: (String) -> Unit,
     onAddPerson: () -> Unit,
     onAddRelative: (String, RelativeKind) -> Unit,
+    onRelate: (String?) -> Unit,
+    onClearTrace: () -> Unit,
     modifier: Modifier = Modifier,
+    /** The people on a relation to draw: both ends and everyone between. Empty is the usual case. */
+    trace: List<String> = emptyList(),
     viewModel: TreeViewModel = viewModel(factory = FTreeViewModels.Factory),
     wholeTreeViewModel: WholeTreeViewModel = viewModel(factory = FTreeViewModels.Factory),
 ) {
@@ -95,6 +103,19 @@ fun TreeScreen(
     var mode by rememberSaveable { mutableStateOf(ChartMode.FOCUSED) }
     var selected by remember { mutableStateOf<Person?>(null) }
     val sheetState = rememberModalBottomSheetState()
+
+    /*
+     * A traced relation is only meaningful on the whole-tree chart — the focused one draws three
+     * generations around one person, and the far end of a line is usually not among them. So
+     * arriving with a trace switches charts rather than showing an empty highlight.
+     */
+    val tracing = remember(trace) { trace.toSet() }
+    LaunchedEffect(tracing) {
+        if (tracing.isNotEmpty()) {
+            mode = ChartMode.WHOLE
+            wholeTreeViewModel.select(null)
+        }
+    }
 
     // The chart is drawn, not composed, so it has to be told about the reader's text size itself.
     val textScale = LocalDensity.current.fontScale
@@ -109,6 +130,17 @@ fun TreeScreen(
                 CenterAlignedTopAppBar(
                     title = { Text(stringResource(R.string.tree_title)) },
                     actions = {
+                        if (!treeIsEmpty) {
+                            IconButton(
+                                onClick = { onRelate(null) },
+                                modifier = Modifier.testTag(TreeRelateTag),
+                            ) {
+                                Icon(
+                                    Icons.Default.CompareArrows,
+                                    contentDescription = stringResource(R.string.relation_find),
+                                )
+                            }
+                        }
                         if (mode == ChartMode.FOCUSED && state.layout.truncated) {
                             IconButton(onClick = viewModel::showMoreGenerations) {
                                 Icon(
@@ -129,6 +161,8 @@ fun TreeScreen(
                             if (it == ChartMode.FOCUSED) wholeTreeViewModel.select(null)
                         },
                         summary = wholeSummary(wholeState).takeIf { mode == ChartMode.WHOLE },
+                        tracing = tracing.isNotEmpty() && mode == ChartMode.WHOLE,
+                        onClearTrace = onClearTrace,
                     )
                 }
             }
@@ -161,10 +195,14 @@ fun TreeScreen(
 
                 else -> when {
                     wholeState.loading -> CircularProgressIndicator(Modifier.align(Alignment.Center))
+                    // While a line is traced it is what the chart lights up. Letting a tap
+                    // replace it with that person's neighbours would throw away the answer the
+                    // reader came here to look at.
                     else -> WholeFamilyChart(
                         layout = wholeState.layout,
                         selectedId = wholeSelection?.id,
-                        highlighted = highlighted,
+                        highlighted = if (tracing.isNotEmpty()) tracing else highlighted,
+                        frameOn = tracing,
                         onSelect = {
                             wholeTreeViewModel.select(it)
                             selected = it
@@ -194,6 +232,10 @@ fun TreeScreen(
                     wholeTreeViewModel.select(null)
                     viewModel.focusOn(person.id)
                 },
+                onRelate = {
+                    selected = null
+                    onRelate(person.id)
+                },
                 onAddRelative = { kind ->
                     selected = null
                     onAddRelative(person.id, kind)
@@ -215,6 +257,8 @@ private fun ChartModeBar(
     mode: ChartMode,
     onModeChange: (ChartMode) -> Unit,
     summary: String?,
+    tracing: Boolean,
+    onClearTrace: () -> Unit,
 ) {
     Column(Modifier.fillMaxWidth()) {
         SingleChoiceSegmentedButtonRow(
@@ -237,7 +281,24 @@ private fun ChartModeBar(
             ) { Text(stringResource(R.string.tree_mode_whole)) }
         }
 
-        summary?.let {
+        // While a line is traced, saying so — and offering the way out — matters more than the
+        // record's counts, which are unchanged and still a chip away.
+        if (tracing) {
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(start = 24.dp, end = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = stringResource(R.string.relation_tracing),
+                    style = FTreeText.recordSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.weight(1f),
+                )
+                TextButton(onClick = onClearTrace, modifier = Modifier.testTag(TreeClearTraceTag)) {
+                    Text(stringResource(R.string.relation_clear))
+                }
+            }
+        } else summary?.let {
             Text(
                 text = it,
                 style = FTreeText.recordSmall,
@@ -280,6 +341,7 @@ private fun PersonActions(
     isFocus: Boolean,
     onOpen: () -> Unit,
     onFocus: () -> Unit,
+    onRelate: () -> Unit,
     onAddRelative: (RelativeKind) -> Unit,
 ) {
     Column(
@@ -301,6 +363,12 @@ private fun PersonActions(
             label = stringResource(R.string.tree_open_person, person.displayName()),
             tag = TreeOpenPersonTag,
             onClick = onOpen,
+        )
+        SheetAction(
+            icon = { Icon(Icons.Default.CompareArrows, contentDescription = null) },
+            label = stringResource(R.string.relation_open_from_person),
+            tag = TreeRelateFromTag,
+            onClick = onRelate,
         )
         // Naming the four kinds outright is one tap either way, and avoids the sheet quietly
         // choosing "parent" on the user's behalf.

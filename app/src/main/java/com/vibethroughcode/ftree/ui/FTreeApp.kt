@@ -39,6 +39,7 @@ import com.vibethroughcode.ftree.transfer.TreeDocument
 import com.vibethroughcode.ftree.ui.people.PeopleScreen
 import com.vibethroughcode.ftree.ui.person.PersonDetailScreen
 import com.vibethroughcode.ftree.ui.person.PersonEditScreen
+import com.vibethroughcode.ftree.ui.relation.RelationScreen
 import com.vibethroughcode.ftree.ui.relative.AddRelativeScreen
 import com.vibethroughcode.ftree.ui.settings.SettingsScreen
 import com.vibethroughcode.ftree.ui.settings.SettingsViewModel
@@ -126,12 +127,33 @@ fun FTreeApp() {
             startDestination = TreeRoute(),
             modifier = Modifier.fillMaxSize().padding(padding),
         ) {
-            composable<TreeRoute> {
+            composable<TreeRoute> { entry ->
                 TreeScreen(
+                    trace = entry.toRoute<TreeRoute>().trace,
                     onOpenPerson = { navController.navigate(PersonRoute(it)) },
                     onAddPerson = { navController.navigate(EditPersonRoute()) },
                     onAddRelative = { anchorId, kind ->
                         navController.navigate(AddRelativeRoute(anchorId, kind))
+                    },
+                    onRelate = { navController.navigate(RelationRoute(fromId = it)) },
+                    // Dropping the trace means going back to the plain chart, which is where
+                    // clearing a highlight should leave you — not one screen further back.
+                    onClearTrace = {
+                        navController.navigate(TreeRoute()) {
+                            popUpTo<TreeRoute> { inclusive = true }
+                        }
+                    },
+                )
+            }
+
+            composable<RelationRoute> {
+                RelationScreen(
+                    onBack = { navController.popBackStack() },
+                    onOpenPerson = { navController.navigate(PersonRoute(it)) },
+                    onShowOnChart = { trace ->
+                        navController.navigate(TreeRoute(trace = trace)) {
+                            popUpTo<TreeRoute> { inclusive = true }
+                        }
                     },
                 )
             }
@@ -165,6 +187,9 @@ fun FTreeApp() {
                         navController.navigate(TreeRoute(focusId = personId)) {
                             popUpTo<TreeRoute> { inclusive = true }
                         }
+                    },
+                    onRelate = { personId ->
+                        navController.navigate(RelationRoute(fromId = personId))
                     },
                 )
             }
