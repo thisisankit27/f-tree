@@ -179,7 +179,12 @@ class RelationshipFlowTest {
         rule.onNodeWithTag(DeleteKeepAsUnknownTag).performClick()
         rule.waitForIdle()
 
-        // He is now an unknown person, but the family still joins up through him.
+        // He is now an unknown person, but the family still joins up through him. Waiting for the
+        // row rather than for idleness: the delete is a database write and the page redraws from a
+        // flow, so there is a beat where the screen is idle and the name has not changed yet.
+        rule.waitUntil(5_000) {
+            rule.onAllNodesWithText("Unknown").fetchSemanticsNodes().isNotEmpty()
+        }
         rule.onNodeWithText("Unknown").assertIsDisplayed()
         rule.onNodeWithText("Raj Kumar").assertIsDisplayed()
         rule.onNodeWithText("Aarav").assertIsDisplayed()
