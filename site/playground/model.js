@@ -215,14 +215,19 @@ export function birthYear(person) {
   return m ? Number(m[1]) : null;
 }
 
-/** The short line under a name on the chart. */
+/**
+ * The short line under a name on the chart.
+ *
+ * "Late" rather than "died" where nothing but the fact is known: it sits directly beneath the name
+ * and is read as part of it, so the honorific is both the respectful word and the grammatical one.
+ */
 export function lifespan(person) {
   const b = /^(\d{4})/.exec(person.birthDate ?? '')?.[1];
   const d = /^(\d{4})/.exec(person.deathDate ?? '')?.[1];
   if (b && d) return `${b}–${d}`;
   if (b) return person.deceased ? `${b}–` : b;
   if (d) return `–${d}`;
-  return person.deceased ? 'died' : '';
+  return person.deceased ? 'Late' : '';
 }
 
 /** Whole years lived, or reached so far. Derived, never stored, exactly as the app does it. */
@@ -469,6 +474,48 @@ function shortestPath(graph, fromId, toId) {
     else if (step.via === 'child') label = childLabel(person, step.subtype).toLowerCase();
     else if (step.via === 'spouse') label = spouseLabel(person, step.subtype).toLowerCase();
     else label = siblingLabel(person, step.half).toLowerCase();
-    return { id: step.id, label };
+    // `via` is carried through: a chart needs to know which steps are sibling ones, because those
+    // are the steps with no edge of their own to draw.
+    return { id: step.id, label, via: step.via };
+  });
+}
+
+/**
+ * The people a chart needs before it can draw a relation.
+ *
+ * The chain alone is not always drawable. Siblings are derived from the parent they share, so a
+ * sibling step carries no edge of its own: draw only the chain and two siblings arrive as two loose
+ * cards with nothing between them, which is precisely the question the reader asked. Their shared
+ * parent is the missing element, so it is drawn - "my father's sister" needs my grandfather on the
+ * page and does not need him in the sentence. An explicit sibling edge needs nobody added; it
+ * carries its own bracket, drawn exactly because the parents are not known.
+ */
+export function peopleToDraw(graph, fromId, path) {
+  const drawn = new Set([fromId]);
+  let previous = fromId;
+  for (const step of path) {
+    drawn.add(step.id);
+    if (step.via === 'sibling') {
+      const theirs = new Set(graph.parents(step.id).map((p) => p.id));
+      for (const p of graph.parents(previous)) if (theirs.has(p.id)) drawn.add(p.id);
+    }
+    previous = step.id;
+  }
+  return drawn;
+}
+
+/**
+ * The same archive cut down to a set of people, keeping only the edges with both ends still in it.
+ *
+ * Rebuilt from a filtered document rather than by trimming the graph in place, so everything
+ * derived - siblings especially - is derived again from what is left, and the cut-down graph states
+ * only what it can still show.
+ */
+export function restrictedGraph(graph, ids) {
+  const keep = ids instanceof Set ? ids : new Set(ids);
+  return buildGraph({
+    ...graph.doc,
+    people: graph.doc.people.filter((p) => keep.has(p.id)),
+    relationships: graph.doc.relationships.filter((r) => keep.has(r.from) && keep.has(r.to)),
   });
 }

@@ -92,6 +92,8 @@ fun TreeScreen(
     modifier: Modifier = Modifier,
     /** The people on a relation to draw: both ends and everyone between. Empty is the usual case. */
     trace: List<String> = emptyList(),
+    /** Open on the whole-tree chart — set when a traced line has just been cleared. */
+    startWhole: Boolean = false,
     viewModel: TreeViewModel = viewModel(factory = FTreeViewModels.Factory),
     wholeTreeViewModel: WholeTreeViewModel = viewModel(factory = FTreeViewModels.Factory),
 ) {
@@ -100,7 +102,9 @@ fun TreeScreen(
     val highlighted by wholeTreeViewModel.highlighted.collectAsStateWithLifecycle()
     val wholeSelection by wholeTreeViewModel.selected.collectAsStateWithLifecycle()
 
-    var mode by rememberSaveable { mutableStateOf(ChartMode.FOCUSED) }
+    var mode by rememberSaveable {
+        mutableStateOf(if (startWhole) ChartMode.WHOLE else ChartMode.FOCUSED)
+    }
     var selected by remember { mutableStateOf<Person?>(null) }
     val sheetState = rememberModalBottomSheetState()
 
@@ -110,6 +114,10 @@ fun TreeScreen(
      * arriving with a trace switches charts rather than showing an empty highlight.
      */
     val tracing = remember(trace) { trace.toSet() }
+
+    // The chart draws the traced line on its own rather than lighting it inside the whole record,
+    // so the view model has to know before it lays anything out.
+    LaunchedEffect(trace) { wholeTreeViewModel.onTraceChanged(trace) }
     LaunchedEffect(tracing) {
         if (tracing.isNotEmpty()) {
             mode = ChartMode.WHOLE
@@ -201,8 +209,9 @@ fun TreeScreen(
                     else -> WholeFamilyChart(
                         layout = wholeState.layout,
                         selectedId = wholeSelection?.id,
-                        highlighted = if (tracing.isNotEmpty()) tracing else highlighted,
-                        frameOn = tracing,
+                        // Nothing to fade while tracing: everybody drawn is on the line.
+                        highlighted = if (tracing.isNotEmpty()) emptySet() else highlighted,
+                        tracing = tracing.isNotEmpty(),
                         onSelect = {
                             wholeTreeViewModel.select(it)
                             selected = it

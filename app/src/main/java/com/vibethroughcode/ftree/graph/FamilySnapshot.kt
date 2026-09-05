@@ -43,6 +43,23 @@ data class FamilySnapshot(
         }
     }.mapValues { (_, v) -> v.toList() }
 
+    /**
+     * The same graph cut down to [ids], keeping only the edges with both ends still in it.
+     *
+     * Used to draw one relation on its own. Everything derived — siblings especially — is derived
+     * again from what is left, so the cut-down graph states only what it can still show rather
+     * than remembering connections whose other end is no longer on the page.
+     */
+    fun restrictedTo(ids: Set<String>): FamilySnapshot {
+        fun List<Pair<String, String>>.kept() = filter { it.first in ids && it.second in ids }
+        return FamilySnapshot(
+            people = people.filterKeys { it in ids },
+            parentEdges = parentEdges.kept(),
+            spouseEdges = spouseEdges.kept(),
+            siblingEdges = siblingEdges.kept(),
+        )
+    }
+
     companion object {
         val Empty = FamilySnapshot(emptyMap(), emptyList(), emptyList(), emptyList())
     }

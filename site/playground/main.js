@@ -10,6 +10,7 @@
 import { readTreeFile, ArchiveError, canDecompress } from './archive.js';
 import {
   buildGraph, relationsOf, relate, displayName, displayDate, lifespan, initials, ageOf,
+  peopleToDraw, restrictedGraph,
 } from './model.js';
 import { layoutArchive } from './layout.js';
 import { Chart } from './chart.js';
@@ -26,6 +27,8 @@ const state = {
   view: 'chart',
   relateA: null,
   relateB: null,
+  /** The people on a traced relation while the chart is showing that alone. */
+  trace: null,
   photoUrls: new Map(),
 };
 
@@ -101,6 +104,7 @@ async function openFile(file) {
     state.selected = null;
     state.relateA = null;
     state.relateB = null;
+    state.trace = null;
 
     chart.load(graph, layout, archive);
     viewer.dataset.state = 'loaded';
@@ -158,6 +162,7 @@ function closeFile() {
   releasePhotos();
   state.graph = null;
   state.layout = null;
+  state.trace = null;
   state.archive = null;
   state.selected = null;
   chart.layout = null;
@@ -182,21 +187,26 @@ function select(id, { centre = true, quiet = false } = {}) {
   }
   state.selected = id;
   chart.selected = id;
-  chart.pathIds = null;
 
-  // Everyone one step away stays at full strength; the rest fade, which is what makes a person
-  // findable in a chart with two thousand cards on it.
-  const near = new Set([id]);
-  for (const p of state.graph.parents(id)) near.add(p.id);
-  for (const c of state.graph.children(id)) near.add(c.id);
-  for (const s of state.graph.spouses(id)) near.add(s.id);
-  for (const s of state.graph.siblings(id)) near.add(s.id);
-  chart.related = near;
+  // While a line is traced, everybody drawn is already on it, and fading part of the answer the
+  // reader came to look at would be throwing it away.
+  if (!state.trace) {
+    // Everyone one step away stays at full strength; the rest fade, which is what makes a person
+    // findable in a chart with two thousand cards on it.
+    const near = new Set([id]);
+    for (const p of state.graph.parents(id)) near.add(p.id);
+    for (const c of state.graph.children(id)) near.add(c.id);
+    for (const s of state.graph.spouses(id)) near.add(s.id);
+    for (const s of state.graph.siblings(id)) near.add(s.id);
+    chart.related = near;
+  }
 
   if (centre && state.view === 'chart') chart.centreOn(id, Math.max(chart.scale, 0.7));
   chart.invalidate();
   renderPanel(id);
-  if (!quiet) $('relate').hidden = true;
+  // Tapping somebody while a line is traced keeps both the line and the panel that explains it;
+  // closing the answer the reader just asked for would be the wrong way to read a tap.
+  if (!quiet && !state.trace) $('relate').hidden = true;
 }
 
 /* ------------------------------------------------------------------ the person panel */
@@ -237,7 +247,7 @@ function renderPanel(id) {
 
   const facts = [];
   if (person.birthDate) facts.push(['Born', escape(displayDate(person.birthDate) ?? person.birthDate)]);
-  if (person.deathDate) facts.push(['Died', escape(displayDate(person.deathDate) ?? person.deathDate)]);
+  if (person.deathDate) facts.push(['Passed away', escape(displayDate(person.deathDate) ?? person.deathDate)]);
   if (age !== null) facts.push([person.deceased ? 'Lived' : 'Age', `${age} years`]);
   if (person.gender && person.gender !== 'UNSPECIFIED') {
     facts.push(['Gender', escape(person.gender[0] + person.gender.slice(1).toLowerCase())]);
@@ -357,6 +367,32 @@ function wireSearch() {
 
 /* ------------------------------------------------------------------ relate */
 
+/**
+ * Shows one relation on its own.
+ *
+ * Not a highlight inside the whole chart. Fading the other hundred and forty people still leaves
+ * them on the page, and at the scale a whole family needs, a faded hundred and forty is what the
+ * eye actually sees. The question was how two people connect, so the answer is those people and
+ * the ones holding the line together, laid out by themselves.
+ *
+ * `state.layout` deliberately keeps pointing at the whole archive: the index and the counts are
+ * describing the file, not the cutting of it currently on screen.
+ */
+function drawTrace(ids) {
+  state.trace = ids;
+  const cut = restrictedGraph(state.graph, ids);
+  chart.load(cut, layoutArchive(cut), state.archive);
+  chart.fit();
+}
+
+function clearTrace() {
+  if (!state.trace) return;
+  state.trace = null;
+  chart.load(state.graph, state.layout, state.archive);
+  chart.fit();
+}
+
+
 function wireRelate() {
   for (const slot of ['a', 'b']) {
     const input = $(`relate-${slot}`);
@@ -377,7 +413,7 @@ function wireRelate() {
 function renderRelation() {
   const box = $('relate-answer');
   const { relateA: a, relateB: b } = state;
-  if (!a || !b) { box.innerHTML = ''; chart.pathIds = null; chart.invalidate(); return; }
+  if (!a || !b) { box.innerHTML = ''; clearTrace(); chart.invalidate(); return; }
 
   const from = state.graph.people.get(a);
   const to = state.graph.people.get(b);
@@ -391,7 +427,7 @@ function renderRelation() {
     box.innerHTML = `<p class="r-term r-none">Nothing in this file connects
       <b>${nameHtml(from)}</b> to <b>${nameHtml(to)}</b>. They may still be related — the record
       simply does not say how.</p>`;
-    chart.pathIds = null;
+    clearTrace();
     chart.invalidate();
     return;
   }
@@ -426,12 +462,8 @@ function renderRelation() {
         </li>`).join('')}
     </ol>`;
 
-  // Light the chain up on the chart, and frame both ends of it.
-  chart.pathIds = new Set([a, ...result.path.map((s) => s.id)]);
-  chart.related = chart.pathIds;
-  chart.selected = null;
-  chart.invalidate();
-  if (state.view === 'chart') chart.centreOn(a, Math.max(chart.scale, 0.5));
+  // The chart shows this line and nothing else.
+  drawTrace(peopleToDraw(state.graph, a, result.path));
 }
 
 function openRelate(seed) {
@@ -638,13 +670,11 @@ function wireChrome() {
 
   $('relate-btn').addEventListener('click', () => {
     if ($('relate').hidden) openRelate(state.selected);
-    else $('relate').hidden = true;
+    else { $('relate').hidden = true; clearTrace(); }
   });
   $('relate-close').addEventListener('click', () => {
     $('relate').hidden = true;
-    chart.pathIds = null;
-    chart.related = null;
-    chart.invalidate();
+    clearTrace();
   });
   $('panel-close').addEventListener('click', () => select(null));
   $('shortcuts-close').addEventListener('click', () => { $('shortcuts').hidden = true; });
@@ -697,7 +727,7 @@ function wireKeys() {
 
     if (e.key === 'Escape') {
       if (!$('shortcuts').hidden) { $('shortcuts').hidden = true; return; }
-      if (!$('relate').hidden) { $('relate').hidden = true; chart.pathIds = null; chart.related = null; chart.invalidate(); return; }
+      if (!$('relate').hidden) { $('relate').hidden = true; clearTrace(); return; }
       if (!$('panel').hidden) { select(null); return; }
       if (typing) e.target.blur();
       return;

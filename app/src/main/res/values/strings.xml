@@ -26,7 +26,10 @@
     <string name="person_unknown_of">Unknown %1$s</string>
     <string name="person_edit">Edit</string>
     <string name="person_born">Born %1$s</string>
-    <string name="person_died">Died %1$s</string>
+    <!-- Shown where a lifespan would go for somebody with no dates recorded. The
+         honorific, not a verb: it is read directly after the name. -->
+    <string name="person_late">Late</string>
+    <string name="person_died">Passed away %1$s</string>
     <string name="person_age">%1$d years old</string>
     <string name="person_age_at_death">%1$d years old</string>
     <string name="person_no_dates">No dates recorded</string>
@@ -40,7 +43,7 @@
     <string name="edit_name_hint">Leave blank if you don\'t know it</string>
     <string name="edit_gender">Gender</string>
     <string name="edit_born">Born</string>
-    <string name="edit_died">Died</string>
+    <string name="edit_died">Passed away</string>
     <string name="edit_date_hint">Year, or a fuller date</string>
     <string name="edit_date_support">1938, 1938-04, or 1938-04-17</string>
     <string name="edit_date_invalid">Use a year like 1938, or 1938-04-17</string>
@@ -243,6 +246,7 @@
     <string name="whole_unconnected_note">%1$d of these has no recorded relatives. The other chart cannot show them at all.</string>
     <string name="whole_unconnected_note_plural">%1$d of these have no recorded relatives. The other chart cannot show them at all.</string>
     <string name="a11y_whole_chart">Chart of the whole tree, showing %1$d people, %2$d of whom have no recorded relatives. Use the people list for a readable list of everyone and their relationships.</string>
+    <string name="a11y_traced_chart">Chart of one relation, showing %1$d people on the line between two of them.</string>
 
     <!-- Settings -->
     <string name="settings_title">Settings</string>

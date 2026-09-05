@@ -69,6 +69,33 @@ sealed interface Relation {
         fun peopleInvolved(fromId: String): Set<String> =
             buildSet { add(fromId); chain.forEach { add(it.personId) } }
 
+        /**
+         * The people a *chart* needs before it can draw this relation.
+         *
+         * The chain alone is not always drawable. Siblings are derived from the parent they share,
+         * so a sibling step carries no edge of its own: draw only the chain and two siblings arrive
+         * as two loose cards with nothing between them, which is precisely the question the reader
+         * asked. Their shared parent is the missing element, so it is drawn even though nobody
+         * would say it aloud when naming the relationship — "my father's sister" needs my
+         * grandfather on the page, and does not need him in the sentence.
+         *
+         * Nothing else is added. Everybody here is on the line or holds it together.
+         */
+        fun peopleToDraw(snapshot: FamilySnapshot, fromId: String): Set<String> = buildSet {
+            addAll(peopleInvolved(fromId))
+            var previous = fromId
+            chain.forEach { step ->
+                if (step.kind == StepKind.SIBLING) {
+                    val mine = snapshot.parentsOf[previous].orEmpty()
+                    val theirs = snapshot.parentsOf[step.personId].orEmpty().toSet()
+                    // An explicit sibling edge has no parents to add, and needs none: it carries
+                    // its own bracket, drawn exactly because the parents are not known.
+                    addAll(mine.filter { it in theirs })
+                }
+                previous = step.personId
+            }
+        }
+
         /** Joined only by a marriage somewhere along the way, with no blood between them. */
         val byMarriage: Boolean
             get() = term == null && chain.any { it.kind == StepKind.SPOUSE }

@@ -32,6 +32,8 @@ data class WholeTreeUiState(
     val unconnectedCount: Int = 0,
     val unnamedCount: Int = 0,
     val generations: Int = 0,
+    /** True while [layout] holds one traced relation rather than the whole record. */
+    val tracing: Boolean = false,
 ) {
     val isEmpty: Boolean get() = !loading && peopleCount == 0
 }
@@ -44,20 +46,36 @@ class WholeTreeViewModel(private val repository: FamilyRepository) : ViewModel()
     private val snapshot: StateFlow<FamilySnapshot> = repository.observeWholeGraph()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), FamilySnapshot.Empty)
 
-    val uiState: StateFlow<WholeTreeUiState> = snapshot
-        .map { snapshot ->
-            // Laying out a few thousand people is not main-thread work.
-            val layout = WholeTreeLayoutEngine.layout(snapshot)
-            WholeTreeUiState(
-                loading = false,
-                layout = layout,
-                peopleCount = snapshot.people.size,
-                familyCount = layout.groups.count { !it.unconnected },
-                unconnectedCount = layout.unconnectedCount,
-                unnamedCount = snapshot.people.values.count { it.isUnnamed },
-                generations = layout.generations,
-            )
-        }
+    private val trace = MutableStateFlow<Set<String>>(emptySet())
+
+    /**
+     * The people on a relation being traced, or nothing.
+     *
+     * A traced line is drawn *on its own* rather than lit up inside the whole chart. Fading the
+     * other hundred and forty people still leaves them on the page, and at the scale a whole
+     * family needs, a faded hundred and forty is what the eye actually sees. The question was how
+     * two people connect; the answer is those people and the ones holding the line together.
+     */
+    fun onTraceChanged(ids: List<String>) {
+        trace.value = ids.toSet()
+    }
+
+    val uiState: StateFlow<WholeTreeUiState> = combine(snapshot, trace) { whole, traced ->
+        val shown = if (traced.isEmpty()) whole else whole.restrictedTo(traced)
+        // Laying out a few thousand people is not main-thread work.
+        val layout = WholeTreeLayoutEngine.layout(shown)
+        WholeTreeUiState(
+            loading = false,
+            layout = layout,
+            // The counts describe the record, not the cutting of it currently on screen.
+            peopleCount = whole.people.size,
+            familyCount = layout.groups.count { !it.unconnected },
+            unconnectedCount = layout.unconnectedCount,
+            unnamedCount = whole.people.values.count { it.isUnnamed },
+            generations = layout.generations,
+            tracing = traced.isNotEmpty(),
+        )
+    }
         .flowOn(Dispatchers.Default)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), WholeTreeUiState())
 

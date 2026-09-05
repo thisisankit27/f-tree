@@ -15,12 +15,16 @@ fun Person.displayName(): String =
 fun Person.initial(): String = name?.trim()?.firstOrNull()?.uppercase().orEmpty()
 
 /**
- * The compact life span shown beside a name: `1938–2010`, `1938–`, `b. 1990`, or nothing.
+ * The compact life span shown beside a name: `1938–2010`, `1938–`, `1990`, `Late`, or nothing.
  *
  * Only years, because that is the precision a list can show without becoming a table, and an
  * en dash because this is a span rather than a subtraction.
+ *
+ * [late] is the word for somebody known to have died with no date recorded. It is passed in rather
+ * than read here so this stays usable off the main thread and out of a composable, and so the one
+ * piece of user-facing English in it lives in the string resources with the rest.
  */
-fun Person.lifespanLabel(): String? {
+fun Person.lifespanLabel(late: String = "Late"): String? {
     val born = PartialDate.parse(birthDate)?.year
     val died = PartialDate.parse(deathDate)?.year
     return when {
@@ -28,7 +32,7 @@ fun Person.lifespanLabel(): String? {
         born != null && deceased -> "$born–"
         born != null -> born.toString()
         died != null -> "–$died"
-        deceased -> "died"
+        deceased -> late
         else -> null
     }
 }

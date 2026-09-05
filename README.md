@@ -167,6 +167,14 @@ The chain is always shown and the word only when there is one, because the chain
 reader can check against their own memory. `Kinship` returns the term as a *structure*, not a
 string; the English lives in `ui/common/KinshipLabels.kt` with the rest of the app's words.
 
+**Shown on the chart, the line is drawn on its own** rather than lit up inside the whole tree.
+Fading the other hundred and forty people still leaves them on the page, and at the scale a whole
+family needs, a faded hundred and forty is what the eye actually sees. So the chart lays out just
+the people on the line — plus whoever holds it together, which is why `peopleToDraw` adds the parent
+two siblings are derived through: a sibling step carries no edge of its own, and without him the
+answer arrives as two loose cards. He is on the chart without being in the sentence. *Clear* puts
+the rest of the family back.
+
 ## The `.ftree` format
 
 A ZIP. Version 1:
