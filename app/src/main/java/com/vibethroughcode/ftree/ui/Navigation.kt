@@ -17,7 +17,17 @@ import kotlinx.serialization.Serializable
  * death are the same value in the same slot rather than two competing sources of truth.
  */
 @Serializable
-data class TreeRoute(val focusId: String? = null)
+data class TreeRoute(
+    val focusId: String? = null,
+    /**
+     * The people on a relation the reader asked to see drawn — both ends and everyone between.
+     *
+     * Carried in the route rather than held in a view model because it is part of *where you are*:
+     * pressing back must leave the trace behind, and coming back to the chart later must not
+     * silently relight a line from a question asked an hour ago.
+     */
+    val trace: List<String> = emptyList(),
+)
 
 @Serializable
 data object PeopleRoute
@@ -31,6 +41,10 @@ data class EditPersonRoute(val personId: String? = null)
 
 @Serializable
 data object SettingsRoute
+
+/** Finding how two people are related. Either end may arrive already chosen, or neither. */
+@Serializable
+data class RelationRoute(val fromId: String? = null, val toId: String? = null)
 
 /** Picking who to attach to [anchorPersonId] as a [kind]. */
 @Serializable

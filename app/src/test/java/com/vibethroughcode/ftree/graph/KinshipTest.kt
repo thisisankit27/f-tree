@@ -1,0 +1,247 @@
+package com.vibethroughcode.ftree.graph
+
+import com.vibethroughcode.ftree.data.Person
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
+import org.junit.Test
+
+/**
+ * The relation finder answers a question people can check against their own memory, so a wrong
+ * answer is worse than no answer. Every shape of family that has its own word in English is
+ * pinned here, along with the ones that have no word and must fall back to the chain.
+ */
+class KinshipTest {
+
+    private class Builder {
+        private val people = mutableMapOf<String, Person>()
+        private val parents = mutableListOf<Pair<String, String>>()
+        private val spouses = mutableListOf<Pair<String, String>>()
+        private val siblings = mutableListOf<Pair<String, String>>()
+
+        fun person(vararg ids: String) = apply {
+            ids.forEach { people[it] = Person(id = it, name = it) }
+        }
+
+        fun parentOf(parent: String, vararg children: String) = apply {
+            children.forEach { parents += parent to it }
+        }
+
+        fun married(a: String, b: String) = apply { spouses += a to b }
+        fun siblingOf(a: String, b: String) = apply { siblings += a to b }
+        fun build() = FamilySnapshot(people, parents, spouses, siblings)
+    }
+
+    /**
+     * Four generations with two branches, which between them contain every term worth having:
+     *
+     *              great ── great-wife
+     *                    │
+     *          ┌─────────┴──────────┐
+     *        grandad ── granny    granduncle
+     *          │                    │
+     *      ┌───┴────┐            cousin-parent
+     *     dad ── mum  aunt          │
+     *      │                     second-line
+     *     me ── wife
+     *      │
+     *     kid
+     */
+    private fun family() = Builder()
+        .person("great", "great-wife", "grandad", "granny", "granduncle")
+        .person("dad", "mum", "aunt", "me", "wife", "kid")
+        .person("cousin-parent", "second-line")
+        .person("wifes-mother")
+        .married("great", "great-wife")
+        .married("grandad", "granny")
+        .married("dad", "mum")
+        .married("me", "wife")
+        .parentOf("great", "grandad", "granduncle")
+        .parentOf("great-wife", "grandad", "granduncle")
+        .parentOf("grandad", "dad", "aunt")
+        .parentOf("granny", "dad", "aunt")
+        .parentOf("dad", "me")
+        .parentOf("mum", "me")
+        .parentOf("me", "kid")
+        .parentOf("wife", "kid")
+        .parentOf("granduncle", "cousin-parent")
+        .parentOf("cousin-parent", "second-line")
+        .parentOf("wifes-mother", "wife")
+        .build()
+
+    private fun term(from: String, to: String): KinshipTerm? =
+        (Kinship.relate(family(), from, to) as Relation.Found).term
+
+    private fun chain(from: String, to: String): List<RelationStep> =
+        (Kinship.relate(family(), from, to) as Relation.Found).chain
+
+    /* --------------------------------------------------------------- the words */
+
+    @Test
+    fun `the straight line up and down is named by its generations`() {
+        assertEquals(KinshipTerm.Ancestor(1), term("me", "dad"))
+        assertEquals(KinshipTerm.Ancestor(2), term("me", "grandad"))
+        assertEquals(KinshipTerm.Ancestor(3), term("me", "great"))
+        assertEquals(KinshipTerm.Descendant(1), term("me", "kid"))
+        assertEquals(KinshipTerm.Descendant(3), term("grandad", "kid"))
+        assertEquals(KinshipTerm.Descendant(4), term("great", "kid"))
+    }
+
+    @Test
+    fun `siblings, aunts and nieces come out of the same two numbers`() {
+        assertEquals(KinshipTerm.Sibling, term("dad", "aunt"))
+        assertEquals(KinshipTerm.ParentsSibling(greats = 0), term("me", "aunt"))
+        assertEquals(KinshipTerm.ParentsSibling(greats = 1), term("me", "granduncle"))
+        assertEquals(KinshipTerm.SiblingsChild(greats = 0), term("aunt", "me"))
+        assertEquals(KinshipTerm.SiblingsChild(greats = 1), term("granduncle", "me"))
+    }
+
+    @Test
+    fun `cousins carry both a degree and a remove`() {
+        // me and cousin-parent share "great": two up, two down.
+        assertEquals(KinshipTerm.Cousin(degree = 1, removed = 0), term("dad", "cousin-parent"))
+        assertEquals(KinshipTerm.Cousin(degree = 1, removed = 1), term("me", "cousin-parent"))
+        assertEquals(KinshipTerm.Cousin(degree = 2, removed = 0), term("me", "second-line"))
+        assertEquals(KinshipTerm.Cousin(degree = 1, removed = 2), term("kid", "cousin-parent"))
+    }
+
+    @Test
+    fun `the nearest shared ancestor names it, not the most distant one`() {
+        // dad and aunt share both their parents and both their grandparents; measured through a
+        // grandparent they would come out as first cousins rather than as brother and sister.
+        assertEquals(KinshipTerm.Sibling, term("dad", "aunt"))
+    }
+
+    @Test
+    fun `a term is a claim about blood, so marriage does not get one`() {
+        assertNull(term("me", "wife"))
+        assertNull(term("me", "wifes-mother"))
+        // Two people married into the same family have no blood between them at all.
+        assertNull(term("wife", "mum"))
+    }
+
+    /* --------------------------------------------------------------- the chain */
+
+    @Test
+    fun `the chain names each person and how they arrive`() {
+        // Not up to the grandfather and back down: siblings are derived from the parents they
+        // share, so the aunt is one step from the father and the chain says so.
+        assertEquals(
+            listOf(
+                RelationStep("dad", StepKind.PARENT),
+                RelationStep("aunt", StepKind.SIBLING),
+            ),
+            chain("me", "aunt"),
+        )
+        assertEquals(
+            listOf(
+                RelationStep("dad", StepKind.PARENT),
+                RelationStep("grandad", StepKind.PARENT),
+            ),
+            chain("me", "grandad"),
+        )
+    }
+
+    @Test
+    fun `a marriage is walked, because in-laws are most of what gets asked`() {
+        val relation = Kinship.relate(family(), "me", "wifes-mother") as Relation.Found
+
+        assertEquals(
+            listOf(
+                RelationStep("wife", StepKind.SPOUSE),
+                RelationStep("wifes-mother", StepKind.PARENT),
+            ),
+            relation.chain,
+        )
+        assertTrue("no blood between them, so this is a marriage", relation.byMarriage)
+        assertNull(relation.term)
+    }
+
+    @Test
+    fun `a blood route wins over a marriage route of the same length`() {
+        // Reaching the aunt through her own husband would be true and useless.
+        val snapshot = Builder()
+            .person("me", "parent", "aunt", "aunts-husband")
+            .parentOf("parent", "me")
+            .siblingOf("parent", "aunt")
+            .married("aunt", "aunts-husband")
+            .married("parent", "aunts-husband")   // an absurd edge, there to bait the search
+            .build()
+
+        val relation = Kinship.relate(snapshot, "me", "aunt") as Relation.Found
+        assertEquals(listOf(StepKind.PARENT, StepKind.SIBLING), relation.chain.map { it.kind })
+    }
+
+    @Test
+    fun `siblings are one step, not up to a parent and back down`() {
+        assertEquals(listOf(RelationStep("aunt", StepKind.SIBLING)), chain("dad", "aunt"))
+    }
+
+    @Test
+    fun `the chain and the term agree about who is involved`() {
+        val relation = Kinship.relate(family(), "me", "second-line") as Relation.Found
+
+        // The ancestor that names the relationship need not be on the shortest route to it: the
+        // two branches join at their siblings, a generation below the ancestor they share.
+        assertEquals("great", relation.sharedAncestorId)
+        assertEquals(
+            listOf("me", "dad", "grandad", "granduncle", "cousin-parent", "second-line"),
+            listOf("me") + relation.chain.map { it.personId },
+        )
+        assertFalse("nobody outside the route is lit up", "kid" in relation.peopleInvolved("me"))
+    }
+
+    /* --------------------------------------------------------------- the edges */
+
+    @Test
+    fun `the same person twice is said plainly rather than answered with an empty chain`() {
+        assertEquals(Relation.SamePerson, Kinship.relate(family(), "me", "me"))
+    }
+
+    @Test
+    fun `two families in one file are not related to each other`() {
+        val snapshot = Builder()
+            .person("a", "b", "x", "y")
+            .parentOf("a", "b")
+            .parentOf("x", "y")
+            .build()
+
+        assertEquals(Relation.Unrecorded, Kinship.relate(snapshot, "b", "y"))
+    }
+
+    @Test
+    fun `somebody who is not in the tree is unrecorded, not a crash`() {
+        assertEquals(Relation.Unrecorded, Kinship.relate(family(), "me", "ghost"))
+        assertEquals(Relation.Unrecorded, Kinship.relate(family(), "ghost", "me"))
+        assertEquals(Relation.Unrecorded, Kinship.relate(FamilySnapshot.Empty, "a", "b"))
+    }
+
+    @Test
+    fun `a cycle in bad data terminates rather than hanging`() {
+        // Rejected when created, but a corrupt import must not be able to spin the search forever.
+        val snapshot = Builder()
+            .person("a", "b", "c")
+            .parentOf("a", "b").parentOf("b", "c").parentOf("c", "a")
+            .build()
+
+        assertTrue(Kinship.relate(snapshot, "a", "c") is Relation.Found)
+    }
+
+    @Test
+    fun `a long line is answered in reasonable time`() {
+        val builder = Builder()
+        builder.person("p0")
+        repeat(2000) {
+            builder.person("p${it + 1}").parentOf("p$it", "p${it + 1}")
+        }
+        val snapshot = builder.build()
+
+        val started = System.currentTimeMillis()
+        val relation = Kinship.relate(snapshot, "p0", "p2000") as Relation.Found
+        val elapsed = System.currentTimeMillis() - started
+
+        assertEquals(KinshipTerm.Descendant(2000), relation.term)
+        assertTrue("took ${elapsed}ms", elapsed < 2000)
+    }
+}

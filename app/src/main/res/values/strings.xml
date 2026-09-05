@@ -297,4 +297,79 @@
     <!-- Person detail -->
     <string name="person_show_on_tree">Show on the tree</string>
     <string name="person_more">More</string>
+
+    <!-- Relation finder -->
+    <string name="relation_title">How are we related?</string>
+    <string name="relation_between">Between</string>
+    <string name="relation_and">and</string>
+    <string name="relation_choose">Choose someone</string>
+    <string name="relation_change">Change</string>
+    <string name="relation_swap">Swap them round</string>
+    <string name="relation_pick_title">Who?</string>
+    <string name="relation_pick_hint">Search by name</string>
+    <string name="relation_pick_none">Nobody by that name.</string>
+    <string name="relation_hint">Pick two people and f-tree traces the line between them, however far apart they sit in the tree.</string>
+    <string name="relation_open_from_person">How are we related?</string>
+    <string name="relation_find">Find a relation</string>
+
+    <string name="relation_answer_term">%1$s is %2$s’s %3$s.</string>
+    <string name="relation_answer_marriage">%1$s is related to %2$s by marriage.</string>
+    <string name="relation_answer_linked">%1$s is related to %2$s.</string>
+    <string name="relation_answer_same">That is the same person on both sides.</string>
+    <string name="relation_answer_none">Nothing in the record joins %1$s and %2$s.</string>
+    <string name="relation_answer_none_body">They may well be related — the tree just does not connect them yet. Adding the missing parent or marriage is usually all it takes.</string>
+    <plurals name="relation_steps">
+        <item quantity="one">%1$d step apart</item>
+        <item quantity="other">%1$d steps apart</item>
+    </plurals>
+    <string name="relation_chain_title">The line between them</string>
+    <string name="relation_chain_step">%1$s of %2$s</string>
+    <string name="relation_chain_start">Where the line starts</string>
+    <string name="relation_shared_ancestor">Through %1$s, the nearest ancestor they share.</string>
+    <string name="relation_show_on_chart">Show on the chart</string>
+    <string name="relation_tracing">Tracing how two people connect</string>
+    <string name="relation_clear">Clear</string>
+
+    <!-- Kinship terms, lower case because they are read inside a sentence rather than as headings -->
+    <string name="kin_father">father</string>
+    <string name="kin_mother">mother</string>
+    <string name="kin_parent">parent</string>
+    <string name="kin_son">son</string>
+    <string name="kin_daughter">daughter</string>
+    <string name="kin_child">child</string>
+    <string name="kin_brother">brother</string>
+    <string name="kin_sister">sister</string>
+    <string name="kin_sibling">sibling</string>
+    <string name="kin_grandfather">grandfather</string>
+    <string name="kin_grandmother">grandmother</string>
+    <string name="kin_grandparent">grandparent</string>
+    <string name="kin_grandson">grandson</string>
+    <string name="kin_granddaughter">granddaughter</string>
+    <string name="kin_grandchild">grandchild</string>
+    <string name="kin_uncle">uncle</string>
+    <string name="kin_aunt">aunt</string>
+    <string name="kin_aunt_or_uncle">aunt or uncle</string>
+    <string name="kin_nephew">nephew</string>
+    <string name="kin_niece">niece</string>
+    <string name="kin_niece_or_nephew">niece or nephew</string>
+    <string name="kin_self">the same person</string>
+    <string name="kin_great_prefix">great-</string>
+    <string name="kin_cousin">%1$s cousin</string>
+    <string name="kin_cousin_removed_once">%1$s once removed</string>
+    <string name="kin_cousin_removed_twice">%1$s twice removed</string>
+    <string name="kin_cousin_removed_many">%1$s %2$d times removed</string>
+    <string name="kin_ordinal_nth">%1$dth</string>
+    <string-array name="kin_ordinals">
+        <item>first</item>
+        <item>second</item>
+        <item>third</item>
+        <item>fourth</item>
+        <item>fifth</item>
+        <item>sixth</item>
+        <item>seventh</item>
+        <item>eighth</item>
+        <item>ninth</item>
+        <item>tenth</item>
+    </string-array>
+
 </resources>
