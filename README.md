@@ -153,6 +153,10 @@ pure and JVM-tested):
   *down* to the other person — and those two numbers produce every term English actually has.
   Nearest, then most symmetric: measured through a grandparent instead, two siblings would come out
   as first cousins. There is no word for most relationships, so this half is often absent.
+  An explicit `SIBLING` edge is recorded precisely when the parents are *not* known, so each such
+  group is given one unnamed stand-in ancestor to measure through — otherwise an aunt reachable only
+  through her brother comes back as merely "related", the gap in the record swallowing a word the
+  family uses every day. The stand-in is never shown; it has no name to show.
 - **The line between them** is a breadth-first search over *every* edge kind. Marriage is walked as
   well as blood, because "my wife's mother" is exactly what gets asked and no blood-only search can
   answer it. Blood steps are enqueued before marriage ones, so where two routes are the same length
