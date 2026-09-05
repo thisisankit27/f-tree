@@ -18,6 +18,10 @@ replacing it**.
 - **Two charts.** *Around one person* draws their ancestors above and descendants below, with pan,
   zoom and tap-to-recentre. *Everyone* draws the entire tree at once — every generation, every
   household, and the people no relationship reaches, whom the focused chart has nowhere to put.
+- **A relation finder.** Pick any two people and f-tree names the relationship — "first cousin once
+  removed", "great-great-grandfather" — and lists every person the line runs through, which is the
+  form that can also answer the ones English has no word for. It walks marriages as well as blood,
+  and will draw the line across the whole-tree chart.
 - **Optional in-app updates.** Off until switched on. Checks GitHub for a newer release and installs
   it over the running copy, so a new version keeps your tree instead of costing an export and an
   import.
@@ -139,6 +143,25 @@ nothing else, and offscreen nodes cost a bounds check each.
 Notation: marriage is a doubled rule, a couple's children hang from one connector while a
 half-sibling hangs from their own, and a person with no name has a dashed brass edge — the gap is in
 what the family remembers, not a fault in the record.
+
+### Relating two people
+
+Two questions with different failure modes, so they are answered separately (`graph/Kinship.kt`,
+pure and JVM-tested):
+
+- **The word for it** comes from the nearest shared ancestor — generations *up* to them and back
+  *down* to the other person — and those two numbers produce every term English actually has.
+  Nearest, then most symmetric: measured through a grandparent instead, two siblings would come out
+  as first cousins. There is no word for most relationships, so this half is often absent.
+- **The line between them** is a breadth-first search over *every* edge kind. Marriage is walked as
+  well as blood, because "my wife's mother" is exactly what gets asked and no blood-only search can
+  answer it. Blood steps are enqueued before marriage ones, so where two routes are the same length
+  the one through the family wins — reaching a cousin via their husband is a true answer and a
+  useless one.
+
+The chain is always shown and the word only when there is one, because the chain is the half a
+reader can check against their own memory. `Kinship` returns the term as a *structure*, not a
+string; the English lives in `ui/common/KinshipLabels.kt` with the rest of the app's words.
 
 ## The `.ftree` format
 
