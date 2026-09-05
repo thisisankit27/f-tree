@@ -20,3 +20,6 @@ local.properties
 
 # Scratch imports and exports kept for debugging; never part of the repo.
 temp/
+
+# Kotlin build-tool scratch directory.
+.kotlin/

@@ -13,9 +13,11 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.vibethroughcode.ftree.R
 import com.vibethroughcode.ftree.data.Person
 import com.vibethroughcode.ftree.ui.theme.FTreeText
 import com.vibethroughcode.ftree.ui.theme.FTreeTheme
@@ -68,7 +70,7 @@ fun PersonRow(
             }
         }
 
-        person.lifespanLabel()?.let { years ->
+        person.lifespanLabel(stringResource(R.string.person_late))?.let { years ->
             Text(
                 text = years,
                 style = FTreeText.record,

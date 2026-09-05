@@ -306,4 +306,88 @@ class KinshipTest {
         assertEquals(KinshipTerm.Sibling, relation.term)
         assertEquals("measured through the mother who is actually recorded", "mum", relation.sharedAncestorId)
     }
+
+    /* -------------------------------------------------- what a chart needs to draw the answer */
+
+    @Test
+    fun `drawing two siblings needs the parent they are derived from`() {
+        // Siblings are derived from a shared parent, so the sibling step carries no edge of its
+        // own. Drawn without him, an aunt and a father are two loose cards with nothing between.
+        val snapshot = Builder()
+            .person("me", "dad", "aunt", "grandad")
+            .parentOf("grandad", "dad").parentOf("grandad", "aunt")
+            .parentOf("dad", "me")
+            .build()
+
+        val relation = Kinship.relate(snapshot, "me", "aunt") as Relation.Found
+
+        assertEquals(
+            "the chain itself says nothing about the grandfather",
+            setOf("me", "dad", "aunt"),
+            relation.peopleInvolved("me"),
+        )
+        assertEquals(
+            "but the chart cannot join the two of them without him",
+            setOf("me", "dad", "aunt", "grandad"),
+            relation.peopleToDraw(snapshot, "me"),
+        )
+    }
+
+    @Test
+    fun `an explicit sibling edge needs nobody added, because it draws its own bracket`() {
+        val snapshot = Builder()
+            .person("me", "dad", "aunt")
+            .parentOf("dad", "me")
+            .siblingOf("dad", "aunt")
+            .build()
+
+        val relation = Kinship.relate(snapshot, "me", "aunt") as Relation.Found
+
+        assertEquals(setOf("me", "dad", "aunt"), relation.peopleToDraw(snapshot, "me"))
+    }
+
+    @Test
+    fun `nobody off the line is dragged in`() {
+        val snapshot = Builder()
+            .person("me", "dad", "mum", "grandad", "granny", "stranger")
+            .parentOf("dad", "me").parentOf("mum", "me")
+            .parentOf("grandad", "dad").parentOf("granny", "dad")
+            .married("dad", "mum").married("grandad", "granny")
+            .person("cousin").parentOf("grandad", "uncle").person("uncle")
+            .parentOf("uncle", "cousin")
+            .build()
+
+        val drawn = (Kinship.relate(snapshot, "me", "grandad") as Relation.Found)
+            .peopleToDraw(snapshot, "me")
+
+        assertEquals(setOf("me", "dad", "grandad"), drawn)
+        listOf("mum", "granny", "stranger", "uncle", "cousin").forEach {
+            assertFalse("$it is not on the line and must not be drawn", it in drawn)
+        }
+    }
+
+    @Test
+    fun `the drawn people still form one connected chart`() {
+        val snapshot = Builder()
+            .person("me", "dad", "aunt", "grandad", "noise-a", "noise-b")
+            .parentOf("grandad", "dad").parentOf("grandad", "aunt")
+            .parentOf("dad", "me")
+            .parentOf("noise-a", "noise-b")
+            .build()
+
+        val drawn = (Kinship.relate(snapshot, "me", "aunt") as Relation.Found)
+            .peopleToDraw(snapshot, "me")
+        val cut = snapshot.restrictedTo(drawn)
+
+        assertEquals(drawn.size, cut.people.size)
+        assertEquals("only edges with both ends still present", 3, cut.parentEdges.size)
+        // One family, not four loose cards: the whole point of keeping the shared parent.
+        val layout = WholeTreeLayoutEngine.layout(cut)
+        assertEquals(0, layout.unconnectedCount)
+        assertEquals(
+            "and it reads top-down: grandfather, then his children, then me",
+            3,
+            layout.generations,
+        )
+    }
 }

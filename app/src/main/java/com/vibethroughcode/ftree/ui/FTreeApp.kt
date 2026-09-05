@@ -130,6 +130,7 @@ fun FTreeApp() {
             composable<TreeRoute> { entry ->
                 TreeScreen(
                     trace = entry.toRoute<TreeRoute>().trace,
+                    startWhole = entry.toRoute<TreeRoute>().whole,
                     onOpenPerson = { navController.navigate(PersonRoute(it)) },
                     onAddPerson = { navController.navigate(EditPersonRoute()) },
                     onAddRelative = { anchorId, kind ->
@@ -139,7 +140,7 @@ fun FTreeApp() {
                     // Dropping the trace means going back to the plain chart, which is where
                     // clearing a highlight should leave you — not one screen further back.
                     onClearTrace = {
-                        navController.navigate(TreeRoute()) {
+                        navController.navigate(TreeRoute(whole = true)) {
                             popUpTo<TreeRoute> { inclusive = true }
                         }
                     },

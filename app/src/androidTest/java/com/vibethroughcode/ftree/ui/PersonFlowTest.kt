@@ -178,8 +178,13 @@ class PersonFlowTest {
         )
 
         rule.onNodeWithTag(DeleteCompletelyTag).performClick()
-        rule.waitForIdle()
 
+        // Waiting for the empty state itself, not for idleness: the delete pops a screen, and the
+        // chart only calls itself empty once both the focused and the whole-tree view models have
+        // reported the tree gone. Idle can arrive a frame before the second of them does.
+        rule.waitUntil(5_000) {
+            rule.onAllNodesWithText("Build your family tree").fetchSemanticsNodes().isNotEmpty()
+        }
         rule.onNodeWithText("Build your family tree").assertIsDisplayed()
     }
 

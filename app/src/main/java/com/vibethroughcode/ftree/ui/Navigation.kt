@@ -27,6 +27,14 @@ data class TreeRoute(
      * silently relight a line from a question asked an hour ago.
      */
     val trace: List<String> = emptyList(),
+    /**
+     * Open on the whole-tree chart rather than the focused one.
+     *
+     * Set when a traced line is cleared. Clearing means "put the rest of the family back", so it
+     * has to land on the chart that holds them; dropping onto the focused chart instead reads as
+     * the chart having vanished along with the answer.
+     */
+    val whole: Boolean = false,
 )
 
 @Serializable

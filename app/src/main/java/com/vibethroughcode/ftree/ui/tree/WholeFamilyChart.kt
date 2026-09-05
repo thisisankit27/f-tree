@@ -62,9 +62,14 @@ fun WholeFamilyChart(
     modifier: Modifier = Modifier,
     selectedId: String? = null,
     highlighted: Set<String> = emptySet(),
-    frameOn: Set<String> = emptySet(),
+    /** True when [layout] holds one traced relation rather than the whole record. */
+    tracing: Boolean = false,
 ) {
-    val description = stringResource(R.string.a11y_whole_chart, layout.nodes.size, layout.unconnectedCount)
+    val description = if (tracing) {
+        stringResource(R.string.a11y_traced_chart, layout.nodes.size)
+    } else {
+        stringResource(R.string.a11y_whole_chart, layout.nodes.size, layout.unconnectedCount)
+    }
     val density = LocalDensity.current
     val measurer = rememberTextMeasurer()
     val colors = MaterialTheme.colorScheme
@@ -91,8 +96,8 @@ fun WholeFamilyChart(
      * a card would be too small to carry a name it stops being a chart and becomes a texture, so
      * beyond that the view opens at a readable scale on the largest family instead.
      */
-    LaunchedEffect(layout, viewport, frameOn) {
-        if (viewport == IntSize.Zero || layout.isEmpty || frameOn.isNotEmpty()) return@LaunchedEffect
+    LaunchedEffect(layout, viewport) {
+        if (viewport == IntSize.Zero || layout.isEmpty) return@LaunchedEffect
         with(density) {
             val chartWidth = layout.width.dp.toPx()
             val chartHeight = layout.height.dp.toPx()
@@ -126,38 +131,6 @@ fun WholeFamilyChart(
                     },
                 )
             }
-        }
-    }
-
-    /*
-     * Framing on a named few — the people on a traced relation.
-     *
-     * A highlight is no use if it lands off screen, and the general framing above has no reason to
-     * put a line between two distant cousins in view. This fits their bounding box instead, capped
-     * so that two people who happen to sit side by side do not open at absurd magnification.
-     */
-    LaunchedEffect(layout, viewport, frameOn) {
-        if (viewport == IntSize.Zero || layout.isEmpty || frameOn.isEmpty()) return@LaunchedEffect
-        val nodes = frameOn.mapNotNull { layout.node(it) }
-        if (nodes.isEmpty()) return@LaunchedEffect
-
-        val left = nodes.minOf { it.x }
-        val top = nodes.minOf { it.y }
-        val right = nodes.maxOf { it.x } + TreeMetrics.NODE_WIDTH
-        val bottom = nodes.maxOf { it.y } + TreeMetrics.NODE_HEIGHT
-        with(density) {
-            val margin = 32.dp.toPx()
-            val boxWidth = (right - left).dp.toPx()
-            val boxHeight = (bottom - top).dp.toPx()
-            val fit = minOf(
-                (viewport.width - margin * 2) / boxWidth,
-                (viewport.height - margin * 2) / boxHeight,
-            ).coerceIn(MIN_ZOOM, MAX_FIT)
-            zoom = fit
-            pan = Offset(
-                (viewport.width - boxWidth * fit) / 2f - left.dp.toPx() * fit,
-                (viewport.height - boxHeight * fit) / 2f - top.dp.toPx() * fit,
-            )
         }
     }
 

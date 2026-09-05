@@ -89,8 +89,10 @@ class RelationViewModel(
             sharedAncestor = found?.sharedAncestorId
                 ?.takeIf { it != from && it != to }
                 ?.let(graph.people::get),
+            // What the chart is asked to draw, which is the chain plus whatever holds it
+            // together — not the same set as the chain listed on this screen.
             trace = if (found != null && from != null) {
-                found.peopleInvolved(from).toList()
+                found.peopleToDraw(graph, from).toList()
             } else emptyList(),
             peopleCount = graph.people.size,
         )

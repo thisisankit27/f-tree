@@ -1,5 +1,7 @@
 package com.vibethroughcode.ftree.ui
 
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasTestTag
@@ -189,6 +191,48 @@ class RelationFinderTest {
         rule.onNodeWithTag(TreeClearTraceTag).performClick()
         rule.waitUntil(5_000) {
             rule.onAllNodesWithText("Tracing how two people connect").fetchSemanticsNodes().isEmpty()
+        }
+    }
+
+    @Test
+    fun theTracedChartDrawsTheLineAndNobodyElse() {
+        seedFourPeople()
+        // Somebody with no part in the answer, who must not be on the chart while it is given.
+        runBlocking {
+            app.container.familyRepository.addPerson(
+                Person(name = "Sunita Rao", gender = Gender.FEMALE, birthDate = "1995")
+            )
+        }
+        openFinder()
+
+        pick(RelationSlotFromTag, "Ankit Kumar")
+        pick(RelationSlotToTag, "Meena Devi")
+        rule.waitUntil(5_000) {
+            rule.onAllNodesWithTag(RelationShowOnChartTag).fetchSemanticsNodes().isNotEmpty()
+        }
+        rule.onNodeWithTag(RelationShowOnChartTag).performClick()
+
+        /*
+         * Four: Ankit, his father, his aunt, and the grandfather the two of them are siblings
+         * through. He is on the chart without being in the sentence — the sibling step has no edge
+         * of its own, so without him the answer would be two loose cards.
+         *
+         * Not Sunita. Fading her would still leave her on the page, and in a real tree that is a
+         * hundred and forty faded cards over the answer.
+         */
+        awaitChartOf(4)
+
+        rule.onNodeWithTag(TreeClearTraceTag).performClick()
+        awaitChartOf(5)
+    }
+
+    /** Waits for the whole-tree canvas to say, in its own words, how many people it is drawing. */
+    private fun awaitChartOf(people: Int) {
+        rule.waitUntil(5_000) {
+            rule.onAllNodesWithTag(WholeFamilyChartTag).fetchSemanticsNodes().any { node ->
+                node.config.getOrNull(SemanticsProperties.ContentDescription)
+                    ?.any { it.contains("showing $people people") } == true
+            }
         }
     }
 }
