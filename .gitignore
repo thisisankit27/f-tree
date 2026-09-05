@@ -17,3 +17,6 @@ local.properties
 
 # Playwright MCP scratch output
 .playwright-mcp/
+
+# Scratch imports and exports kept for debugging; never part of the repo.
+temp/

@@ -43,99 +43,71 @@ const ROW_PITCH = METRICS.NODE_H + METRICS.LEVEL_GAP;
 /**
  * Puts every person on a generation.
  *
- * Spouses are unioned first so a married pair cannot land a row apart, then generations are the
- * longest path over parent edges between those unions. Longest rather than shortest: a person with
- * both a parent and a great-grandparent recorded belongs below the deeper of the two, or the
- * connector would run upward.
+ * A generation is a *relative* fact and nothing else: a child stands exactly one row below each
+ * parent, and spouses - and siblings whose parents nobody recorded - stand on the same row as each
+ * other. Those constraints are propagated outward from one seed per connected family, which fixes
+ * every generation exactly, because the offset between two people is the same along every route
+ * between them. Normalising each family against its own topmost member then gives the rows.
+ *
+ * It is worth saying what this deliberately is *not*, because the obvious alternative is wrong in a
+ * way that takes a real family to notice. Ranking people by their longest path down from the
+ * oldest ancestor on record - the textbook layering - makes a person's row depend on how far back
+ * their ancestry happens to be written down. A maternal grandfather whose own parents are unknown
+ * lands on the top row beside a great-great-grandfather on the other side of the family; worse, his
+ * three children come out on different rows from each other, because each was dragged down by
+ * however deep their spouse's ancestry ran. Generations are not depths. Two people are one
+ * generation apart or they are not, and how much of the record survives above them cannot change
+ * that.
  */
 function assignLevels(graph) {
-  const parentOf = new Map();
-  const find = (x) => {
-    let root = x;
-    while (parentOf.get(root) !== root) root = parentOf.get(root);
-    while (parentOf.get(x) !== root) { const next = parentOf.get(x); parentOf.set(x, root); x = next; }
-    return root;
-  };
-  const union = (a, b) => { const ra = find(a); const rb = find(b); if (ra !== rb) parentOf.set(ra, rb); };
-
-  for (const id of graph.order) parentOf.set(id, id);
-  for (const id of graph.order) for (const s of graph.spouses(id)) union(id, s.id);
-
-  // One vertex per spouse-union; parent edges become edges between unions.
-  const groupEdges = new Map();
-  const indegree = new Map();
-  for (const id of graph.order) { groupEdges.set(find(id), groupEdges.get(find(id)) ?? new Set()); indegree.set(find(id), 0); }
-  for (const id of graph.order) {
-    for (const c of graph.children(id)) {
-      const a = find(id);
-      const b = find(c.id);
-      if (a === b) continue;               // a couple who are also parent and child: ignore, unplaceable
-      const outs = groupEdges.get(a);
-      if (!outs.has(b)) { outs.add(b); indegree.set(b, indegree.get(b) + 1); }
-    }
-  }
-
   const level = new Map();
-  for (const g of groupEdges.keys()) level.set(g, 0);
 
-  // Kahn's order gives the longest path exactly in one pass.
-  const queue = [...indegree.keys()].filter((g) => indegree.get(g) === 0);
-  let head = 0;
-  let placed = 0;
-  while (head < queue.length) {
-    const g = queue[head++];
-    placed++;
-    for (const next of groupEdges.get(g)) {
-      level.set(next, Math.max(level.get(next), level.get(g) + 1));
-      indegree.set(next, indegree.get(next) - 1);
-      if (indegree.get(next) === 0) queue.push(next);
-    }
-  }
+  /*
+   * Every constraint, as an offset. Derived siblings need no edge of their own - sharing a parent
+   * already puts them on one row - but an explicit SIBLING edge exists precisely where the parents
+   * are unknown, and without it those two would float into separate families.
+   */
+  const steps = function* (id) {
+    for (const p of graph.parents(id)) yield [p.id, -1];
+    for (const c of graph.children(id)) yield [c.id, 1];
+    for (const s of graph.spouses(id)) yield [s.id, 0];
+    for (const s of graph.explicitSiblings.get(id)?.values() ?? []) yield [s.id, 0];
+  };
 
-  // Anything left sits in a cycle, which the app's rules forbid but a hand-edited file could hold.
-  // Relax it a bounded number of times so a broken file still draws instead of hanging.
-  if (placed < groupEdges.size) {
-    for (let pass = 0; pass < 40; pass++) {
-      let changed = false;
-      for (const [g, outs] of groupEdges) {
-        for (const next of outs) {
-          if (level.get(next) <= level.get(g)) { level.set(next, level.get(g) + 1); changed = true; }
-        }
+  for (const seed of graph.order) {
+    if (level.has(seed)) continue;
+    level.set(seed, 0);
+    const queue = [seed];
+    let head = 0;
+    while (head < queue.length) {
+      const current = queue[head++];
+      const base = level.get(current);
+      for (const [next, delta] of steps(current)) {
+        if (level.has(next)) continue;
+        level.set(next, base + delta);
+        queue.push(next);
       }
-      if (!changed) break;
     }
   }
 
   /*
-   * Longest-path ranking leaves slack: a person whose only child married into a much deeper part
-   * of the family gets stranded at the top of the chart with a connector three rows long. Pull
-   * every group down until it sits directly above its earliest child, which is as far as it can go
-   * without overtaking its own parents.
+   * The constraints can only disagree when the record itself does - somebody married to their own
+   * aunt gives one route saying "same row" and another saying "one row apart", and no assignment
+   * satisfies both. Where that happens the parent edge wins, because a connector running upward
+   * out of a child into their parent is unreadable in a way that a couple sitting a row apart is
+   * not. Bounded, so a cycle in a hand-edited file still draws instead of hanging.
    */
-  const groupParents = new Map();
-  for (const [g, outs] of groupEdges) {
-    for (const next of outs) {
-      if (!groupParents.has(next)) groupParents.set(next, new Set());
-      groupParents.get(next).add(g);
-    }
-  }
-  for (let pass = 0; pass < 8; pass++) {
+  for (let pass = 0; pass < 40; pass++) {
     let changed = false;
-    for (const [g, outs] of groupEdges) {
-      if (outs.size === 0) continue;
-      let earliestChild = Infinity;
-      for (const next of outs) earliestChild = Math.min(earliestChild, level.get(next));
-      let floor = 0;
-      for (const p of groupParents.get(g) ?? []) floor = Math.max(floor, level.get(p) + 1);
-      const want = earliestChild - 1;
-      if (want > level.get(g) && want >= floor) { level.set(g, want); changed = true; }
+    for (const id of graph.order) {
+      for (const c of graph.children(id)) {
+        if (level.get(c.id) <= level.get(id)) { level.set(c.id, level.get(id) + 1); changed = true; }
+      }
     }
     if (!changed) break;
   }
 
-  const levels = new Map();
-  for (const id of graph.order) levels.set(id, level.get(find(id)) ?? 0);
-  return levels;
+  return level;
 }
 
 /* ------------------------------------------------------------------ ordering within rows */

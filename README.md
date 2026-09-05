@@ -367,9 +367,16 @@ distance the cards are plain shapes and what you read is the shape of the family
 generations, how wide each got, and where the record has holes, because an unknown person keeps
 their brass dashed edge at every scale.
 
-**Generation ranking is compacted after it is assigned.** Longest-path ranking alone strands a
-person whose only child married into a deeper part of the family several rows above them, trailing
-a connector the height of the chart.
+**A generation is a relative fact, not a depth.** A child sits exactly one row below each parent,
+and spouses — and siblings whose parents nobody recorded — sit on the same row; those offsets are
+propagated out from one seed per connected family, which fixes every row exactly, because the offset
+between two people is the same along every route between them.
+
+The textbook alternative, ranking people by their longest path down from the oldest ancestor on
+record, is wrong in a way that takes a real family to notice: it makes a person's row depend on how
+far back *their* ancestry happens to be written down. A maternal grandfather whose own parents are
+unknown lands on the top row beside a great-great-grandfather from the other side of the family, and
+his children scatter across rows, each dragged down by however deep their own spouse's ancestry ran.
 
 Everything happens in the tab. The file is never uploaded, there is no analytics on the page, and
 the only thing stored is four display preferences in `localStorage`.
