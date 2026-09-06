@@ -10,7 +10,7 @@
 import { readTreeFile, ArchiveError, canDecompress } from './archive.js';
 import {
   buildGraph, relationsOf, relate, displayName, displayDate, lifespan, initials, ageOf,
-  peopleToDraw, restrictedGraph,
+  peopleToDraw, restrictedGraph, spouseLabel,
 } from './model.js';
 import { layoutArchive } from './layout.js';
 import { Chart } from './chart.js';
@@ -433,25 +433,30 @@ function renderRelation() {
   }
 
   /*
-   * Two sentences, because a relationship with no blood in it cannot be said the same way. Where
-   * there is a shared ancestor there is a word for it. Where there is not, a short chain still
-   * reads as one - "wife's mother" is how a family actually says it - and only a long way round
-   * falls back to counting steps.
+   * Three sentences, because a relationship through a marriage is not a noun the way a blood one
+   * is. "Priya is Ankit's first cousin" works; "Madhu is Ankit's first cousin once removed's wife"
+   * is a possessive chain nobody says out loud, so that one is turned around into "Madhu is married
+   * to Ankit's first cousin once removed" - the same fact, said the way a person would say it.
+   *
+   * And where the record cannot name it at all, it says nothing. A sentence amounting to "these two
+   * are related somehow" tells a reader nothing the chain below does not tell them exactly, and
+   * "connected only through marriage" was worse than nothing: every relative anybody had married
+   * into the family came back under the same flat phrase.
    */
   const steps = result.path.length;
-  let sentence;
+  let sentence = '';
   if (result.term) {
     sentence = `${nameHtml(to)} is ${nameHtml(from)}'s <b>${escape(result.term)}</b>.`;
-  } else if (steps <= 3) {
-    const chain = result.path.map((step) => escape(step.label)).join("'s ");
-    sentence = `${nameHtml(to)} is ${nameHtml(from)}'s <b>${chain}</b> — no blood relation in this file.`;
-  } else {
-    sentence = `${nameHtml(to)} and ${nameHtml(from)} are connected only through marriage or `
-      + `adoption, <b>${steps} steps</b> apart, with no ancestor in common in this file.`;
+  } else if (result.marriedTo) {
+    sentence = `${nameHtml(to)} is married to ${nameHtml(from)}'s `
+      + `<b>${escape(result.marriedTo.term)}</b>.`;
+  } else if (result.ofSpouse) {
+    sentence = `${nameHtml(to)} is the <b>${escape(result.ofSpouse.term)}</b> of `
+      + `${nameHtml(from)}'s ${escape(spouseLabel(result.ofSpouse.spouse, null).toLowerCase())}.`;
   }
 
   box.innerHTML = `
-    <p class="r-term">${sentence}</p>
+    ${sentence ? `<p class="r-term">${sentence}</p>` : ''}
     <ol class="r-chain">
       <li><span class="step">start</span><span class="who">${nameHtml(from)}</span></li>
       ${result.path.map((step) => `

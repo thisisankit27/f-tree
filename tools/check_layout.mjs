@@ -192,11 +192,56 @@ checkKinship();
 
 console.log('\n=== relating two people');
 const find = (name) => [...graph.people.values()].find((p) => p.name === name)?.id;
-for (const [a, b] of [['Aarav Kumar', 'Shyam Lal'], ['Ankit Kumar', 'Meena Kumari'],
-  ['Ankit Kumar', 'Lata Sharma'], ['Neha Kumar', 'Arun Prasad']]) {
+for (const [a, b, expected] of [
+  ['Aarav Kumar', 'Shyam Lal', 'great-great-grandfather'],
+  ['Ankit Kumar', 'Meena Kumari', 'aunt'],
+  ['Ankit Kumar', 'Lata Sharma', 'mother-in-law'],
+  ['Neha Kumar', 'Arun Prasad', 'first cousin once removed'],
+]) {
   const result = relate(graph, find(a), find(b));
   const chain = result.path?.map((s) => s.label).join(' -> ') ?? 'no path';
-  console.log(`  ${a} -> ${b}: ${result.term ?? 'no blood term'}   [${chain}]`);
+  check(`${a} -> ${b} is ${expected}`, result.term === expected,
+    result.term === expected ? `[${chain}]` : `got "${result.term}"  [${chain}]`);
+}
+
+/*
+ * Every pair, both ways round.
+ *
+ * The relation finder is asked about arbitrary pairs, so it is checked against arbitrary pairs:
+ * nothing may throw, everybody connected must get a chain, and a pair that gets a sentence must
+ * get exactly one kind of sentence. The share that can be named is printed rather than asserted -
+ * it is a property of the family, not of the code - but a collapse in it would be visible here.
+ */
+console.log('\n=== every pair, both directions');
+{
+  const ids = [...graph.people.keys()];
+  let pairs = 0, word = 0, married = 0, ofSpouse = 0, chainOnly = 0, unconnected = 0, broken = 0;
+  for (const a of ids) {
+    for (const b of ids) {
+      if (a === b) continue;
+      pairs++;
+      let r;
+      try {
+        r = relate(graph, a, b);
+      } catch (error) {
+        broken++;
+        continue;
+      }
+      if (r.kind !== 'related') { unconnected++; continue; }
+      if (!Array.isArray(r.path) || r.path.length === 0) { broken++; continue; }
+      const shapes = [r.term, r.marriedTo, r.ofSpouse].filter(Boolean).length;
+      if (shapes > 1) { broken++; continue; }
+      if (r.term) word++;
+      else if (r.marriedTo) married++;
+      else if (r.ofSpouse) ofSpouse++;
+      else chainOnly++;
+    }
+  }
+  check('every pair is answered without throwing', broken === 0, `${pairs} pairs`);
+  const named = word + married + ofSpouse;
+  console.log(`       ${named} of ${pairs} get a sentence `
+    + `(${word} a word, ${married} "married to", ${ofSpouse} "of the spouse"); `
+    + `${chainOnly} show the chain alone; ${unconnected} not connected`);
 }
 
 console.log(failures === 0 ? '\nAll checks passed.' : `\n${failures} CHECKS FAILED.`);

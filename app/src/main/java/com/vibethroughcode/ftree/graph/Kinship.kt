@@ -45,6 +45,23 @@ sealed interface KinshipTerm {
 
     /** [degree] 1 = first cousin. [removed] 0 = of the same generation. */
     data class Cousin(val degree: Int, val removed: Int) : KinshipTerm
+
+    /* ------------------------------------------------------------------ by marriage */
+
+    /** Married to the subject. */
+    data object Spouse : KinshipTerm
+
+    /**
+     * Married to a blood relative of the subject — an uncle's wife, a sister's husband.
+     *
+     * English names several of these outright: the wife of an uncle is an aunt, the husband of a
+     * sister a brother-in-law. Where it has no word, [relative] still says exactly who they married,
+     * which is a better answer than "related by marriage" and shorter than the chain.
+     */
+    data class SpouseOf(val relative: KinshipTerm) : KinshipTerm
+
+    /** A blood relative of the subject's own spouse — a wife's mother, a husband's sister. */
+    data class OfSpouse(val relative: KinshipTerm) : KinshipTerm
 }
 
 /** The answer to "how are these two related?". */
@@ -96,10 +113,6 @@ sealed interface Relation {
             }
         }
 
-        /** Joined only by a marriage somewhere along the way, with no blood between them. */
-        val byMarriage: Boolean
-            get() = term == null && chain.any { it.kind == StepKind.SPOUSE }
-
         val steps: Int get() = chain.size
     }
 }
@@ -116,12 +129,58 @@ object Kinship {
         if (fromId !in snapshot.people || toId !in snapshot.people) return Relation.Unrecorded
 
         val chain = shortestChain(snapshot, fromId, toId) ?: return Relation.Unrecorded
-        val shared = nearestSharedAncestor(snapshot, fromId, toId, standInAncestors(snapshot))
+        val standIns = standInAncestors(snapshot)
+        val shared = nearestSharedAncestor(snapshot, fromId, toId, standIns)
         return Relation.Found(
             chain = chain,
-            term = shared?.let { termFor(it.up, it.down) },
+            // Blood first, always: two people who share an ancestor are named through him even if a
+            // marriage happens to join them by a shorter route.
+            term = shared?.let { termFor(it.up, it.down) }
+                ?: affinalTerm(snapshot, fromId, toId, chain, standIns),
             sharedAncestorId = shared?.ancestorId,
         )
+    }
+
+    /**
+     * The word for a relationship that runs through exactly one marriage.
+     *
+     * A marriage at one *end* of the line is nameable: everyone on the far side of it is a blood
+     * relative of somebody, and English hangs a word off that — my uncle's wife is my aunt, my
+     * wife's mother my mother-in-law. A marriage in the *middle* is not, and no amount of wanting
+     * makes it so: "my aunt's husband's brother" is what he is, and the chain says it better than
+     * any invented word could. Two marriages are the same story twice over.
+     *
+     * So this names the two ends and returns nothing for the rest, which is the honest answer and
+     * the one the screen is built to fall back to.
+     */
+    private fun affinalTerm(
+        snapshot: FamilySnapshot,
+        fromId: String,
+        toId: String,
+        chain: List<RelationStep>,
+        standIns: Map<String, String>,
+    ): KinshipTerm? {
+        if (chain.count { it.kind == StepKind.SPOUSE } != 1) return null
+        val at = chain.indexOfFirst { it.kind == StepKind.SPOUSE }
+
+        // The whole line is one marriage: they are simply married to each other.
+        if (chain.size == 1) return KinshipTerm.Spouse
+
+        return when (at) {
+            // ...married to the person the line reaches just before them.
+            chain.lastIndex -> {
+                val married = chain[chain.size - 2].personId
+                nearestSharedAncestor(snapshot, fromId, married, standIns)
+                    ?.let { KinshipTerm.SpouseOf(termFor(it.up, it.down)) }
+            }
+            // ...a blood relative of the subject's own spouse.
+            0 -> {
+                val spouse = chain.first().personId
+                nearestSharedAncestor(snapshot, spouse, toId, standIns)
+                    ?.let { KinshipTerm.OfSpouse(termFor(it.up, it.down)) }
+            }
+            else -> null
+        }
     }
 
     /**
