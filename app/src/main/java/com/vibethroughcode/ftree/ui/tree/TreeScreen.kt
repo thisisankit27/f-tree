@@ -6,11 +6,14 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Add
@@ -59,6 +62,7 @@ import com.vibethroughcode.ftree.ui.common.EmptyState
 import com.vibethroughcode.ftree.ui.common.PersonRow
 import com.vibethroughcode.ftree.ui.common.TreeGlyph
 import com.vibethroughcode.ftree.ui.common.displayName
+import com.vibethroughcode.ftree.ui.common.isShortWindow
 import com.vibethroughcode.ftree.ui.common.relativeKindLabel
 import com.vibethroughcode.ftree.ui.theme.FTreeText
 
@@ -98,6 +102,8 @@ fun TreeScreen(
     wholeTreeViewModel: WholeTreeViewModel = viewModel(factory = FTreeViewModels.Factory),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val photosInChart by viewModel.photosInChart.collectAsStateWithLifecycle()
+    val photos = rememberChartPhotos(photosInChart)
     val wholeState by wholeTreeViewModel.uiState.collectAsStateWithLifecycle()
     val highlighted by wholeTreeViewModel.highlighted.collectAsStateWithLifecycle()
     val wholeSelection by wholeTreeViewModel.selected.collectAsStateWithLifecycle()
@@ -131,46 +137,59 @@ fun TreeScreen(
 
     val treeIsEmpty = state.treeIsEmpty && wholeState.isEmpty
 
+    /*
+     * On a short window the chart's own furniture is folded into one row.
+     *
+     * A title bar, a mode switch and a line of counts is a reasonable third of a phone held
+     * upright and most of it held sideways. The title goes first — the chart is the screen you are
+     * on, and the navigation already says so — then the counts, which describe the record rather
+     * than what is being looked at and are a rotation away.
+     */
+    val short = isShortWindow()
+
+    val onModeChange: (ChartMode) -> Unit = {
+        mode = it
+        // Clearing the fade on the way out means the other chart is never entered with two thirds
+        // of it greyed from a selection you cannot see.
+        if (it == ChartMode.FOCUSED) wholeTreeViewModel.select(null)
+    }
+
     Scaffold(
         modifier = modifier,
         topBar = {
             Column {
-                CenterAlignedTopAppBar(
-                    title = { Text(stringResource(R.string.tree_title)) },
-                    actions = {
-                        if (!treeIsEmpty) {
-                            IconButton(
-                                onClick = { onRelate(null) },
-                                modifier = Modifier.testTag(TreeRelateTag),
-                            ) {
-                                Icon(
-                                    Icons.Default.CompareArrows,
-                                    contentDescription = stringResource(R.string.relation_find),
+                if (!short || treeIsEmpty) {
+                    CenterAlignedTopAppBar(
+                        title = { Text(stringResource(R.string.tree_title)) },
+                        actions = {
+                            if (!treeIsEmpty) {
+                                ChartActions(
+                                    showRelate = true,
+                                    showMore = mode == ChartMode.FOCUSED && state.layout.truncated,
+                                    onRelate = { onRelate(null) },
+                                    onMore = viewModel::showMoreGenerations,
                                 )
                             }
-                        }
-                        if (mode == ChartMode.FOCUSED && state.layout.truncated) {
-                            IconButton(onClick = viewModel::showMoreGenerations) {
-                                Icon(
-                                    Icons.Default.UnfoldMore,
-                                    contentDescription = stringResource(R.string.tree_more_generations),
-                                )
-                            }
-                        }
-                    },
-                )
+                        },
+                    )
+                }
                 if (!treeIsEmpty) {
                     ChartModeBar(
                         mode = mode,
-                        onModeChange = {
-                            mode = it
-                            // Clearing the fade on the way out means the other chart is never
-                            // entered with two thirds of it greyed from a selection you cannot see.
-                            if (it == ChartMode.FOCUSED) wholeTreeViewModel.select(null)
-                        },
-                        summary = wholeSummary(wholeState).takeIf { mode == ChartMode.WHOLE },
+                        onModeChange = onModeChange,
+                        summary = wholeSummary(wholeState)
+                            .takeIf { mode == ChartMode.WHOLE && !short },
                         tracing = tracing.isNotEmpty() && mode == ChartMode.WHOLE,
                         onClearTrace = onClearTrace,
+                        compact = short,
+                        actions = if (!short) null else ({
+                            ChartActions(
+                                showRelate = true,
+                                showMore = mode == ChartMode.FOCUSED && state.layout.truncated,
+                                onRelate = { onRelate(null) },
+                                onMore = viewModel::showMoreGenerations,
+                            )
+                        }),
                     )
                 }
             }
@@ -198,7 +217,11 @@ fun TreeScreen(
 
                 mode == ChartMode.FOCUSED -> when {
                     state.loading -> CircularProgressIndicator(Modifier.align(Alignment.Center))
-                    else -> FamilyChart(layout = state.layout, onSelect = { selected = it })
+                    else -> FamilyChart(
+                        layout = state.layout,
+                        onSelect = { selected = it },
+                        photos = photos,
+                    )
                 }
 
                 else -> when {
@@ -212,6 +235,7 @@ fun TreeScreen(
                         // Nothing to fade while tracing: everybody drawn is on the line.
                         highlighted = if (tracing.isNotEmpty()) emptySet() else highlighted,
                         tracing = tracing.isNotEmpty(),
+                        photos = photos,
                         onSelect = {
                             wholeTreeViewModel.select(it)
                             selected = it
@@ -268,13 +292,12 @@ private fun ChartModeBar(
     summary: String?,
     tracing: Boolean,
     onClearTrace: () -> Unit,
+    /** Fold the switch, the app bar's actions and the way out of a trace into a single row. */
+    compact: Boolean = false,
+    actions: (@Composable RowScope.() -> Unit)? = null,
 ) {
-    Column(Modifier.fillMaxWidth()) {
-        SingleChoiceSegmentedButtonRow(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 24.dp, vertical = 4.dp),
-        ) {
+    val modeSwitch: @Composable (Modifier) -> Unit = { switchModifier ->
+        SingleChoiceSegmentedButtonRow(modifier = switchModifier) {
             SegmentedButton(
                 selected = mode == ChartMode.FOCUSED,
                 onClick = { onModeChange(ChartMode.FOCUSED) },
@@ -289,33 +312,87 @@ private fun ChartModeBar(
                 modifier = Modifier.testTag(TreeModeWholeTag),
             ) { Text(stringResource(R.string.tree_mode_whole)) }
         }
+    }
 
-        // While a line is traced, saying so — and offering the way out — matters more than the
-        // record's counts, which are unchanged and still a chip away.
-        if (tracing) {
+    val clearTrace: @Composable () -> Unit = {
+        TextButton(onClick = onClearTrace, modifier = Modifier.testTag(TreeClearTraceTag)) {
+            Text(stringResource(R.string.relation_clear))
+        }
+    }
+
+    Column(Modifier.fillMaxWidth()) {
+        if (compact) {
             Row(
-                modifier = Modifier.fillMaxWidth().padding(start = 24.dp, end = 12.dp),
+                modifier = Modifier.fillMaxWidth().padding(start = 12.dp, end = 4.dp, top = 4.dp, bottom = 4.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
+                // Capped rather than stretched: the switch is two words wide and a landscape screen
+                // is not, and what is left over belongs to the chart rather than to the furniture.
+                modeSwitch(Modifier.widthIn(min = 340.dp, max = 420.dp))
+                Spacer(Modifier.weight(1f))
+                if (tracing) clearTrace()
+                actions?.invoke(this)
+            }
+        } else {
+            modeSwitch(Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 4.dp))
+
+            // While a line is traced, saying so — and offering the way out — matters more than the
+            // record's counts, which are unchanged and still a chip away.
+            if (tracing) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(start = 24.dp, end = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = stringResource(R.string.relation_tracing),
+                        style = FTreeText.recordSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.weight(1f),
+                    )
+                    clearTrace()
+                }
+            } else summary?.let {
                 Text(
-                    text = stringResource(R.string.relation_tracing),
+                    text = it,
                     style = FTreeText.recordSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier.padding(horizontal = 24.dp, vertical = 6.dp),
                 )
-                TextButton(onClick = onClearTrace, modifier = Modifier.testTag(TreeClearTraceTag)) {
-                    Text(stringResource(R.string.relation_clear))
-                }
             }
-        } else summary?.let {
-            Text(
-                text = it,
-                style = FTreeText.recordSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(horizontal = 24.dp, vertical = 6.dp),
-            )
         }
         HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant)
+    }
+}
+
+/**
+ * The chart's two app-bar actions, wherever the bar happens to be.
+ *
+ * Written once because on a short window they move out of the title bar and into the mode row, and
+ * an action that changes what it does depending on where it is drawn would be a bug waiting to be
+ * written.
+ */
+@Composable
+private fun ChartActions(
+    showRelate: Boolean,
+    showMore: Boolean,
+    onRelate: () -> Unit,
+    onMore: () -> Unit,
+) {
+    if (showRelate) {
+        IconButton(onClick = onRelate, modifier = Modifier.testTag(TreeRelateTag)) {
+            Icon(
+                Icons.Default.CompareArrows,
+                contentDescription = stringResource(R.string.relation_find),
+            )
+        }
+    }
+    if (showMore) {
+        IconButton(onClick = onMore) {
+            Icon(
+                Icons.Default.UnfoldMore,
+                contentDescription = stringResource(R.string.tree_more_generations),
+            )
+        }
     }
 }
 

@@ -2,8 +2,11 @@ package com.vibethroughcode.ftree.ui
 
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.AccountTree
@@ -11,6 +14,8 @@ import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationRail
+import androidx.compose.material3.NavigationRailItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -22,6 +27,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -36,6 +42,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
 import com.vibethroughcode.ftree.R
 import com.vibethroughcode.ftree.transfer.TreeDocument
+import com.vibethroughcode.ftree.ui.common.isShortWindow
 import com.vibethroughcode.ftree.ui.people.PeopleScreen
 import com.vibethroughcode.ftree.ui.person.PersonDetailScreen
 import com.vibethroughcode.ftree.ui.person.PersonEditScreen
@@ -103,10 +110,20 @@ fun FTreeApp() {
     val destination = backStackEntry?.destination
     val onTopLevel = destinations.any { destination?.hasRoute(it.type) == true }
 
+    /*
+     * The three places move to the side when the window is short.
+     *
+     * A bottom bar costs eighty of the roughly three hundred and sixty density-independent pixels a
+     * phone has on its side, and it takes them from the axis a family tree is read along. A rail
+     * costs width instead, which is the axis that has just doubled. Same three destinations, same
+     * order, same labels — only the edge they sit on changes.
+     */
+    val useRail = onTopLevel && isShortWindow()
+
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         bottomBar = {
-            if (onTopLevel) {
+            if (onTopLevel && !useRail) {
                 NavigationBar {
                     destinations.forEach { item ->
                         val selected = destination?.hasRoute(item.type) == true
@@ -122,101 +139,119 @@ fun FTreeApp() {
             }
         },
     ) { padding ->
-        NavHost(
-            navController = navController,
-            startDestination = TreeRoute(),
-            modifier = Modifier.fillMaxSize().padding(padding),
-        ) {
-            composable<TreeRoute> { entry ->
-                TreeScreen(
-                    trace = entry.toRoute<TreeRoute>().trace,
-                    startWhole = entry.toRoute<TreeRoute>().whole,
-                    onOpenPerson = { navController.navigate(PersonRoute(it)) },
-                    onAddPerson = { navController.navigate(EditPersonRoute()) },
-                    onAddRelative = { anchorId, kind ->
-                        navController.navigate(AddRelativeRoute(anchorId, kind))
-                    },
-                    onRelate = { navController.navigate(RelationRoute(fromId = it)) },
-                    // Dropping the trace means going back to the plain chart, which is where
-                    // clearing a highlight should leave you — not one screen further back.
-                    onClearTrace = {
-                        navController.navigate(TreeRoute(whole = true)) {
-                            popUpTo<TreeRoute> { inclusive = true }
-                        }
-                    },
-                )
+        Row(Modifier.fillMaxSize().padding(padding)) {
+            if (useRail) {
+                // Held to the standard rail width. Left to size itself it takes a quarter of a
+            // landscape phone, which is the opposite of the point of moving off the bottom edge.
+            NavigationRail(modifier = Modifier.fillMaxHeight().width(112.dp)) {
+                    destinations.forEach { item ->
+                        val selected = destination?.hasRoute(item.type) == true
+                        NavigationRailItem(
+                            selected = selected,
+                            onClick = { navController.switchTo(item.route) },
+                            icon = { Icon(item.icon, contentDescription = null) },
+                            label = { Text(stringResource(item.label)) },
+                            modifier = Modifier.testTag(item.tag),
+                        )
+                    }
+                }
             }
-
-            composable<RelationRoute> {
-                RelationScreen(
-                    onBack = { navController.popBackStack() },
-                    onOpenPerson = { navController.navigate(PersonRoute(it)) },
-                    onShowOnChart = { trace ->
-                        navController.navigate(TreeRoute(trace = trace)) {
-                            popUpTo<TreeRoute> { inclusive = true }
-                        }
-                    },
-                )
-            }
-
-            composable<PeopleRoute> {
-                PeopleScreen(
-                    onOpenPerson = { navController.navigate(PersonRoute(it)) },
-                    onAddPerson = { navController.navigate(EditPersonRoute()) },
-                )
-            }
-
-            composable<SettingsRoute> {
-                val settingsViewModel: SettingsViewModel =
-                    viewModel(factory = FTreeViewModels.Factory)
-                SettingsScreen(
-                    onExport = { exportPicker.launch(defaultExportName()) },
-                    onImport = { importPicker.launch(arrayOf("*/*")) },
-                    viewModel = settingsViewModel,
-                )
-            }
-
-            composable<PersonRoute> {
-                PersonDetailScreen(
-                    onBack = { navController.popBackStack() },
-                    onEdit = { navController.navigate(EditPersonRoute(it)) },
-                    onOpenPerson = { navController.navigate(PersonRoute(it)) },
-                    onAddRelative = { anchorId, kind ->
-                        navController.navigate(AddRelativeRoute(anchorId, kind))
-                    },
-                    onShowOnTree = { personId ->
-                        navController.navigate(TreeRoute(focusId = personId)) {
-                            popUpTo<TreeRoute> { inclusive = true }
-                        }
-                    },
-                    onRelate = { personId ->
-                        navController.navigate(RelationRoute(fromId = personId))
-                    },
-                )
-            }
-
-            composable<AddRelativeRoute> {
-                AddRelativeScreen(onBack = { navController.popBackStack() })
-            }
-
-            composable<EditPersonRoute> { entry ->
-                val route = entry.toRoute<EditPersonRoute>()
-                PersonEditScreen(
-                    onBack = { navController.popBackStack() },
-                    onSaved = { personId ->
-                        if (route.personId == null) {
-                            // A newly added person opens straight onto their own page, which is
-                            // where the next thing you want to do — add a relative — lives. Only
-                            // the form is dropped from the back stack, so going back returns to
-                            // wherever the add started rather than always to the chart.
-                            navController.navigate(PersonRoute(personId)) {
-                                popUpTo<EditPersonRoute> { inclusive = true }
+            NavHost(
+                navController = navController,
+                startDestination = TreeRoute(),
+                modifier = Modifier.weight(1f).fillMaxHeight(),
+            ) {
+                composable<TreeRoute> { entry ->
+                    TreeScreen(
+                        trace = entry.toRoute<TreeRoute>().trace,
+                        startWhole = entry.toRoute<TreeRoute>().whole,
+                        onOpenPerson = { navController.navigate(PersonRoute(it)) },
+                        onAddPerson = { navController.navigate(EditPersonRoute()) },
+                        onAddRelative = { anchorId, kind ->
+                            navController.navigate(AddRelativeRoute(anchorId, kind))
+                        },
+                        onRelate = { navController.navigate(RelationRoute(fromId = it)) },
+                        // Dropping the trace means going back to the plain chart, which is where
+                        // clearing a highlight should leave you — not one screen further back.
+                        onClearTrace = {
+                            navController.navigate(TreeRoute(whole = true)) {
+                                popUpTo<TreeRoute> { inclusive = true }
                             }
-                        } else {
-                            navController.popBackStack()
-                        }
-                    },
-                )
+                        },
+                    )
+                }
+
+                composable<RelationRoute> {
+                    RelationScreen(
+                        onBack = { navController.popBackStack() },
+                        onOpenPerson = { navController.navigate(PersonRoute(it)) },
+                        onShowOnChart = { trace ->
+                            navController.navigate(TreeRoute(trace = trace)) {
+                                popUpTo<TreeRoute> { inclusive = true }
+                            }
+                        },
+                    )
+                }
+
+                composable<PeopleRoute> {
+                    PeopleScreen(
+                        onOpenPerson = { navController.navigate(PersonRoute(it)) },
+                        onAddPerson = { navController.navigate(EditPersonRoute()) },
+                    )
+                }
+
+                composable<SettingsRoute> {
+                    val settingsViewModel: SettingsViewModel =
+                        viewModel(factory = FTreeViewModels.Factory)
+                    SettingsScreen(
+                        onExport = { exportPicker.launch(defaultExportName()) },
+                        onImport = { importPicker.launch(arrayOf("*/*")) },
+                        viewModel = settingsViewModel,
+                    )
+                }
+
+                composable<PersonRoute> {
+                    PersonDetailScreen(
+                        onBack = { navController.popBackStack() },
+                        onEdit = { navController.navigate(EditPersonRoute(it)) },
+                        onOpenPerson = { navController.navigate(PersonRoute(it)) },
+                        onAddRelative = { anchorId, kind ->
+                            navController.navigate(AddRelativeRoute(anchorId, kind))
+                        },
+                        onShowOnTree = { personId ->
+                            navController.navigate(TreeRoute(focusId = personId)) {
+                                popUpTo<TreeRoute> { inclusive = true }
+                            }
+                        },
+                        onRelate = { personId ->
+                            navController.navigate(RelationRoute(fromId = personId))
+                        },
+                    )
+                }
+
+                composable<AddRelativeRoute> {
+                    AddRelativeScreen(onBack = { navController.popBackStack() })
+                }
+
+                composable<EditPersonRoute> { entry ->
+                    val route = entry.toRoute<EditPersonRoute>()
+                    PersonEditScreen(
+                        onBack = { navController.popBackStack() },
+                        onSaved = { personId ->
+                            if (route.personId == null) {
+                                // A newly added person opens straight onto their own page, which is
+                                // where the next thing you want to do — add a relative — lives. Only
+                                // the form is dropped from the back stack, so going back returns to
+                                // wherever the add started rather than always to the chart.
+                                navController.navigate(PersonRoute(personId)) {
+                                    popUpTo<EditPersonRoute> { inclusive = true }
+                                }
+                            } else {
+                                navController.popBackStack()
+                            }
+                        },
+                    )
+                }
             }
         }
     }
