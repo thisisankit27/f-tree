@@ -3,6 +3,7 @@ package com.vibethroughcode.ftree.ui.tree
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.vibethroughcode.ftree.data.ChartPreferences
 import com.vibethroughcode.ftree.data.FamilyRepository
 import com.vibethroughcode.ftree.data.Person
 import com.vibethroughcode.ftree.graph.TreeLayout
@@ -35,11 +36,20 @@ data class TreeUiState(
 
 class TreeViewModel(
     private val repository: FamilyRepository,
+    chartPreferences: ChartPreferences,
     private val savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(TreeUiState())
     val uiState: StateFlow<TreeUiState> = _uiState.asStateFlow()
+
+    /**
+     * Whether the chart draws photographs.
+     *
+     * Read here rather than by each chart so both of them, and the setting, cannot disagree — and
+     * so that flipping it never touches the layout, which is what keeps the cards still.
+     */
+    val photosInChart: StateFlow<Boolean> = chartPreferences.photosInChart
 
     /**
      * Survives process death, so returning to the app puts you back where you were looking rather
