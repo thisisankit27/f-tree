@@ -221,10 +221,18 @@
     <string name="nav_people">People</string>
     <string name="nav_settings">Settings</string>
 
-    <!-- Chart modes -->
-    <string name="tree_mode_focused">Around one person</string>
+    <!-- Chart modes. Three short words, because they sit in one segmented control on a phone. -->
+    <string name="tree_mode_compact">Compact</string>
+    <string name="tree_mode_focused">Chart</string>
     <string name="tree_mode_whole">Everyone</string>
     <string name="tree_mode_label">Chart view</string>
+
+    <!-- The compact view -->
+    <string name="compact_grandparents">Grandparents</string>
+    <string name="compact_grandchildren">Grandchildren</string>
+    <string name="compact_walk_to">Centre the family on %1$s</string>
+    <string name="compact_actions_for">What you can do with %1$s</string>
+    <string name="a11y_compact_person">%1$s, %2$s</string>
     <string name="tree_focused_on">Centred on %1$s</string>
     <string name="tree_recentre">Recentre</string>
 

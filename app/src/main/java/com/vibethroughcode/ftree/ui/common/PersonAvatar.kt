@@ -38,18 +38,23 @@ import com.vibethroughcode.ftree.ui.theme.FTreeTheme
  * Someone whose name is not known gets a dashed brass ring rather than a greyed-out circle: an
  * unrecorded name is a gap in what the family remembers, not a failure state, and the dashes read
  * as "still open" rather than "broken".
+ *
+ * [decorative] silences it. Where the avatar sits inside something that already names the person —
+ * a card that announces "Raj Kumar, 1938-2010" in one go — describing the face as well would make a
+ * screen reader stop twice on one person and say their name both times.
  */
 @Composable
 fun PersonAvatar(
     person: Person,
     modifier: Modifier = Modifier,
     diameter: Dp = 40.dp,
+    decorative: Boolean = false,
 ) {
     val accents = FTreeTheme.accents
-    val description = if (person.isUnnamed) {
-        stringResource(R.string.a11y_unknown_avatar)
-    } else {
-        stringResource(R.string.a11y_person_avatar, person.name!!)
+    val description = when {
+        decorative -> null
+        person.isUnnamed -> stringResource(R.string.a11y_unknown_avatar)
+        else -> stringResource(R.string.a11y_person_avatar, person.name!!)
     }
 
     val photo = person.photoId
@@ -84,7 +89,7 @@ fun PersonAvatar(
                         ),
                     )
                 }
-                .clearAndSetSemantics { contentDescription = description },
+                .clearAndSetSemantics { description?.let { contentDescription = it } },
             contentAlignment = Alignment.Center,
         ) {
             Text(
@@ -103,7 +108,7 @@ fun PersonAvatar(
                 .size(diameter)
                 .clip(CircleShape)
                 .background(ink.fill)
-                .clearAndSetSemantics { contentDescription = description },
+                .clearAndSetSemantics { description?.let { contentDescription = it } },
             contentAlignment = Alignment.Center,
         ) {
             Text(

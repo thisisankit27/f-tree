@@ -15,9 +15,12 @@ replacing it**.
   can be named years later without disturbing a single relationship.
 - **A graph, not a tree.** Multiple spouses, children across different marriages, half-siblings,
   adoptive and step relationships, and unknown ancestors all work without special cases.
-- **Two charts.** *Around one person* draws their ancestors above and descendants below, with pan,
-  zoom and tap-to-recentre. *Everyone* draws the entire tree at once — every generation, every
-  household, and the people no relationship reaches, whom the focused chart has nowhere to put.
+- **Three views of the tree.** *Compact* reads a family as text — generations down the page, a tap
+  to walk to anybody, no pinching and nothing that needs a steady hand. *Chart* draws the same
+  people, with pan, zoom and tap-to-recentre. *Everyone* draws the entire tree at once — every
+  generation, every household, and the people no relationship reaches, whom the other two have
+  nowhere to put. Compact and Chart share one centre, so switching between them never loses your
+  place.
 - **A relation finder.** Pick any two people and f-tree names the relationship — "first cousin once
   removed", "great-great-grandfather" — and lists every person the line runs through, which is the
   form that can also answer the ones English has no word for. It walks marriages as well as blood,
@@ -163,6 +166,50 @@ equivalent for a canvas: it asks only for the faces the viewport can see, decode
 thread at 160px in `RGB_565` — about fifty kilobytes each — and holds them in snapshot state, so a
 face arriving re-runs the draw phase and nothing else. What is held is capped, so panning across a
 thousand people trades faces in and out rather than accumulating them.
+
+### Reading it instead of drawing it
+
+Both charts are pictures. To read a name you pinch, to reach a relative you pan, and a canvas holds
+nothing at all for a screen reader — which is why the chart describes itself and then points at the
+people list. But that list is alphabetical and has no family in it. Between *a picture you must
+zoom* and *a list with no shape* there was nothing, and **Compact** is that missing middle: the same
+people the focused chart draws, composed rather than painted, so they can be read at any text size,
+tapped with a thumb and spoken aloud.
+
+Generations run down the page, oldest at the top, each headed by a ruled label carrying its count,
+with the people laid across it — a row is how a generation is drawn everywhere, and side by side is
+also what makes the view compact, since a column of full-width rows would show fewer people per
+screen than the chart it exists to relieve.
+
+**A tap moves you.** Touching anybody re-centres the whole view on them, and that is the only
+interaction. It needs no back button and keeps no history, because every walk is undone by a single
+tap in the band it came from: if she is now above you, you are now below her. The centre is a block
+of its own rather than a card in a row, and tapping it opens the same sheet the charts open, so
+there is one set of things you can do with a person rather than three.
+
+`CompactFamily` (`graph/CompactFamily.kt`) is built from the layout the chart has **already**
+produced, not from a second walk of the graph. The rules about who appears — ancestors, descendants,
+the focus's siblings, everyone's partners, and deliberately not cousins or nieces — are subtle and
+live in `TreeLayoutEngine`; deriving from its output means the two views cannot drift into showing
+different families, and switching between them costs nothing because nothing is loaded twice. It is
+pure data, so the awkward parts are tested on the JVM: who belongs to a generation by descent as
+against who married into it, and where the doubled rule may be drawn.
+
+That distinction is what the headings count. A step-grandmother is family and is shown, attached to
+the grandparent she married — but she is not a fifth grandparent, and *Grandparents · 4* means four
+grandparents. Someone who married twice is placed *between* their two spouses so the marriages read
+along the row, and the rule is drawn only between people who actually wed: three people in one group
+make two marriages, not three.
+
+Absence is shown rather than hidden. A generation nobody has recorded still gets its heading and an
+invitation to fill it in, exactly as on a person's page — an empty rule reads as "not written down
+yet", which is the subject of this app, while a missing one reads as "not supported". Only parents
+and children get that treatment: they are the two directions the view walks in, and four empty
+headings would bury the family that *is* recorded.
+
+Nothing here is a second notation. Marriage is the chart's doubled rule, an unrecorded name keeps
+its dashed brass ring, and the years are the same span in the same monospace as everywhere else a
+person is listed.
 
 ### Photographs
 
@@ -332,6 +379,10 @@ Re-importing the same file, or the app's own export, is a no-op.
 | A mandatory circular crop, stored square | The face is shown in a circle everywhere; framing it as a rectangle and hoping would mean choosing one thing and seeing another |
 | Photographs off changes drawing, never layout | A setting that rearranged a hundred and fifty people would cost more than the memory it saves |
 | A rail on a short window, not a bottom bar | A bottom bar takes eighty of a landscape phone's three hundred and sixty dp from the axis a tree is read along |
+| Compact derived from the chart's own layout, not a second walk of the graph | Two views of one family cannot disagree about who is in it, and switching costs nothing |
+| A tap in Compact walks rather than opens | Walking is the thing a family tree is *for*; opening a page is a step you take once you have arrived |
+| No history behind the walk | The graph is symmetric, so every walk is already undone by one tap in the band it came from |
+| Compact still shows photographs when the chart's are off | That switch buys back the cost of decoding faces while panning a canvas, which is a cost this view does not have |
 
 ## Turned sideways
 
@@ -350,15 +401,26 @@ at one edge and the date at the other with a hand's width of nothing between the
 forms and the settings are held to a readable measure and centred (`ui/common/Windowing.kt`). The
 charts are exempt: they are pictures, not prose, and they want every pixel.
 
+The compact view answers the same question a third way, because it is neither. Its cards turn on
+their side — a face above a name is the better shape when height is what there is plenty of, and in
+landscape that same card is a third of the screen — and the centre lays its marriages beside the
+name instead of under it. Together that is four generations in view where there would have been two,
+in the view whose whole purpose is fitting a family on a screen.
+
 ## Accessibility
 
 The person list, person pages and every form honour the system text size in full and carry content
 descriptions. The chart grows its cards with the text size so nothing is clipped.
 
-**A stated limitation:** text painted onto a canvas is invisible to a screen reader, and giving every
-node its own semantics would mean composing a node per person on every pan. The chart therefore
-describes itself and points at the people list, where each person's page spells out every
-relationship as ordinary text. That is a complete alternative route, but it is a limitation.
+Text painted onto a canvas is invisible to a screen reader, and giving every node its own semantics
+would mean composing a node per person on every pan. So the charts describe themselves and point
+elsewhere — and **Compact** is what they now point at: the same family, composed rather than
+painted, where every person is one stop that announces "Vinod Kumar, 1962" and one action that
+re-centres the view on them. Generations are headings, counts are text, and the whole thing grows
+with the system text size instead of being scaled down to fit a fixed card.
+
+A person's page remains the fullest account of any one individual, spelling out every relationship
+in words; Compact is the route *between* people that the charts could not offer.
 
 ## Updating in place
 
