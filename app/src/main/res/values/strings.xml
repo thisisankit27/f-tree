@@ -145,6 +145,12 @@
     <string name="photo_add">Add a photo</string>
     <string name="photo_change">Change photo</string>
     <string name="photo_remove">Remove photo</string>
+    <string name="photo_crop_title">Frame the photo</string>
+    <string name="photo_crop_hint">Drag to move, pinch to zoom. A photo is always shown as a circle.</string>
+    <string name="photo_crop_use">Use photo</string>
+    <string name="photo_crop_cancel">Cancel</string>
+    <string name="photo_crop_unreadable">That image could not be opened.</string>
+    <string name="a11y_crop_area">The photo being framed. Drag to move it, pinch to zoom.</string>
 
     <!-- Import and export -->
     <string name="export_tree">Export your tree</string>
@@ -250,6 +256,9 @@
 
     <!-- Settings -->
     <string name="settings_title">Settings</string>
+    <string name="settings_section_chart">Chart</string>
+    <string name="settings_photos_toggle">Photos on the chart</string>
+    <string name="settings_photos_explainer">Draws each person\'s photograph on their card. On a very large family this can make the chart slower to pan and zoom, and it uses more memory — turn it off and the chart draws initials instead. Nothing else changes: the cards stay exactly where they are.</string>
     <string name="settings_section_updates">Updates</string>
     <string name="settings_section_data">Your data</string>
     <string name="settings_section_about">About</string>
