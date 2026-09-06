@@ -56,6 +56,8 @@ fun FamilyChart(
     modifier: Modifier = Modifier,
     /** The face cache, or null when the reader has turned photographs off. */
     photos: ChartPhotos? = null,
+    /** Bumped to re-frame the chart on the family, after the reader has panned away from it. */
+    frameSignal: Int = 0,
 ) {
     // Text painted onto a canvas is invisible to a screen reader, and giving every node its own
     // semantics would mean composing one per person on every pan. The chart therefore describes
@@ -81,7 +83,7 @@ fun FamilyChart(
     // A family that fits is shown whole, because seeing the shape of it is the point. Only when it
     // does not fit does the view fall back to centring the focused person, who is then the thing
     // you are most likely to be looking for.
-    LaunchedEffect(layout.focusId, layout.nodes.size, viewport) {
+    LaunchedEffect(layout.focusId, layout.nodes.size, viewport, frameSignal) {
         if (viewport == IntSize.Zero || layout.isEmpty) return@LaunchedEffect
         with(density) {
             val chartWidth = layout.width.dp.toPx()
@@ -112,6 +114,7 @@ fun FamilyChart(
     val rulePx = with(density) { 1.5.dp.toPx() }
     val spouseGapPx = with(density) { 2.dp.toPx() }
     val unitPx = with(density) { 1.dp.toPx() }
+    val keepOnScreenPx = with(density) { KEEP_ON_SCREEN.toPx() }
 
     /*
      * Which faces to decode: the ones on screen, and only those.
@@ -149,8 +152,14 @@ fun FamilyChart(
                     // Scale about the pinch centre, so the chart grows around what the fingers
                     // are on rather than around the corner of the screen.
                     val factor = next / zoom
-                    pan = (pan - centroid) * factor + centroid + panChange
                     zoom = next
+                    pan = clampPan(
+                        pan = (pan - centroid) * factor + centroid + panChange,
+                        contentWidth = layout.width * unitPx * next,
+                        contentHeight = layout.height * unitPx * next,
+                        viewport = viewport,
+                        keep = keepOnScreenPx,
+                    )
                 }
             }
             .pointerInput(layout) {

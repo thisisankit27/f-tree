@@ -19,6 +19,7 @@ import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CenterFocusStrong
 import androidx.compose.material.icons.filled.CompareArrows
+import androidx.compose.material.icons.filled.FitScreen
 import androidx.compose.material.icons.filled.PersonAddAlt
 import androidx.compose.material.icons.filled.UnfoldMore
 import androidx.compose.material3.AssistChip
@@ -41,6 +42,7 @@ import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -76,6 +78,7 @@ const val TreeModeWholeTag = "tree-mode-whole"
 const val TreeRelateTag = "tree-relate"
 const val TreeRelateFromTag = "tree-relate-from"
 const val TreeClearTraceTag = "tree-clear-trace"
+const val TreeFrameTag = "tree-frame"
 
 /**
  * Which view of the tree is on screen.
@@ -112,6 +115,9 @@ private val ChartMode.tag: String
 /** True for the two views centred on one person, which share a focus and a loaded neighbourhood. */
 private val ChartMode.isAroundOnePerson: Boolean get() = this != ChartMode.WHOLE
 
+/** True for the two painted on a canvas, which are the two that can be panned away from. */
+private val ChartMode.isDrawn: Boolean get() = this != ChartMode.COMPACT
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TreeScreen(
@@ -139,6 +145,14 @@ fun TreeScreen(
         mutableStateOf(if (startWhole) ChartMode.WHOLE else ChartMode.FOCUSED)
     }
     var selected by remember { mutableStateOf<Person?>(null) }
+    /*
+     * Bumped to put a chart back on its family.
+     *
+     * Panning is now clamped so the chart can never be lost entirely, but a reader who has zoomed
+     * into one corner of a large record still has a long way back. Re-framing is one tap, and it is
+     * the same framing the chart opens with rather than a second idea of where "home" is.
+     */
+    var frameSignal by remember { mutableIntStateOf(0) }
     val sheetState = rememberModalBottomSheetState()
 
     /*
@@ -193,8 +207,10 @@ fun TreeScreen(
                                 ChartActions(
                                     showRelate = true,
                                     showMore = mode.isAroundOnePerson && state.layout.truncated,
+                                    showFrame = mode.isDrawn,
                                     onRelate = { onRelate(null) },
                                     onMore = viewModel::showMoreGenerations,
+                                    onFrame = { frameSignal++ },
                                 )
                             }
                         },
@@ -213,8 +229,10 @@ fun TreeScreen(
                             ChartActions(
                                 showRelate = true,
                                 showMore = mode.isAroundOnePerson && state.layout.truncated,
+                                showFrame = mode.isDrawn,
                                 onRelate = { onRelate(null) },
                                 onMore = viewModel::showMoreGenerations,
+                                onFrame = { frameSignal++ },
                             )
                         }),
                     )
@@ -263,6 +281,7 @@ fun TreeScreen(
                         layout = state.layout,
                         onSelect = { selected = it },
                         photos = photos,
+                        frameSignal = frameSignal,
                     )
                 }
 
@@ -278,6 +297,7 @@ fun TreeScreen(
                         highlighted = if (tracing.isNotEmpty()) emptySet() else highlighted,
                         tracing = tracing.isNotEmpty(),
                         photos = photos,
+                        frameSignal = frameSignal,
                         onSelect = {
                             wholeTreeViewModel.select(it)
                             selected = it
@@ -422,9 +442,19 @@ private fun ChartModeBar(
 private fun ChartActions(
     showRelate: Boolean,
     showMore: Boolean,
+    showFrame: Boolean,
     onRelate: () -> Unit,
     onMore: () -> Unit,
+    onFrame: () -> Unit,
 ) {
+    if (showFrame) {
+        IconButton(onClick = onFrame, modifier = Modifier.testTag(TreeFrameTag)) {
+            Icon(
+                Icons.Default.FitScreen,
+                contentDescription = stringResource(R.string.tree_recentre),
+            )
+        }
+    }
     if (showRelate) {
         IconButton(onClick = onRelate, modifier = Modifier.testTag(TreeRelateTag)) {
             Icon(

@@ -70,6 +70,8 @@ fun WholeFamilyChart(
     tracing: Boolean = false,
     /** The face cache, or null when the reader has turned photographs off. */
     photos: ChartPhotos? = null,
+    /** Bumped to re-frame the chart on the family, after the reader has panned away from it. */
+    frameSignal: Int = 0,
 ) {
     val description = if (tracing) {
         stringResource(R.string.a11y_traced_chart, layout.nodes.size)
@@ -102,7 +104,7 @@ fun WholeFamilyChart(
      * a card would be too small to carry a name it stops being a chart and becomes a texture, so
      * beyond that the view opens at a readable scale on the largest family instead.
      */
-    LaunchedEffect(layout, viewport) {
+    LaunchedEffect(layout, viewport, frameSignal) {
         if (viewport == IntSize.Zero || layout.isEmpty) return@LaunchedEffect
         with(density) {
             val chartWidth = layout.width.dp.toPx()
@@ -144,6 +146,7 @@ fun WholeFamilyChart(
     val rulePx = with(density) { 1.5.dp.toPx() }
     val spouseGapPx = with(density) { 2.dp.toPx() }
     val unitPx = with(density) { 1.dp.toPx() }
+    val keepOnScreenPx = with(density) { KEEP_ON_SCREEN.toPx() }
 
     /*
      * Which faces to decode: the ones on screen, and only when the chart is close enough in for a
@@ -179,8 +182,14 @@ fun WholeFamilyChart(
                 detectTransformGestures { centroid, panChange, zoomChange, _ ->
                     val next = (zoom * zoomChange).coerceIn(MIN_ZOOM, MAX_ZOOM)
                     val factor = next / zoom
-                    pan = (pan - centroid) * factor + centroid + panChange
                     zoom = next
+                    pan = clampPan(
+                        pan = (pan - centroid) * factor + centroid + panChange,
+                        contentWidth = layout.width * unitPx * next,
+                        contentHeight = layout.height * unitPx * next,
+                        viewport = viewport,
+                        keep = keepOnScreenPx,
+                    )
                 }
             }
             .pointerInput(layout) {
