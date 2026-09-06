@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.vibethroughcode.ftree.data.ChartPreferences
 import com.vibethroughcode.ftree.data.FamilyRepository
 import com.vibethroughcode.ftree.data.Person
+import com.vibethroughcode.ftree.graph.CompactFamily
 import com.vibethroughcode.ftree.graph.TreeLayout
 import com.vibethroughcode.ftree.graph.TreeLayoutEngine
 import com.vibethroughcode.ftree.graph.TreeMetrics
@@ -22,6 +23,13 @@ import kotlinx.coroutines.withContext
 
 data class TreeUiState(
     val layout: TreeLayout = TreeLayout(),
+    /**
+     * The same neighbourhood arranged for reading rather than for drawing.
+     *
+     * Derived from [layout] rather than loaded separately, so the compact view and the chart can
+     * never show different families, and switching between them costs nothing.
+     */
+    val compact: CompactFamily = CompactFamily(),
     val loading: Boolean = true,
     /** No people at all, as opposed to a focus that could not be resolved. */
     val treeIsEmpty: Boolean = false,
@@ -102,20 +110,27 @@ class TreeViewModel(
             val state = _uiState.value
             val anchor = resolveFocus()
             if (anchor == null) {
-                _uiState.update { it.copy(loading = false, treeIsEmpty = true, layout = TreeLayout()) }
+                _uiState.update {
+                    it.copy(
+                        loading = false,
+                        treeIsEmpty = true,
+                        layout = TreeLayout(),
+                        compact = CompactFamily(),
+                    )
+                }
                 return@launch
             }
 
             // Loading and laying out are both off the main thread; a large family should never
             // stutter the chart it is being drawn into.
-            val layout = withContext(Dispatchers.Default) {
+            val (layout, compact) = withContext(Dispatchers.Default) {
                 val snapshot = repository.loadNeighbourhood(
                     focusId = anchor,
                     generationsUp = state.generationsUp,
                     generationsDown = state.generationsDown,
                 )
                 val (nodeWidth, nodeHeight) = TreeMetrics.nodeSizeFor(state.textScale)
-                TreeLayoutEngine.layout(
+                val laid = TreeLayoutEngine.layout(
                     snapshot = snapshot,
                     focusId = anchor,
                     generationsUp = state.generationsUp,
@@ -123,8 +138,11 @@ class TreeViewModel(
                     nodeWidth = nodeWidth,
                     nodeHeight = nodeHeight,
                 )
+                laid to CompactFamily.from(snapshot, laid)
             }
-            _uiState.update { it.copy(layout = layout, loading = false, treeIsEmpty = false) }
+            _uiState.update {
+                it.copy(layout = layout, compact = compact, loading = false, treeIsEmpty = false)
+            }
         }
     }
 

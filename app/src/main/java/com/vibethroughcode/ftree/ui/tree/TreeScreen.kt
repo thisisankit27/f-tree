@@ -51,6 +51,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -69,6 +70,7 @@ import com.vibethroughcode.ftree.ui.theme.FTreeText
 const val TreeAddButtonTag = "tree-add"
 const val TreeFocusHereTag = "tree-focus-here"
 const val TreeOpenPersonTag = "tree-open-person"
+const val TreeModeCompactTag = "tree-mode-compact"
 const val TreeModeFocusedTag = "tree-mode-focused"
 const val TreeModeWholeTag = "tree-mode-whole"
 const val TreeRelateTag = "tree-relate"
@@ -76,14 +78,39 @@ const val TreeRelateFromTag = "tree-relate-from"
 const val TreeClearTraceTag = "tree-clear-trace"
 
 /**
- * Which chart is on screen.
+ * Which view of the tree is on screen.
  *
- * Two answers to two different questions, not two settings. [FOCUSED] answers "who is around this
- * person", which is what you want while adding relatives. [WHOLE] answers "what is in this record",
- * which is a question the focused chart structurally cannot answer, because the people in the
- * answer are exactly the ones it never draws.
+ * Three answers to three different questions, not three settings.
+ *
+ * [FOCUSED] answers "who is around this person", which is what you want while adding relatives.
+ * [WHOLE] answers "what is in this record" — a question the focused chart structurally cannot
+ * answer, because the people in the answer are exactly the ones it never draws. [COMPACT] answers
+ * the same question as [FOCUSED] and differs only in *form*: it is composed rather than painted, so
+ * it can be read at any text size, tapped with a thumb and spoken by a screen reader, none of which
+ * a canvas can do.
+ *
+ * They are ordered by how much they ask of the reader — a page, a picture, the whole archive — and
+ * the middle one is where the screen opens, because "the family around me" is the question people
+ * arrive with.
  */
-private enum class ChartMode { FOCUSED, WHOLE }
+private enum class ChartMode { COMPACT, FOCUSED, WHOLE }
+
+private val ChartMode.label: Int
+    get() = when (this) {
+        ChartMode.COMPACT -> R.string.tree_mode_compact
+        ChartMode.FOCUSED -> R.string.tree_mode_focused
+        ChartMode.WHOLE -> R.string.tree_mode_whole
+    }
+
+private val ChartMode.tag: String
+    get() = when (this) {
+        ChartMode.COMPACT -> TreeModeCompactTag
+        ChartMode.FOCUSED -> TreeModeFocusedTag
+        ChartMode.WHOLE -> TreeModeWholeTag
+    }
+
+/** True for the two views centred on one person, which share a focus and a loaded neighbourhood. */
+private val ChartMode.isAroundOnePerson: Boolean get() = this != ChartMode.WHOLE
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -149,9 +176,9 @@ fun TreeScreen(
 
     val onModeChange: (ChartMode) -> Unit = {
         mode = it
-        // Clearing the fade on the way out means the other chart is never entered with two thirds
-        // of it greyed from a selection you cannot see.
-        if (it == ChartMode.FOCUSED) wholeTreeViewModel.select(null)
+        // Clearing the fade on the way out means the other views are never entered with two thirds
+        // of the record greyed from a selection you cannot see.
+        if (it.isAroundOnePerson) wholeTreeViewModel.select(null)
     }
 
     Scaffold(
@@ -165,7 +192,7 @@ fun TreeScreen(
                             if (!treeIsEmpty) {
                                 ChartActions(
                                     showRelate = true,
-                                    showMore = mode == ChartMode.FOCUSED && state.layout.truncated,
+                                    showMore = mode.isAroundOnePerson && state.layout.truncated,
                                     onRelate = { onRelate(null) },
                                     onMore = viewModel::showMoreGenerations,
                                 )
@@ -185,7 +212,7 @@ fun TreeScreen(
                         actions = if (!short) null else ({
                             ChartActions(
                                 showRelate = true,
-                                showMore = mode == ChartMode.FOCUSED && state.layout.truncated,
+                                showMore = mode.isAroundOnePerson && state.layout.truncated,
                                 onRelate = { onRelate(null) },
                                 onMore = viewModel::showMoreGenerations,
                             )
@@ -214,6 +241,21 @@ fun TreeScreen(
                     onAction = onAddPerson,
                     illustration = { TreeGlyph() },
                 )
+
+                mode == ChartMode.COMPACT -> when {
+                    state.loading -> CircularProgressIndicator(Modifier.align(Alignment.Center))
+                    else -> CompactFamilyView(
+                        family = state.compact,
+                        onWalkTo = viewModel::focusOn,
+                        // The centre opens the same sheet the charts open, rather than a second
+                        // set of actions that would drift out of step with them.
+                        onPersonActions = { selected = it },
+                        onAddRelative = { kind ->
+                            state.compact.focus?.let { onAddRelative(it.person.id, kind) }
+                        },
+                        onShowMoreGenerations = viewModel::showMoreGenerations,
+                    )
+                }
 
                 mode == ChartMode.FOCUSED -> when {
                     state.loading -> CircularProgressIndicator(Modifier.align(Alignment.Center))
@@ -253,14 +295,16 @@ fun TreeScreen(
         ) {
             PersonActions(
                 person = person,
-                isFocus = mode == ChartMode.FOCUSED && person.id == state.layout.focusId,
+                isFocus = mode.isAroundOnePerson && person.id == state.layout.focusId,
                 onOpen = {
                     selected = null
                     onOpenPerson(person.id)
                 },
                 onFocus = {
                     selected = null
-                    // Centring is a focused-chart idea, so asking for it takes you there.
+                    // Only offered from the whole-tree chart — the two one-person views are already
+                    // centred on whoever the sheet was opened for — so this always means "leave the
+                    // archive and show me this person's family".
                     mode = ChartMode.FOCUSED
                     wholeTreeViewModel.select(null)
                     viewModel.focusOn(person.id)
@@ -298,19 +342,22 @@ private fun ChartModeBar(
 ) {
     val modeSwitch: @Composable (Modifier) -> Unit = { switchModifier ->
         SingleChoiceSegmentedButtonRow(modifier = switchModifier) {
-            SegmentedButton(
-                selected = mode == ChartMode.FOCUSED,
-                onClick = { onModeChange(ChartMode.FOCUSED) },
-                shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2),
-                modifier = Modifier.testTag(TreeModeFocusedTag),
-            ) { Text(stringResource(R.string.tree_mode_focused)) }
-
-            SegmentedButton(
-                selected = mode == ChartMode.WHOLE,
-                onClick = { onModeChange(ChartMode.WHOLE) },
-                shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2),
-                modifier = Modifier.testTag(TreeModeWholeTag),
-            ) { Text(stringResource(R.string.tree_mode_whole)) }
+            ChartMode.entries.forEachIndexed { index, entry ->
+                SegmentedButton(
+                    selected = mode == entry,
+                    onClick = { onModeChange(entry) },
+                    shape = SegmentedButtonDefaults.itemShape(index = index, count = ChartMode.entries.size),
+                    modifier = Modifier.testTag(entry.tag),
+                ) {
+                    // One line, always. A wrapped segment makes the whole control taller and the
+                    // chart shorter, which is the opposite of what any of these three views is for.
+                    Text(
+                        text = stringResource(entry.label),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+            }
         }
     }
 
