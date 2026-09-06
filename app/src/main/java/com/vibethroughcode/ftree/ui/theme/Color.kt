@@ -129,7 +129,25 @@ data class FTreeAccents(
      * to read.
      */
     val deceasedSurface: Color,
+    /**
+     * The ground an avatar sits on when there is no photograph.
+     *
+     * Two hues, not four: the pair is there so a chart of a hundred faceless cards still reads as
+     * a family rather than a wall of identical discs, and a third colour for "not recorded" would
+     * imply the app cares more about the answer than it does. [avatarOther] is deliberately the
+     * quietest of the three, since an unspecified gender is a first-class answer and should not
+     * look like a gap.
+     *
+     * Muted on purpose. These sit beside brass, which means "not known" everywhere in the app, and
+     * a saturated blue or pink would shout over the one colour in the chart that carries meaning.
+     */
+    val avatarMale: AvatarInk,
+    val avatarFemale: AvatarInk,
+    val avatarOther: AvatarInk,
 )
+
+/** A fill and the initial written on it. */
+data class AvatarInk(val fill: Color, val ink: Color)
 
 val LightAccents = FTreeAccents(
     unknown = Brass,
@@ -137,6 +155,9 @@ val LightAccents = FTreeAccents(
     spouseLink = Color(0xFF5E8C6D),
     rule = Color(0xFF9AA69B),
     deceasedSurface = Color(0xFFEAE8DE),
+    avatarMale = AvatarInk(fill = Color(0xFFD3E0EA), ink = Color(0xFF2C4657)),
+    avatarFemale = AvatarInk(fill = Color(0xFFF0DDD8), ink = Color(0xFF663D34)),
+    avatarOther = AvatarInk(fill = Color(0xFFDFE3DC), ink = Color(0xFF454C43)),
 )
 
 val DarkAccents = FTreeAccents(
@@ -145,4 +166,7 @@ val DarkAccents = FTreeAccents(
     spouseLink = Sage,
     rule = Color(0xFF5C665C),
     deceasedSurface = Color(0xFF11160F),
+    avatarMale = AvatarInk(fill = Color(0xFF2B3D4B), ink = Color(0xFFBCD4E4)),
+    avatarFemale = AvatarInk(fill = Color(0xFF46312A), ink = Color(0xFFEECAC0)),
+    avatarOther = AvatarInk(fill = Color(0xFF333930), ink = Color(0xFFC3C9C0)),
 )

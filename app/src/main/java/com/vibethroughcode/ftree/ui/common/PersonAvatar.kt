@@ -26,7 +26,10 @@ import coil3.compose.AsyncImage
 import com.vibethroughcode.ftree.data.PhotoStore
 import java.io.File
 import com.vibethroughcode.ftree.R
+import com.vibethroughcode.ftree.data.Gender
 import com.vibethroughcode.ftree.data.Person
+import com.vibethroughcode.ftree.ui.theme.AvatarInk
+import com.vibethroughcode.ftree.ui.theme.FTreeAccents
 import com.vibethroughcode.ftree.ui.theme.FTreeTheme
 
 /**
@@ -94,17 +97,18 @@ fun PersonAvatar(
             )
         }
     } else {
+        val ink = accents.avatarFor(person.gender)
         Box(
             modifier = modifier
                 .size(diameter)
                 .clip(CircleShape)
-                .background(MaterialTheme.colorScheme.primaryContainer)
+                .background(ink.fill)
                 .clearAndSetSemantics { contentDescription = description },
             contentAlignment = Alignment.Center,
         ) {
             Text(
                 text = person.initial(),
-                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                color = ink.ink,
                 textAlign = TextAlign.Center,
                 style = MaterialTheme.typography.titleMedium.copy(
                     fontSize = (diameter.value * 0.4f).sp,
@@ -114,6 +118,19 @@ fun PersonAvatar(
     }
 }
 
+
+/**
+ * The ground an initial is written on when there is no photograph.
+ *
+ * The same two hues the chart uses, so a person looks like themselves whether you meet them in a
+ * list or on a card. An unspecified gender gets the quiet third colour rather than a blank, because
+ * not recording it is a legitimate answer and should not look like a fault.
+ */
+fun FTreeAccents.avatarFor(gender: Gender): AvatarInk = when (gender) {
+    Gender.MALE -> avatarMale
+    Gender.FEMALE -> avatarFemale
+    else -> avatarOther
+}
 
 /**
  * Resolves a stored photo id to a file.

@@ -7,14 +7,15 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.input.pointer.pointerInput
@@ -31,8 +32,10 @@ import com.vibethroughcode.ftree.R
 import com.vibethroughcode.ftree.data.Person
 import com.vibethroughcode.ftree.graph.TreeLayout
 import com.vibethroughcode.ftree.graph.TreeMetrics
+import com.vibethroughcode.ftree.ui.common.avatarFor
 import com.vibethroughcode.ftree.ui.theme.FTreeText
 import com.vibethroughcode.ftree.ui.theme.FTreeTheme
+import kotlinx.coroutines.flow.distinctUntilChanged
 
 const val FamilyChartTag = "family-chart"
 
@@ -51,6 +54,8 @@ fun FamilyChart(
     layout: TreeLayout,
     onSelect: (Person) -> Unit,
     modifier: Modifier = Modifier,
+    /** The face cache, or null when the reader has turned photographs off. */
+    photos: ChartPhotos? = null,
 ) {
     // Text painted onto a canvas is invisible to a screen reader, and giving every node its own
     // semantics would mean composing one per person on every pan. The chart therefore describes
@@ -108,6 +113,30 @@ fun FamilyChart(
     val spouseGapPx = with(density) { 2.dp.toPx() }
     val unitPx = with(density) { 1.dp.toPx() }
 
+    /*
+     * Which faces to decode: the ones on screen, and only those.
+     *
+     * Derived state read from a flow rather than from composition, so panning across a family
+     * recomputes this list and nothing recomposes. Without that, every face on a chart of a
+     * thousand would have to be decoded before the first one could be drawn.
+     */
+    val wantedPhotos = remember(layout, photos, unitPx) {
+        derivedStateOf {
+            if (photos == null || viewport == IntSize.Zero) emptyList() else {
+                val region = visibleRegion(pan, zoom, unitPx, viewport)
+                layout.nodes.asSequence()
+                    .filter { it.x + it.width >= region.left && it.x <= region.right &&
+                        it.y + it.height >= region.top && it.y <= region.bottom }
+                    .mapNotNull { it.person.photoId }
+                    .toList()
+            }
+        }
+    }
+    LaunchedEffect(wantedPhotos, photos) {
+        val cache = photos ?: return@LaunchedEffect
+        snapshotFlow { wantedPhotos.value }.distinctUntilChanged().collect(cache::request)
+    }
+
     Canvas(
         modifier = modifier
             .fillMaxSize()
@@ -137,12 +166,7 @@ fun FamilyChart(
 
         // In layout units, the region currently on screen, padded by a node so partially visible
         // cards are not clipped away.
-        val visible = Rect(
-            left = -currentPan.x / currentZoom / unitPx,
-            top = -currentPan.y / currentZoom / unitPx,
-            right = (size.width - currentPan.x) / currentZoom / unitPx,
-            bottom = (size.height - currentPan.y) / currentZoom / unitPx,
-        ).inflate(TreeMetrics.NODE_WIDTH * 2f)
+        val visible = visibleRegion(currentPan, currentZoom, unitPx, size)
 
         translate(currentPan.x, currentPan.y) {
             scale(currentZoom, currentZoom, Offset.Zero) {
@@ -203,11 +227,14 @@ fun FamilyChart(
                                 else -> accents.rule
                             },
                             unknown = accents.unknown,
+                            avatarFill = accents.avatarFor(node.person.gender).fill,
+                            avatarInk = accents.avatarFor(node.person.gender).ink,
                         ),
                         detail = CardDetail.NAME_AND_YEARS,
                         cornerPx = cornerPx,
                         rulePx = rulePx,
                         emphasised = node.isFocus,
+                        photo = photos?.image(node.person.photoId),
                     )
                 }
             }
