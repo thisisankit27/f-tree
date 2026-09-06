@@ -1,0 +1,148 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    The Hindi family vocabulary.
+
+    Kept apart from strings.xml so the whole word list can be read, and reviewed by a Hindi speaker,
+    without wading through the app's own English. Each term has a gloss: the app shows it in brackets
+    after the word, which is how bilingual families actually speak and which lets a younger relative
+    who does not know फूफा can still read the answer.
+
+    The glosses are more precise than English's own kinship words on purpose. English says "uncle"
+    five different ways; the gloss says which one, so nothing is lost by reading it in English.
+
+    Not translatable: these are Hindi, and a translator reaching them would be translating the
+    content rather than the interface. Which word is chosen is decided in graph/HindiKinship.kt and
+    tested on the JVM; this file only spells them.
+-->
+<resources>
+    <string name="kin_hi_self" translatable="false">स्वयं</string>
+    <string name="kin_hi_self_gloss">themselves</string>
+    <string name="kin_hi_pita" translatable="false">पिता</string>
+    <string name="kin_hi_pita_gloss">father</string>
+    <string name="kin_hi_mata" translatable="false">माता</string>
+    <string name="kin_hi_mata_gloss">mother</string>
+    <string name="kin_hi_dada" translatable="false">दादा</string>
+    <string name="kin_hi_dada_gloss">father\'s father</string>
+    <string name="kin_hi_dadi" translatable="false">दादी</string>
+    <string name="kin_hi_dadi_gloss">father\'s mother</string>
+    <string name="kin_hi_nana" translatable="false">नाना</string>
+    <string name="kin_hi_nana_gloss">mother\'s father</string>
+    <string name="kin_hi_nani" translatable="false">नानी</string>
+    <string name="kin_hi_nani_gloss">mother\'s mother</string>
+    <string name="kin_hi_pardada" translatable="false">परदादा</string>
+    <string name="kin_hi_pardada_gloss">father\'s grandfather</string>
+    <string name="kin_hi_pardadi" translatable="false">परदादी</string>
+    <string name="kin_hi_pardadi_gloss">father\'s grandmother</string>
+    <string name="kin_hi_parnana" translatable="false">परनाना</string>
+    <string name="kin_hi_parnana_gloss">mother\'s grandfather</string>
+    <string name="kin_hi_parnani" translatable="false">परनानी</string>
+    <string name="kin_hi_parnani_gloss">mother\'s grandmother</string>
+    <string name="kin_hi_beta" translatable="false">बेटा</string>
+    <string name="kin_hi_beta_gloss">son</string>
+    <string name="kin_hi_beti" translatable="false">बेटी</string>
+    <string name="kin_hi_beti_gloss">daughter</string>
+    <string name="kin_hi_pota" translatable="false">पोता</string>
+    <string name="kin_hi_pota_gloss">son\'s son</string>
+    <string name="kin_hi_poti" translatable="false">पोती</string>
+    <string name="kin_hi_poti_gloss">son\'s daughter</string>
+    <string name="kin_hi_nati" translatable="false">नाती</string>
+    <string name="kin_hi_nati_gloss">daughter\'s son</string>
+    <string name="kin_hi_natin" translatable="false">नातिन</string>
+    <string name="kin_hi_natin_gloss">daughter\'s daughter</string>
+    <string name="kin_hi_parpota" translatable="false">परपोता</string>
+    <string name="kin_hi_parpota_gloss">son\'s grandson</string>
+    <string name="kin_hi_parpoti" translatable="false">परपोती</string>
+    <string name="kin_hi_parpoti_gloss">son\'s granddaughter</string>
+    <string name="kin_hi_parnati" translatable="false">परनाती</string>
+    <string name="kin_hi_parnati_gloss">daughter\'s grandson</string>
+    <string name="kin_hi_parnatin" translatable="false">परनातिन</string>
+    <string name="kin_hi_parnatin_gloss">daughter\'s granddaughter</string>
+    <string name="kin_hi_bhai" translatable="false">भाई</string>
+    <string name="kin_hi_bhai_gloss">brother</string>
+    <string name="kin_hi_behen" translatable="false">बहन</string>
+    <string name="kin_hi_behen_gloss">sister</string>
+    <string name="kin_hi_tau" translatable="false">ताऊ</string>
+    <string name="kin_hi_tau_gloss">father\'s elder brother</string>
+    <string name="kin_hi_chacha" translatable="false">चाचा</string>
+    <string name="kin_hi_chacha_gloss">father\'s younger brother</string>
+    <string name="kin_hi_fathers_brother" translatable="false">पिता के भाई</string>
+    <string name="kin_hi_fathers_brother_gloss">father\'s brother</string>
+    <string name="kin_hi_tai" translatable="false">ताई</string>
+    <string name="kin_hi_tai_gloss">father\'s elder brother\'s wife</string>
+    <string name="kin_hi_chachi" translatable="false">चाची</string>
+    <string name="kin_hi_chachi_gloss">father\'s younger brother\'s wife</string>
+    <string name="kin_hi_fathers_brothers_wife" translatable="false">पिता के भाई की पत्नी</string>
+    <string name="kin_hi_fathers_brothers_wife_gloss">father\'s brother\'s wife</string>
+    <string name="kin_hi_bua" translatable="false">बुआ</string>
+    <string name="kin_hi_bua_gloss">father\'s sister</string>
+    <string name="kin_hi_phupha" translatable="false">फूफा</string>
+    <string name="kin_hi_phupha_gloss">father\'s sister\'s husband</string>
+    <string name="kin_hi_mama" translatable="false">मामा</string>
+    <string name="kin_hi_mama_gloss">mother\'s brother</string>
+    <string name="kin_hi_mami" translatable="false">मामी</string>
+    <string name="kin_hi_mami_gloss">mother\'s brother\'s wife</string>
+    <string name="kin_hi_mausi" translatable="false">मौसी</string>
+    <string name="kin_hi_mausi_gloss">mother\'s sister</string>
+    <string name="kin_hi_mausa" translatable="false">मौसा</string>
+    <string name="kin_hi_mausa_gloss">mother\'s sister\'s husband</string>
+    <string name="kin_hi_bhatija" translatable="false">भतीजा</string>
+    <string name="kin_hi_bhatija_gloss">brother\'s son</string>
+    <string name="kin_hi_bhatiji" translatable="false">भतीजी</string>
+    <string name="kin_hi_bhatiji_gloss">brother\'s daughter</string>
+    <string name="kin_hi_bhanja" translatable="false">भांजा</string>
+    <string name="kin_hi_bhanja_gloss">sister\'s son</string>
+    <string name="kin_hi_bhanji" translatable="false">भांजी</string>
+    <string name="kin_hi_bhanji_gloss">sister\'s daughter</string>
+    <string name="kin_hi_chachera_bhai" translatable="false">चचेरा भाई</string>
+    <string name="kin_hi_chachera_bhai_gloss">father\'s brother\'s son</string>
+    <string name="kin_hi_chacheri_behen" translatable="false">चचेरी बहन</string>
+    <string name="kin_hi_chacheri_behen_gloss">father\'s brother\'s daughter</string>
+    <string name="kin_hi_phuphera_bhai" translatable="false">फुफेरा भाई</string>
+    <string name="kin_hi_phuphera_bhai_gloss">father\'s sister\'s son</string>
+    <string name="kin_hi_phupheri_behen" translatable="false">फुफेरी बहन</string>
+    <string name="kin_hi_phupheri_behen_gloss">father\'s sister\'s daughter</string>
+    <string name="kin_hi_mamera_bhai" translatable="false">ममेरा भाई</string>
+    <string name="kin_hi_mamera_bhai_gloss">mother\'s brother\'s son</string>
+    <string name="kin_hi_mameri_behen" translatable="false">ममेरी बहन</string>
+    <string name="kin_hi_mameri_behen_gloss">mother\'s brother\'s daughter</string>
+    <string name="kin_hi_mausera_bhai" translatable="false">मौसेरा भाई</string>
+    <string name="kin_hi_mausera_bhai_gloss">mother\'s sister\'s son</string>
+    <string name="kin_hi_mauseri_behen" translatable="false">मौसेरी बहन</string>
+    <string name="kin_hi_mauseri_behen_gloss">mother\'s sister\'s daughter</string>
+    <string name="kin_hi_pati" translatable="false">पति</string>
+    <string name="kin_hi_pati_gloss">husband</string>
+    <string name="kin_hi_patni" translatable="false">पत्नी</string>
+    <string name="kin_hi_patni_gloss">wife</string>
+    <string name="kin_hi_sasur" translatable="false">ससुर</string>
+    <string name="kin_hi_sasur_gloss">father-in-law</string>
+    <string name="kin_hi_saas" translatable="false">सास</string>
+    <string name="kin_hi_saas_gloss">mother-in-law</string>
+    <string name="kin_hi_jija" translatable="false">जीजा</string>
+    <string name="kin_hi_jija_gloss">sister\'s husband</string>
+    <string name="kin_hi_bhabhi" translatable="false">भाभी</string>
+    <string name="kin_hi_bhabhi_gloss">brother\'s wife</string>
+    <string name="kin_hi_bahu" translatable="false">बहू</string>
+    <string name="kin_hi_bahu_gloss">son\'s wife</string>
+    <string name="kin_hi_damad" translatable="false">दामाद</string>
+    <string name="kin_hi_damad_gloss">daughter\'s husband</string>
+    <string name="kin_hi_sala" translatable="false">साला</string>
+    <string name="kin_hi_sala_gloss">wife\'s brother</string>
+    <string name="kin_hi_sali" translatable="false">साली</string>
+    <string name="kin_hi_sali_gloss">wife\'s sister</string>
+    <string name="kin_hi_jeth" translatable="false">जेठ</string>
+    <string name="kin_hi_jeth_gloss">husband\'s elder brother</string>
+    <string name="kin_hi_devar" translatable="false">देवर</string>
+    <string name="kin_hi_devar_gloss">husband\'s younger brother</string>
+    <string name="kin_hi_husbands_brother" translatable="false">पति के भाई</string>
+    <string name="kin_hi_husbands_brother_gloss">husband\'s brother</string>
+    <string name="kin_hi_nanad" translatable="false">ननद</string>
+    <string name="kin_hi_nanad_gloss">husband\'s sister</string>
+    <string name="kin_hi_sautela_pita" translatable="false">सौतेला पिता</string>
+    <string name="kin_hi_sautela_pita_gloss">stepfather</string>
+    <string name="kin_hi_sauteli_mata" translatable="false">सौतेली माता</string>
+    <string name="kin_hi_sauteli_mata_gloss">stepmother</string>
+    <string name="kin_hi_sautela_beta" translatable="false">सौतेला बेटा</string>
+    <string name="kin_hi_sautela_beta_gloss">stepson</string>
+    <string name="kin_hi_sauteli_beti" translatable="false">सौतेली बेटी</string>
+    <string name="kin_hi_sauteli_beti_gloss">stepdaughter</string>
+</resources>

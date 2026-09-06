@@ -1,5 +1,9 @@
 package com.vibethroughcode.ftree.graph
 
+import com.vibethroughcode.ftree.data.Gender
+import com.vibethroughcode.ftree.data.PartialDate
+import com.vibethroughcode.ftree.data.Person
+
 /**
  * How any two people in a tree are related.
  *
@@ -64,6 +68,43 @@ sealed interface KinshipTerm {
     data class OfSpouse(val relative: KinshipTerm) : KinshipTerm
 }
 
+/**
+ * Whether the other person's line is elder or younger where the two lines part.
+ *
+ * Claimed only when the record proves it. Two brothers both recorded as "1962" are [UNKNOWN], not a
+ * coin toss — the whole point of carrying this is to say चाचा only when he really is the younger one.
+ */
+enum class Seniority { ELDER, YOUNGER, UNKNOWN }
+
+/**
+ * The people a relationship was measured *through*, as genders.
+ *
+ * [KinshipTerm] is two distances, which is all English needs: an uncle is an uncle whichever parent
+ * he belongs to. Most of the world's languages are not like that. Hindi has five words where English
+ * has one, and choosing between them needs to know which parent the line went up through, who it
+ * came back down through, and — for चाचा against ताऊ — which of the two was born first.
+ *
+ * So the distances stay exactly as they were and this rides alongside them, carrying the part the
+ * arithmetic threw away. A vocabulary that does not need it can ignore it entirely.
+ *
+ * It describes whatever the term was measured over, which for a relationship through marriage is the
+ * *blood* part of it: for "my uncle's wife" the path runs from the subject to the uncle, because the
+ * uncle is who decides the word.
+ */
+data class KinshipPath(
+    /** Going up from the subject: their own parent first, the shared ancestor last. */
+    val ascent: List<Gender>,
+    /** Coming back down: the ancestor's child first, the other person last. */
+    val descent: List<Gender>,
+    val seniority: Seniority,
+) {
+    /** Which of the subject's parents the line went up through, if the record says. */
+    val side: Gender get() = ascent.firstOrNull() ?: Gender.UNSPECIFIED
+
+    /** Who the line comes back down through on the other side — the linking sibling, child or aunt. */
+    val link: Gender get() = descent.firstOrNull() ?: Gender.UNSPECIFIED
+}
+
 /** The answer to "how are these two related?". */
 sealed interface Relation {
     /** The same person was picked twice. */
@@ -76,11 +117,13 @@ sealed interface Relation {
      * @param chain every step from the subject to the other person, the other person last.
      * @param term the blood term, absent when no shared ancestor exists — in-laws and step-family.
      * @param sharedAncestorId the ancestor [term] was measured through.
+     * @param path the people [term] was measured through, for vocabularies that need them.
      */
     data class Found(
         val chain: List<RelationStep>,
         val term: KinshipTerm?,
         val sharedAncestorId: String?,
+        val path: KinshipPath? = null,
     ) : Relation {
         /** The people the chain passes through, including both ends. */
         fun peopleInvolved(fromId: String): Set<String> =
@@ -131,14 +174,57 @@ object Kinship {
         val chain = shortestChain(snapshot, fromId, toId) ?: return Relation.Unrecorded
         val standIns = standInAncestors(snapshot)
         val shared = nearestSharedAncestor(snapshot, fromId, toId, standIns)
+
+        // Blood first, always: two people who share an ancestor are named through him even if a
+        // marriage happens to join them by a shorter route.
+        val affinal = if (shared == null) affinalTerm(snapshot, fromId, toId, chain, standIns) else null
+
         return Relation.Found(
             chain = chain,
-            // Blood first, always: two people who share an ancestor are named through him even if a
-            // marriage happens to join them by a shorter route.
-            term = shared?.let { termFor(it.up, it.down) }
-                ?: affinalTerm(snapshot, fromId, toId, chain, standIns),
+            term = shared?.let { termFor(it.up, it.down) } ?: affinal?.term,
             sharedAncestorId = shared?.ancestorId,
+            path = shared?.let { pathOf(snapshot, it) } ?: affinal?.path,
         )
+    }
+
+    /** The genders along a measured relationship, and who was born first where it forks. */
+    private fun pathOf(snapshot: FamilySnapshot, shared: Shared): KinshipPath {
+        fun genderOf(id: String) = snapshot.people[id]?.gender ?: Gender.UNSPECIFIED
+        return KinshipPath(
+            ascent = shared.ascent.map(::genderOf),
+            descent = shared.descent.map(::genderOf),
+            seniority = seniorityAt(snapshot, shared),
+        )
+    }
+
+    /**
+     * Which of the two lines leaving the shared ancestor belongs to the elder child.
+     *
+     * The comparison is between the ancestor's two children the lines run through — for an uncle,
+     * the subject's own parent against the uncle himself. When the lines part at the subject (their
+     * own sibling) the subject *is* that child.
+     *
+     * Only an ordering the dates actually prove counts. Two brothers both recorded as "1962" could
+     * be either way round, and the app would rather say "father's brother" than pick one.
+     */
+    private fun seniorityAt(snapshot: FamilySnapshot, shared: Shared): Seniority {
+        if (shared.up < 1 || shared.down < 1) return Seniority.UNKNOWN
+        val mineId =
+            if (shared.up == 1) shared.subjectId else shared.ascent.getOrNull(shared.up - 2)
+        val mine = snapshot.people[mineId] ?: return Seniority.UNKNOWN
+        val theirs = snapshot.people[shared.descent.first()] ?: return Seniority.UNKNOWN
+        return seniorityOf(theirs, mine)
+    }
+
+    /** [other] against [subject]: elder only when the recorded dates cannot overlap. */
+    fun seniorityOf(other: Person, subject: Person): Seniority {
+        val a = PartialDate.parse(other.birthDate) ?: return Seniority.UNKNOWN
+        val b = PartialDate.parse(subject.birthDate) ?: return Seniority.UNKNOWN
+        return when {
+            a.latest().isBefore(b.earliest()) -> Seniority.ELDER
+            b.latest().isBefore(a.earliest()) -> Seniority.YOUNGER
+            else -> Seniority.UNKNOWN
+        }
     }
 
     /**
@@ -153,31 +239,39 @@ object Kinship {
      * So this names the two ends and returns nothing for the rest, which is the honest answer and
      * the one the screen is built to fall back to.
      */
+    /** A term through marriage, with the path over the blood half of it. */
+    private data class Affinal(val term: KinshipTerm, val path: KinshipPath?)
+
     private fun affinalTerm(
         snapshot: FamilySnapshot,
         fromId: String,
         toId: String,
         chain: List<RelationStep>,
         standIns: Map<String, String>,
-    ): KinshipTerm? {
+    ): Affinal? {
         if (chain.count { it.kind == StepKind.SPOUSE } != 1) return null
         val at = chain.indexOfFirst { it.kind == StepKind.SPOUSE }
 
         // The whole line is one marriage: they are simply married to each other.
-        if (chain.size == 1) return KinshipTerm.Spouse
+        if (chain.size == 1) return Affinal(KinshipTerm.Spouse, null)
 
         return when (at) {
-            // ...married to the person the line reaches just before them.
+            // ...married to the person the line reaches just before them. The path runs to *them*,
+            // because it is the blood relative who decides the word: फूफा is the husband of a
+            // father's sister, and nothing about him says so except who he married.
             chain.lastIndex -> {
                 val married = chain[chain.size - 2].personId
-                nearestSharedAncestor(snapshot, fromId, married, standIns)
-                    ?.let { KinshipTerm.SpouseOf(termFor(it.up, it.down)) }
+                nearestSharedAncestor(snapshot, fromId, married, standIns)?.let {
+                    Affinal(KinshipTerm.SpouseOf(termFor(it.up, it.down)), pathOf(snapshot, it))
+                }
             }
-            // ...a blood relative of the subject's own spouse.
+            // ...a blood relative of the subject's own spouse. Measured from the spouse, so
+            // seniority compares the two of them — which is what tells जेठ from देवर.
             0 -> {
                 val spouse = chain.first().personId
-                nearestSharedAncestor(snapshot, spouse, toId, standIns)
-                    ?.let { KinshipTerm.OfSpouse(termFor(it.up, it.down)) }
+                nearestSharedAncestor(snapshot, spouse, toId, standIns)?.let {
+                    Affinal(KinshipTerm.OfSpouse(termFor(it.up, it.down)), pathOf(snapshot, it))
+                }
             }
             else -> null
         }
@@ -202,7 +296,16 @@ object Kinship {
         )
     }
 
-    private data class Shared(val ancestorId: String, val up: Int, val down: Int)
+    private data class Shared(
+        val subjectId: String,
+        val ancestorId: String,
+        val up: Int,
+        val down: Int,
+        /** The subject's parent first, the ancestor last. Empty when the subject *is* the ancestor. */
+        val ascent: List<String>,
+        /** The ancestor's child first, the other person last. Empty when they are the ancestor. */
+        val descent: List<String>,
+    )
 
     /**
      * The shared ancestor that names the relationship.
@@ -216,41 +319,58 @@ object Kinship {
         toId: String,
         standIns: Map<String, String>,
     ): Shared? {
-        val mine = ancestorDistances(snapshot, fromId, standIns)
-        val theirs = ancestorDistances(snapshot, toId, standIns)
+        val mine = ancestorRoutes(snapshot, fromId, standIns)
+        val theirs = ancestorRoutes(snapshot, toId, standIns)
         var best: Shared? = null
-        mine.forEach { (ancestor, up) ->
-            val down = theirs[ancestor] ?: return@forEach
+        mine.forEach { (ancestor, ascent) ->
+            val theirRoute = theirs[ancestor] ?: return@forEach
+            val up = ascent.size
+            val down = theirRoute.size
             val current = best
             if (current == null ||
                 up + down < current.up + current.down ||
                 (up + down == current.up + current.down &&
                     kotlin.math.abs(up - down) < kotlin.math.abs(current.up - current.down))
             ) {
-                best = Shared(ancestor, up, down)
+                best = Shared(
+                    subjectId = fromId,
+                    ancestorId = ancestor,
+                    up = up,
+                    down = down,
+                    ascent = ascent,
+                    // Their route runs upward and stops at the ancestor; the descent is that read
+                    // backwards, the ancestor dropped and the person themself added at the end.
+                    descent = if (down == 0) emptyList() else theirRoute.dropLast(1).reversed() + toId,
+                )
             }
         }
         return best
     }
 
-    /** Everyone at or above [id], with the number of generations up to each. */
-    private fun ancestorDistances(
+    /**
+     * Everyone at or above [id], with the line of people leading up to each.
+     *
+     * The route rather than only its length, because which parent a line went up through is exactly
+     * what separates a मामा from a चाचा. The list excludes [id] and ends with the ancestor, so its
+     * size is the number of generations — the distance this used to return.
+     */
+    private fun ancestorRoutes(
         snapshot: FamilySnapshot,
         id: String,
         standIns: Map<String, String>,
-    ): Map<String, Int> {
-        val distance = linkedMapOf(id to 0)
+    ): Map<String, List<String>> {
+        val routes = linkedMapOf(id to emptyList<String>())
         val queue = ArrayDeque(listOf(id))
         while (queue.isNotEmpty()) {
             val current = queue.removeFirst()
-            val step = distance.getValue(current) + 1
+            val soFar = routes.getValue(current)
             val above = snapshot.parentsOf[current].orEmpty() + listOfNotNull(standIns[current])
             above.forEach { parent ->
                 // The visited check also makes a cycle in bad data terminate rather than hang.
-                if (distance.putIfAbsent(parent, step) == null) queue.addLast(parent)
+                if (routes.putIfAbsent(parent, soFar + parent) == null) queue.addLast(parent)
             }
         }
-        return distance
+        return routes
     }
 
     /**

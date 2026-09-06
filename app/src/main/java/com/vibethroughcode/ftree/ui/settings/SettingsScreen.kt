@@ -26,6 +26,9 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -50,6 +53,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.vibethroughcode.ftree.BuildConfig
 import com.vibethroughcode.ftree.R
+import com.vibethroughcode.ftree.data.KinshipLanguage
 import com.vibethroughcode.ftree.ui.common.SectionRule
 import com.vibethroughcode.ftree.ui.common.readableMeasure
 import com.vibethroughcode.ftree.ui.theme.FTreeText
@@ -60,6 +64,8 @@ import com.vibethroughcode.ftree.update.UpdateState
 
 const val SettingsUpdatesToggleTag = "settings-updates-toggle"
 const val SettingsPhotosToggleTag = "settings-photos-toggle"
+const val SettingsWordsEnglishTag = "settings-words-english"
+const val SettingsWordsHindiTag = "settings-words-hindi"
 const val SettingsExportTag = "settings-export"
 const val SettingsImportTag = "settings-import"
 
@@ -83,6 +89,7 @@ fun SettingsScreen(
     val enabled by viewModel.updatesEnabled.collectAsStateWithLifecycle()
     val state by viewModel.updateState.collectAsStateWithLifecycle()
     val photosInChart by viewModel.photosInChart.collectAsStateWithLifecycle()
+    val kinshipLanguage by viewModel.kinshipLanguage.collectAsStateWithLifecycle()
 
     Scaffold(
         modifier = modifier,
@@ -98,6 +105,30 @@ fun SettingsScreen(
             .verticalScroll(rememberScrollState())
             .padding(horizontal = 24.dp),
     ) {
+        SectionRule(stringResource(R.string.settings_section_words))
+
+        Text(
+            stringResource(R.string.settings_words_body),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(top = 4.dp, bottom = 12.dp),
+        )
+        SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
+            SegmentedButton(
+                selected = kinshipLanguage == KinshipLanguage.ENGLISH,
+                onClick = { viewModel.setKinshipLanguage(KinshipLanguage.ENGLISH) },
+                shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2),
+                modifier = Modifier.testTag(SettingsWordsEnglishTag),
+            ) { Text(stringResource(R.string.settings_words_english)) }
+
+            SegmentedButton(
+                selected = kinshipLanguage == KinshipLanguage.HINDI,
+                onClick = { viewModel.setKinshipLanguage(KinshipLanguage.HINDI) },
+                shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2),
+                modifier = Modifier.testTag(SettingsWordsHindiTag),
+            ) { Text(stringResource(R.string.settings_words_hindi)) }
+        }
+
         SectionRule(stringResource(R.string.settings_section_chart))
 
         SettingsSwitch(

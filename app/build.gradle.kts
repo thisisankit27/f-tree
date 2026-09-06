@@ -121,3 +121,15 @@ dependencies {
     androidTestImplementation(libs.androidx.room.testing)
     androidTestImplementation(libs.kotlinx.coroutines.test)
 }
+
+/**
+ * Lets the Hindi kinship sweep run against a real exported tree rather than only the built-in one:
+ *
+ *     ./gradlew testDebugUnitTest -Dftree.tree=temp/family-tree.ftree
+ *
+ * Forwarded explicitly because a `-D` on the Gradle command line reaches the daemon, not the JVM the
+ * tests run in. Absent, the sweep uses its own family and the real-tree case is skipped.
+ */
+tasks.withType<Test>().configureEach {
+    System.getProperty("ftree.tree")?.let { systemProperty("ftree.tree", it) }
+}

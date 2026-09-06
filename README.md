@@ -22,6 +22,10 @@ replacing it**.
   removed", "great-great-grandfather" — and lists every person the line runs through, which is the
   form that can also answer the ones English has no word for. It walks marriages as well as blood,
   and will draw the line across the whole-tree chart.
+- **Relationships in Hindi.** Turn on *Family words → हिन्दी* and the app names relationships the way
+  the family does: your mother's brother is **मामा**, your father's younger brother **चाचा**, his
+  wife **चाची**. Not a translation — Hindi has five words where English has "uncle", and picking the
+  right one needs facts English discards. See [docs/kinship-hindi.md](docs/kinship-hindi.md).
 - **Optional in-app updates.** Off until switched on. Checks GitHub for a newer release and installs
   it over the running copy, so a new version keeps your tree instead of costing an export and an
   import.
@@ -173,6 +177,31 @@ a round image would only mean carrying an alpha channel to save a shape we redra
 at 512px, which is sharper than any circle in the app can show even on a 4x screen, and costs about
 twenty kilobytes a person rather than several hundred.
 
+### Naming a relationship in another language
+
+English kinship is two numbers: how many generations up to a shared ancestor, how many back down.
+"Uncle" needs neither the side of the family nor a birth order, so `termFor(up, down)` throws both
+away. Hindi needs them, and so does most of the world outside western Europe.
+
+So the distances stay exactly as they were and a `KinshipPath` rides alongside, carrying the genders
+the line actually ran through and — where the dates prove it — which of two siblings was born first.
+Nothing about English changed, which is why every existing answer and the web viewer still agree.
+
+`graph/HindiKinship.kt` reads that path and returns an *enum*, not a string, so the risky part —
+which of five words English calls "uncle" — is plain Kotlin under JVM test. The spelling lives in
+`res/values/kinship_hi.xml`, a flat list a Hindi speaker can review in one sitting.
+
+Two properties are worth the tests they get. First, **a word is claimed only when the record earns
+it**: ताऊ is an elder brother and चाचा a younger one, so with no birth years the app says
+पिता के भाई and offers to sharpen it. Second, **every relationship must agree with its opposite
+number** — if B is A's मामा then A must be B's भांजा or भांजी, computed independently from the other
+end of the graph. Over every ordered pair of a whole family that is not a property you can satisfy by
+accident, and cousins are the sharpest case: a फुफेरा भाई must see you as his ममेरा भाई.
+
+Hindi falls back to English where it genuinely has no word — second cousins, great-uncles — because
+that is what Hindi speakers do, and because a Devanagari compound nobody says would be worse than
+the English word.
+
 ### Relating two people
 
 Two questions with different failure modes, so they are answered separately (`graph/Kinship.kt`,
@@ -297,6 +326,9 @@ Re-importing the same file, or the app's own export, is a no-op.
 | No dynamic colour | Brass means "not known" throughout, including in the chart's notation; a wallpaper-derived palette would reassign that meaning |
 | One `Canvas` for the chart | At a few hundred people, a composable per node costs far more than the drawing |
 | Backup file instead of transactional undo | A file the user can re-import is a far simpler promise, and it cannot itself go wrong |
+| The path kept beside the distances, not instead of them | English answers, their tests, and the web viewer are all untouched by adding a second language |
+| Hindi rules return an enum, not a string | Puts the part that can be wrong under JVM test, and leaves the words in a list somebody can review |
+| Descriptive term rather than a guess at चाचा/ताऊ | Guessing is wrong half the time in a way a family notices at once |
 | A mandatory circular crop, stored square | The face is shown in a circle everywhere; framing it as a rectangle and hoping would mean choosing one thing and seeing another |
 | Photographs off changes drawing, never layout | A setting that rearranged a hundred and fifty people would cost more than the memory it saves |
 | A rail on a short window, not a bottom bar | A bottom bar takes eighty of a landscape phone's three hundred and sixty dp from the axis a tree is read along |
@@ -490,6 +522,12 @@ framework, no networking, no analytics.
 - **GEDCOM import/export.** A large format for a lightweight app; the documented `.ftree` schema
   covers sharing between users of this app.
 - **A whole-graph chart.** Unreadable at any real family size; re-focusing is the answer.
+- **A Hindi interface.** Only the family *words* change with the setting; buttons, settings and error
+  messages stay English. Translating those is a separate job needing a fluent reviewer, and a
+  half-translated app reads worse than an English one.
+- **Languages beyond Hindi.** The path model covers Bengali, Marathi, Gujarati, Punjabi, Tamil and
+  Telugu structurally, and each is then a word list plus a small rules file — but kinship terms
+  should not ship in a language without a native speaker checking them.
 
 ## Licence
 

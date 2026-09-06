@@ -256,6 +256,12 @@
 
     <!-- Settings -->
     <string name="settings_title">Settings</string>
+    <string name="settings_section_words">Family words</string>
+    <string name="settings_words_body">Which language the app names relationships in. Hindi has a word for each relationship where English has one for several — your mother\'s brother is मामा, your father\'s brother चाचा — so this changes the answer, not just the spelling. The rest of the app stays in English.</string>
+    <string name="settings_words_english">English</string>
+    <string name="settings_words_hindi">हिन्दी</string>
+    <string name="kin_with_gloss">%1$s (%2$s)</string>
+    <string name="relation_birth_years_nudge">Birth years for both brothers would tell चाचा from ताऊ.</string>
     <string name="settings_section_chart">Chart</string>
     <string name="settings_photos_toggle">Photos on the chart</string>
     <string name="settings_photos_explainer">Draws each person\'s photograph on their card. On a very large family this can make the chart slower to pan and zoom, and it uses more memory — turn it off and the chart draws initials instead. Nothing else changes: the cards stay exactly where they are.</string>

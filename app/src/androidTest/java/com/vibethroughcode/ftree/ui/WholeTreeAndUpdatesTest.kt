@@ -12,6 +12,7 @@ import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.vibethroughcode.ftree.FTreeApplication
@@ -141,11 +142,16 @@ class WholeTreeAndUpdatesTest {
         }
     }
 
+    /**
+     * Scrolled to rather than asserted where they sit: settings has grown sections above these two,
+     * and "you can reach it" is the promise worth testing, not "it happens to be on the first
+     * screenful".
+     */
     @Test
     fun transferMovedToSettingsAndIsReachableThere() {
         rule.onNodeWithTag(NavSettingsTag).performClick()
-        rule.onNodeWithText("Export your tree").assertIsDisplayed()
-        rule.onNodeWithText("Import a tree").assertIsDisplayed()
+        rule.onNodeWithText("Export your tree").performScrollTo().assertIsDisplayed()
+        rule.onNodeWithText("Import a tree").performScrollTo().assertIsDisplayed()
     }
 
     /**
