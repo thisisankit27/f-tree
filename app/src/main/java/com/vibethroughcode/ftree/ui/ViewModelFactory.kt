@@ -45,6 +45,7 @@ object FTreeViewModels {
             SettingsViewModel(
                 preferences = app.container.updatePreferences,
                 chart = app.container.chartPreferences,
+                kinship = app.container.kinshipPreferences,
                 updates = app.container.updateRepository,
             )
         }

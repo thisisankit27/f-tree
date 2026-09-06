@@ -3,6 +3,8 @@ package com.vibethroughcode.ftree.ui.settings
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.vibethroughcode.ftree.data.ChartPreferences
+import com.vibethroughcode.ftree.data.KinshipLanguage
+import com.vibethroughcode.ftree.data.KinshipPreferences
 import com.vibethroughcode.ftree.update.AvailableUpdate
 import com.vibethroughcode.ftree.update.UpdatePreferences
 import com.vibethroughcode.ftree.update.UpdateRepository
@@ -15,6 +17,7 @@ import java.io.File
 class SettingsViewModel(
     private val preferences: UpdatePreferences,
     private val chart: ChartPreferences,
+    private val kinship: KinshipPreferences,
     private val updates: UpdateRepository,
 ) : ViewModel() {
 
@@ -24,6 +27,10 @@ class SettingsViewModel(
     val photosInChart: StateFlow<Boolean> = chart.photosInChart
 
     fun setPhotosInChart(enabled: Boolean) = chart.setPhotosInChart(enabled)
+
+    val kinshipLanguage: StateFlow<KinshipLanguage> = kinship.language
+
+    fun setKinshipLanguage(value: KinshipLanguage) = kinship.setLanguage(value)
 
     private var work: Job? = null
 

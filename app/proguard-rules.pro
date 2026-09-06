@@ -1,8 +1,8 @@
 # --- Enum names are data ---------------------------------------------------------------------
 #
 # Gender, RelationshipType and RelativeKind are persisted *by name*: in the database, in exported
-# .ftree files, and (for RelativeKind) inside a navigation route that Navigation resolves by fully
-# qualified class name. If R8 renames any of them, previously stored values stop matching and an
+# .ftree files, in a preference (KinshipLanguage), and — for RelativeKind — inside a navigation
+# route that Navigation resolves by fully qualified class name. If R8 renames any of them, previously stored values stop matching and an
 # exported file becomes unreadable — a silent data-loss bug that only appears in release builds.
 #
 # Found the hard way: the first signed build crashed on launch with
@@ -14,6 +14,7 @@
 -keep class com.vibethroughcode.ftree.data.SpouseKind { *; }
 -keep class com.vibethroughcode.ftree.data.SiblingKind { *; }
 -keep class com.vibethroughcode.ftree.data.DeletionMode { *; }
+-keep class com.vibethroughcode.ftree.data.KinshipLanguage { *; }
 
 -keepclassmembers enum * {
     public static **[] values();

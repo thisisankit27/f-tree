@@ -5,7 +5,10 @@ import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.res.stringResource
 import com.vibethroughcode.ftree.R
 import com.vibethroughcode.ftree.data.Gender
+import com.vibethroughcode.ftree.data.KinshipLanguage
 import com.vibethroughcode.ftree.data.RelativeKind
+import com.vibethroughcode.ftree.graph.HindiKinship
+import com.vibethroughcode.ftree.graph.KinshipPath
 import com.vibethroughcode.ftree.graph.KinshipTerm
 import com.vibethroughcode.ftree.graph.StepKind
 
@@ -154,4 +157,49 @@ fun StepKind.asRelativeKind(): RelativeKind = when (this) {
     StepKind.CHILD -> RelativeKind.CHILD
     StepKind.SPOUSE -> RelativeKind.SPOUSE
     StepKind.SIBLING -> RelativeKind.SIBLING
+}
+
+/**
+ * A relationship as it is finally read, in whichever vocabulary the reader chose.
+ *
+ * [gloss] is what the term means in English, shown in brackets after it. Hindi carries one and
+ * English does not, which is the whole asymmetry: "मामा (maternal uncle)" is how a bilingual family
+ * actually speaks, and it lets a younger relative who has not learned the word still read the
+ * answer. The gloss is more precise than English's own kinship words on purpose — English says
+ * "uncle" five different ways, and the gloss says which one — so nothing is lost by reading it.
+ */
+data class KinshipName(
+    val term: String,
+    val gloss: String? = null,
+    /** A descriptive stand-in that a birth year would sharpen — पिता के भाई rather than चाचा. */
+    val needsBirthYears: Boolean = false,
+)
+
+/**
+ * The word for a relationship in the chosen family vocabulary.
+ *
+ * Hindi falls back to English wherever it genuinely has no term — second cousins, great-uncles,
+ * anyone far enough out that a family stops having a name for them. That is not a gap being papered
+ * over: it is what Hindi speakers themselves do, and inventing a Devanagari compound nobody says
+ * would be worse than the English word.
+ */
+@Composable
+fun kinshipName(
+    term: KinshipTerm,
+    path: KinshipPath?,
+    subject: Gender,
+    target: Gender,
+    language: KinshipLanguage = LocalKinshipLanguage.current,
+): KinshipName? {
+    if (language == KinshipLanguage.HINDI) {
+        HindiKinship.term(term, path, subject, target)?.let { hindi ->
+            val word = hindi.word()
+            return KinshipName(
+                term = stringResource(word.term),
+                gloss = stringResource(word.gloss),
+                needsBirthYears = hindi.needsBirthYears,
+            )
+        }
+    }
+    return kinshipLabel(term, target)?.let { KinshipName(it) }
 }

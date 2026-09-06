@@ -55,6 +55,7 @@ import com.vibethroughcode.ftree.ui.common.PersonRow
 import com.vibethroughcode.ftree.ui.common.addRelativeLabel
 import com.vibethroughcode.ftree.ui.common.displayName
 import com.vibethroughcode.ftree.ui.common.readableMeasure
+import com.vibethroughcode.ftree.ui.common.LocalKinshipLanguage
 import com.vibethroughcode.ftree.ui.common.relativeRoleLabel
 import com.vibethroughcode.ftree.ui.common.sectionTitle
 import com.vibethroughcode.ftree.ui.theme.FTreeText
@@ -321,7 +322,9 @@ private fun RelativeSection(
                 person = relative,
                 onClick = { onOpen(relative.id) },
                 onLongClick = { onRemove(relative) },
-                supporting = stringResource(relativeRoleLabel(kind, relative.gender)),
+                supporting = stringResource(
+                    relativeRoleLabel(kind, relative.gender, LocalKinshipLanguage.current)
+                ),
             )
         }
     }

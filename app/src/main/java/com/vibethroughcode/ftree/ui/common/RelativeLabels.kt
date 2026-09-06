@@ -6,10 +6,38 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import com.vibethroughcode.ftree.R
 import com.vibethroughcode.ftree.data.Gender
+import com.vibethroughcode.ftree.data.KinshipLanguage
 import com.vibethroughcode.ftree.data.RelativeKind
 
 /**
- * How a relationship is named to the reader.
+ * The heading beside a relative's name, in the chosen family vocabulary.
+ *
+ * Hindi uses the same words the relation finder does — पिता, बेटा, भाई — because a reader who has
+ * asked for Hindi should not meet "Father" as a heading and मामा in a sentence on the next screen.
+ *
+ * There is no neuter kinship word in Hindi, so an unrecorded gender falls back to the English
+ * heading rather than leaving the row unlabelled.
+ */
+@StringRes
+fun relativeRoleLabel(kind: RelativeKind, gender: Gender, language: KinshipLanguage): Int =
+    hindiRoleLabel(kind, gender).takeIf { language == KinshipLanguage.HINDI && it != 0 }
+        ?: relativeRoleLabel(kind, gender)
+
+@StringRes
+private fun hindiRoleLabel(kind: RelativeKind, gender: Gender): Int = when (kind to gender) {
+    RelativeKind.PARENT to Gender.MALE -> R.string.kin_hi_pita
+    RelativeKind.PARENT to Gender.FEMALE -> R.string.kin_hi_mata
+    RelativeKind.SPOUSE to Gender.MALE -> R.string.kin_hi_pati
+    RelativeKind.SPOUSE to Gender.FEMALE -> R.string.kin_hi_patni
+    RelativeKind.CHILD to Gender.MALE -> R.string.kin_hi_beta
+    RelativeKind.CHILD to Gender.FEMALE -> R.string.kin_hi_beti
+    RelativeKind.SIBLING to Gender.MALE -> R.string.kin_hi_bhai
+    RelativeKind.SIBLING to Gender.FEMALE -> R.string.kin_hi_behen
+    else -> 0
+}
+
+/**
+ * The English heading, and what every other vocabulary falls back to.
  *
  * The graph stores one PARENT edge; a person reads "Father". Gender is only ever used to pick the
  * more specific word, and falls back to the neutral one whenever it is not recorded — the label is
