@@ -1,5 +1,6 @@
 package com.vibethroughcode.ftree.ui.person
 
+import android.graphics.Bitmap
 import android.net.Uri
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
@@ -9,11 +10,26 @@ import com.vibethroughcode.ftree.data.Gender
 import com.vibethroughcode.ftree.data.PartialDate
 import com.vibethroughcode.ftree.data.Person
 import com.vibethroughcode.ftree.data.PhotoStore
+import com.vibethroughcode.ftree.data.SquareCrop
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+
+/**
+ * A picked image on its way to becoming a portrait.
+ *
+ * Every photograph is framed before it is kept — there is no path that stores one uncropped — so
+ * this is a step in picking a photo rather than an optional extra. The reason is that a face is
+ * shown as a circle everywhere in this app, and letting the app choose the middle of somebody's
+ * holiday snap is how you end up with a chart full of shoulders and hedges.
+ */
+sealed interface CropRequest {
+    data object Loading : CropRequest
+    data class Ready(val bitmap: Bitmap) : CropRequest
+    data object Unreadable : CropRequest
+}
 
 /** Why a date the user typed cannot be saved. */
 enum class DateProblem { MALFORMED, DEATH_BEFORE_BIRTH }
@@ -49,8 +65,23 @@ class PersonEditViewModel(
     private val _uiState = MutableStateFlow(PersonEditUiState(isNew = personId == null))
     val uiState: StateFlow<PersonEditUiState> = _uiState.asStateFlow()
 
+    private val _crop = MutableStateFlow<CropRequest?>(null)
+
+    /** The photograph being framed, if one is. Null the rest of the time, which is most of it. */
+    val crop: StateFlow<CropRequest?> = _crop.asStateFlow()
+
     /** The row being edited, kept so unedited fields (photo, timestamps, id) survive a save. */
     private var original: Person? = null
+
+    /**
+     * Photographs written while this form has been open.
+     *
+     * Framing three photographs and keeping the third writes three files; the two that lost are
+     * cleaned up when the form is left, whichever way it is left. Deleting each one as the next
+     * arrives would be simpler and wrong — backing out of the form must leave the person with the
+     * picture they had.
+     */
+    private val written = mutableSetOf<String>()
 
     init {
         if (personId == null) {
@@ -82,24 +113,41 @@ class PersonEditViewModel(
 
     fun onNameChange(value: String) = _uiState.update { it.copy(name = value, dirty = true) }
 
-    /**
-     * Copies a picked image into the app's own storage.
-     *
-     * The old photo is removed only after the new one is written, so a failed import never leaves
-     * the person with no picture at all.
-     */
+    /** Opens the picked image for framing. Nothing is written until the frame is confirmed. */
     fun onPhotoPicked(uri: Uri) {
+        _crop.value = CropRequest.Loading
         viewModelScope.launch {
-            val saved = photos.save(uri) ?: return@launch
-            val previous = _uiState.value.photoId
+            val bitmap = photos.decodeForCrop(uri)
+            _crop.value = if (bitmap == null) CropRequest.Unreadable else CropRequest.Ready(bitmap)
+        }
+    }
+
+    fun onCropCancelled() {
+        _crop.value = null
+    }
+
+    /** Writes the square the reader framed and hangs it on the form, not yet on the person. */
+    fun onCropConfirmed(square: SquareCrop) {
+        val ready = _crop.value as? CropRequest.Ready ?: return
+        _crop.value = null
+        viewModelScope.launch {
+            val saved = photos.saveCrop(ready.bitmap, square) ?: return@launch
+            written += saved
             _uiState.update { it.copy(photoId = saved, dirty = true) }
-            if (previous != null && previous != saved) photos.delete(previous)
         }
     }
 
     fun onPhotoRemoved() {
         // The file is not deleted until the change is saved, so backing out leaves it intact.
         _uiState.update { it.copy(photoId = null, dirty = true) }
+    }
+
+    /** Leaving without saving: everything written while framing goes, the person keeps what they had. */
+    fun onDiscarded() {
+        val orphans = written.toList()
+        written.clear()
+        _crop.value = null
+        viewModelScope.launch { orphans.forEach { photos.delete(it) } }
     }
     fun onGenderChange(value: Gender) = _uiState.update { it.copy(gender = value, dirty = true) }
     fun onNotesChange(value: String) = _uiState.update { it.copy(notes = value, dirty = true) }
@@ -160,9 +208,12 @@ class PersonEditViewModel(
             )
             if (original == null) repository.addPerson(updated) else repository.updatePerson(updated)
 
-            // Only now is a discarded photo actually removed from disk.
+            // Only now is a discarded photo actually removed from disk: the one the person had if
+            // it has been replaced, and every frame tried on the way to the one being kept.
             val removed = original?.photoId
             if (removed != null && removed != state.photoId) photos.delete(removed)
+            written.filterNot { it == state.photoId }.forEach { photos.delete(it) }
+            written.clear()
 
             onSaved(updated.id)
         }

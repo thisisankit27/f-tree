@@ -7,7 +7,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -38,8 +40,10 @@ import com.vibethroughcode.ftree.R
 import com.vibethroughcode.ftree.data.Person
 import com.vibethroughcode.ftree.graph.TreeMetrics
 import com.vibethroughcode.ftree.graph.WholeTreeLayout
+import com.vibethroughcode.ftree.ui.common.avatarFor
 import com.vibethroughcode.ftree.ui.theme.FTreeText
 import com.vibethroughcode.ftree.ui.theme.FTreeTheme
+import kotlinx.coroutines.flow.distinctUntilChanged
 
 const val WholeFamilyChartTag = "whole-family-chart"
 
@@ -64,6 +68,8 @@ fun WholeFamilyChart(
     highlighted: Set<String> = emptySet(),
     /** True when [layout] holds one traced relation rather than the whole record. */
     tracing: Boolean = false,
+    /** The face cache, or null when the reader has turned photographs off. */
+    photos: ChartPhotos? = null,
 ) {
     val description = if (tracing) {
         stringResource(R.string.a11y_traced_chart, layout.nodes.size)
@@ -139,6 +145,30 @@ fun WholeFamilyChart(
     val spouseGapPx = with(density) { 2.dp.toPx() }
     val unitPx = with(density) { 1.dp.toPx() }
 
+    /*
+     * Which faces to decode: the ones on screen, and only when the chart is close enough in for a
+     * card to be more than a shape. Pulled right back, a face would be a handful of pixels and
+     * decoding four hundred of them would buy nothing the coloured discs do not already say.
+     */
+    val wantedPhotos = remember(layout, photos, unitPx) {
+        derivedStateOf {
+            if (photos == null || viewport == IntSize.Zero || zoom < SHOW_NAMES) emptyList() else {
+                val region = visibleRegion(pan, zoom, unitPx, viewport)
+                layout.nodes.asSequence()
+                    .filter {
+                        it.x + TreeMetrics.NODE_WIDTH >= region.left && it.x <= region.right &&
+                            it.y + TreeMetrics.NODE_HEIGHT >= region.top && it.y <= region.bottom
+                    }
+                    .mapNotNull { it.person.photoId }
+                    .toList()
+            }
+        }
+    }
+    LaunchedEffect(wantedPhotos, photos) {
+        val cache = photos ?: return@LaunchedEffect
+        snapshotFlow { wantedPhotos.value }.distinctUntilChanged().collect(cache::request)
+    }
+
     Canvas(
         modifier = modifier
             .fillMaxSize()
@@ -176,12 +206,7 @@ fun WholeFamilyChart(
         val showLabels = currentZoom >= SHOW_LABELS && !tracing
         val dimming = highlighted.isNotEmpty()
 
-        val visible = Rect(
-            left = -currentPan.x / currentZoom / unitPx,
-            top = -currentPan.y / currentZoom / unitPx,
-            right = (size.width - currentPan.x) / currentZoom / unitPx,
-            bottom = (size.height - currentPan.y) / currentZoom / unitPx,
-        ).inflate(TreeMetrics.NODE_WIDTH * 2f)
+        val visible = visibleRegion(currentPan, currentZoom, unitPx, size)
 
         translate(currentPan.x, currentPan.y) {
             scale(currentZoom, currentZoom, Offset.Zero) {
@@ -237,12 +262,22 @@ fun WholeFamilyChart(
                             ),
                             maxLines = 1,
                         )
+                        /*
+                         * Normally the label sits on top of the frame, where it reads as a caption.
+                         * When the frame is against the top of the viewport there is no "on top of"
+                         * left — the label would be clipped, or printed over the header sitting
+                         * directly above the canvas — so it drops inside the frame's own padding
+                         * instead, where there is room by construction.
+                         */
+                        val above = group.y * unitPx - label.size.height - rulePx * 3
+                        val room = above >= -currentPan.y / currentZoom
                         drawText(
                             label,
-                            topLeft = Offset(
-                                group.x * unitPx,
-                                group.y * unitPx - label.size.height - rulePx * 3,
-                            ),
+                            topLeft = if (room) {
+                                Offset(group.x * unitPx, above)
+                            } else {
+                                Offset(group.x * unitPx + rulePx * 4, group.y * unitPx + rulePx * 3)
+                            },
                         )
                     }
                 }
@@ -325,12 +360,16 @@ fun WholeFamilyChart(
                                 else -> accents.rule
                             },
                             unknown = accents.unknown,
+                            avatarFill = accents.avatarFor(node.person.gender).fill,
+                            avatarInk = accents.avatarFor(node.person.gender).ink,
                         ),
                         detail = detail,
                         cornerPx = cornerPx,
                         rulePx = rulePx,
                         emphasised = isSelected,
                         alpha = if (near) 1f else 0.3f,
+                        photo = if (detail == CardDetail.SHAPE) null
+                        else photos?.image(node.person.photoId),
                     )
                 }
             }

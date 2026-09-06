@@ -1,6 +1,7 @@
 package com.vibethroughcode.ftree.ui.people
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.material3.FilterChip
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
@@ -48,6 +49,7 @@ import com.vibethroughcode.ftree.R
 import com.vibethroughcode.ftree.ui.FTreeViewModels
 import com.vibethroughcode.ftree.ui.common.EmptyState
 import com.vibethroughcode.ftree.ui.common.PersonRow
+import com.vibethroughcode.ftree.ui.common.readableMeasure
 import com.vibethroughcode.ftree.ui.common.peopleCount
 import com.vibethroughcode.ftree.ui.common.TreeGlyph
 import com.vibethroughcode.ftree.ui.theme.FTreeText
@@ -133,7 +135,7 @@ fun PeopleScreen(
             }
         },
     ) { padding ->
-        Column(Modifier.fillMaxSize().padding(padding)) {
+        Column(Modifier.fillMaxHeight().padding(padding).readableMeasure()) {
             if (!state.isEmptyTree) {
                 PeopleFilterRow(
                     filter = state.filter,

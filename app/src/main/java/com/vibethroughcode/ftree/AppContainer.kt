@@ -1,6 +1,7 @@
 package com.vibethroughcode.ftree
 
 import android.content.Context
+import com.vibethroughcode.ftree.data.ChartPreferences
 import com.vibethroughcode.ftree.data.FTreeDatabase
 import com.vibethroughcode.ftree.data.FamilyRepository
 import com.vibethroughcode.ftree.data.PhotoStore
@@ -39,6 +40,7 @@ class AppContainer(context: Context) {
     }
 
     val updatePreferences: UpdatePreferences by lazy { UpdatePreferences(context) }
+    val chartPreferences: ChartPreferences by lazy { ChartPreferences(context) }
 
     /**
      * Built lazily like everything else, which also means the updater's objects do not exist at

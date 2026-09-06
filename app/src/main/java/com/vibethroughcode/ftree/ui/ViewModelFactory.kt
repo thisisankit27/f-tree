@@ -35,12 +35,16 @@ private fun CreationExtras.photos(): PhotoStore =
 object FTreeViewModels {
     val Factory = viewModelFactory {
         initializer { PeopleViewModel(repository()) }
-        initializer { TreeViewModel(repository(), createSavedStateHandle()) }
+        initializer {
+            val app = this[APPLICATION_KEY] as FTreeApplication
+            TreeViewModel(repository(), app.container.chartPreferences, createSavedStateHandle())
+        }
         initializer { WholeTreeViewModel(repository()) }
         initializer {
             val app = this[APPLICATION_KEY] as FTreeApplication
             SettingsViewModel(
                 preferences = app.container.updatePreferences,
+                chart = app.container.chartPreferences,
                 updates = app.container.updateRepository,
             )
         }

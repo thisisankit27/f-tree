@@ -4,20 +4,29 @@ import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.RoundRect
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Constraints
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.unit.sp
 import com.vibethroughcode.ftree.data.PartialDate
 import com.vibethroughcode.ftree.data.Person
+import com.vibethroughcode.ftree.graph.TreeMetrics
 import com.vibethroughcode.ftree.ui.theme.FTreeText
 import kotlin.math.max
+import kotlin.math.min
+import kotlin.math.roundToInt
 
 /**
  * The chart's notation, in one place.
@@ -26,6 +35,27 @@ import kotlin.math.max
  * is the product's language, not a per-screen decision. A dashed brass edge means the same thing on
  * either, and it can only keep meaning the same thing if it is written once.
  */
+
+/**
+ * The part of the chart currently on screen, in layout units.
+ *
+ * Padded by a couple of cards so a node halfway off the edge is still drawn — and so that a face
+ * is already decoded by the time panning brings it into view. Both charts cull against this and
+ * ask for photographs against it, which is why it is written once rather than twice.
+ */
+internal fun visibleRegion(pan: Offset, zoom: Float, unitPx: Float, width: Float, height: Float): Rect =
+    Rect(
+        left = -pan.x / zoom / unitPx,
+        top = -pan.y / zoom / unitPx,
+        right = (width - pan.x) / zoom / unitPx,
+        bottom = (height - pan.y) / zoom / unitPx,
+    ).inflate(TreeMetrics.NODE_WIDTH * 2f)
+
+internal fun visibleRegion(pan: Offset, zoom: Float, unitPx: Float, viewport: IntSize): Rect =
+    visibleRegion(pan, zoom, unitPx, viewport.width.toFloat(), viewport.height.toFloat())
+
+internal fun visibleRegion(pan: Offset, zoom: Float, unitPx: Float, viewport: Size): Rect =
+    visibleRegion(pan, zoom, unitPx, viewport.width, viewport.height)
 
 /** How much of a card is drawn, which depends on how far out the chart is zoomed. */
 enum class CardDetail {
@@ -43,6 +73,9 @@ data class CardColors(
     val muted: Color,
     val outline: Color,
     val unknown: Color,
+    /** The disc behind an initial when there is no photograph, and the initial written on it. */
+    val avatarFill: Color,
+    val avatarInk: Color,
 )
 
 /**
@@ -65,6 +98,8 @@ fun DrawScope.drawPersonCard(
     rulePx: Float,
     emphasised: Boolean = false,
     alpha: Float = 1f,
+    /** The person's photograph, already cut to a thumbnail. Null draws the initial instead. */
+    photo: ImageBitmap? = null,
 ) {
     val path = Path().apply {
         addRoundRect(
@@ -118,15 +153,20 @@ fun DrawScope.drawPersonCard(
         )
     }
 
+    val radius = height * TreeMetrics.AVATAR_DIAMETER / 2f
+    val centre = Offset(left + height * TreeMetrics.AVATAR_INSET + radius, top + height / 2f)
+    drawAvatar(person, centre, radius, colors, detail, rulePx, alpha, photo, measurer)
+
     if (detail == CardDetail.SHAPE) return
 
-    val textWidth = (width - cornerPx * 2).toInt().coerceAtLeast(1)
+    val textLeft = centre.x + radius + height * TreeMetrics.AVATAR_INSET
+    val textWidth = (left + width - cornerPx * 0.8f - textLeft).toInt().coerceAtLeast(1)
     val name = person.name?.trim()?.takeIf { it.isNotEmpty() }
     val nameResult = measurer.measure(
         text = name ?: "Unknown",
         style = FTreeText.nodeName.copy(
             color = (if (name == null) colors.unknown else colors.onSurface).copy(alpha = alpha),
-            textAlign = TextAlign.Center,
+            textAlign = TextAlign.Start,
         ),
         maxLines = 2,
         overflow = TextOverflow.Ellipsis,
@@ -140,21 +180,117 @@ fun DrawScope.drawPersonCard(
                 text = it,
                 style = FTreeText.nodeYears.copy(
                     color = colors.muted.copy(alpha = alpha),
-                    textAlign = TextAlign.Center,
+                    textAlign = TextAlign.Start,
                 ),
                 maxLines = 1,
                 constraints = Constraints(maxWidth = textWidth),
             )
         }
 
+    // Left-aligned against the avatar rather than centred in what is left over: with a disc at the
+    // start of every card, a ragged left edge would make a row of siblings look misaligned.
     val block = nameResult.size.height + (yearsResult?.size?.height ?: 0)
     var y = top + max(0f, (height - block) / 2f)
-    drawText(nameResult, topLeft = Offset(left + (width - nameResult.size.width) / 2f, y))
+    drawText(nameResult, topLeft = Offset(textLeft, y))
     y += nameResult.size.height
-    yearsResult?.let {
-        drawText(it, topLeft = Offset(left + (width - it.size.width) / 2f, y))
-    }
+    yearsResult?.let { drawText(it, topLeft = Offset(textLeft, y)) }
 }
+
+/**
+ * The disc at the start of a card.
+ *
+ * Always drawn, whether or not there is a photograph and whether or not photographs are switched
+ * on, because it is the card's shape as much as its content: turning faces off must not make a
+ * hundred and fifty people move.
+ *
+ * Without a photograph it carries the initial on a ground coloured by gender — enough for a row of
+ * faceless cards to still read as people rather than as a wall of identical discs. Somebody whose
+ * name was never recorded keeps the dashed brass ring they have everywhere else in the app, since
+ * that is the notation for a gap in the record and it must not quietly become a grey circle here.
+ */
+private fun DrawScope.drawAvatar(
+    person: Person,
+    centre: Offset,
+    radius: Float,
+    colors: CardColors,
+    detail: CardDetail,
+    rulePx: Float,
+    alpha: Float,
+    photo: ImageBitmap?,
+    measurer: TextMeasurer,
+) {
+    if (photo != null) {
+        // Squared about the middle here rather than on the way to disk: a photograph that arrived
+        // in an import was never framed by anybody, and cutting it permanently would throw away
+        // what a later reader might want back.
+        val edge = min(photo.width, photo.height)
+        val diameter = (radius * 2f).roundToInt().coerceAtLeast(1)
+        val topLeft = IntOffset((centre.x - radius).roundToInt(), (centre.y - radius).roundToInt())
+
+        clipPath(Path().apply { addOval(Rect(centre, radius)) }) {
+            drawImage(
+                image = photo,
+                srcOffset = IntOffset((photo.width - edge) / 2, (photo.height - edge) / 2),
+                srcSize = IntSize(edge, edge),
+                dstOffset = topLeft,
+                dstSize = IntSize(diameter, diameter),
+                alpha = alpha,
+            )
+        }
+        drawCircle(
+            color = colors.outline,
+            radius = radius,
+            center = centre,
+            alpha = alpha,
+            style = Stroke(width = rulePx * 0.8f),
+        )
+        return
+    }
+
+    if (person.isUnnamed) {
+        drawCircle(
+            color = colors.unknown,
+            radius = radius,
+            center = centre,
+            alpha = alpha,
+            style = Stroke(
+                width = rulePx,
+                pathEffect = PathEffect.dashPathEffect(floatArrayOf(rulePx * 2.5f, rulePx * 2f)),
+            ),
+        )
+    } else {
+        drawCircle(color = colors.avatarFill, radius = radius, center = centre, alpha = alpha)
+    }
+
+    if (detail == CardDetail.SHAPE) return
+
+    val mark = if (person.isUnnamed) "?" else person.name!!.trim().first().uppercase()
+    val measured = measurer.measure(
+        text = mark,
+        style = FTreeText.nodeName.copy(
+            color = (if (person.isUnnamed) colors.unknown else colors.avatarInk).copy(alpha = alpha),
+            fontSize = pxAsSp(radius * 0.95f),
+        ),
+        maxLines = 1,
+    )
+    drawText(
+        measured,
+        topLeft = Offset(
+            centre.x - measured.size.width / 2f,
+            centre.y - measured.size.height / 2f,
+        ),
+    )
+}
+
+/**
+ * A size in canvas pixels expressed as sp.
+ *
+ * The reader's font scale is divided back out deliberately. Everywhere else in the app text grows
+ * with that setting, but this one glyph has to fit inside a circle of a fixed size, and a letter
+ * that grows past its disc reads as a bug rather than as an accommodation. The names on the card
+ * still scale, and the cards grow to hold them.
+ */
+private fun DrawScope.pxAsSp(px: Float) = (px / (density * fontScale)).sp
 
 /** Years only — a card has room for a span, not a date. */
 fun Person.lifespan(): String? {

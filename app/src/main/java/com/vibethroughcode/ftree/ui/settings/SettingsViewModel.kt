@@ -2,6 +2,7 @@ package com.vibethroughcode.ftree.ui.settings
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.vibethroughcode.ftree.data.ChartPreferences
 import com.vibethroughcode.ftree.update.AvailableUpdate
 import com.vibethroughcode.ftree.update.UpdatePreferences
 import com.vibethroughcode.ftree.update.UpdateRepository
@@ -13,11 +14,16 @@ import java.io.File
 
 class SettingsViewModel(
     private val preferences: UpdatePreferences,
+    private val chart: ChartPreferences,
     private val updates: UpdateRepository,
 ) : ViewModel() {
 
     val updatesEnabled: StateFlow<Boolean> = preferences.enabled
     val updateState: StateFlow<UpdateState> = updates.state
+
+    val photosInChart: StateFlow<Boolean> = chart.photosInChart
+
+    fun setPhotosInChart(enabled: Boolean) = chart.setPhotosInChart(enabled)
 
     private var work: Job? = null
 

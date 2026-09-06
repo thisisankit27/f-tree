@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -59,6 +60,7 @@ import com.vibethroughcode.ftree.ui.common.PersonRow
 import com.vibethroughcode.ftree.ui.common.SectionRule
 import com.vibethroughcode.ftree.ui.common.displayName
 import com.vibethroughcode.ftree.ui.common.kinshipLabel
+import com.vibethroughcode.ftree.ui.common.readableMeasure
 import com.vibethroughcode.ftree.ui.common.relativeRoleLabel
 import com.vibethroughcode.ftree.ui.common.asRelativeKind
 import com.vibethroughcode.ftree.ui.theme.FTreeText
@@ -160,7 +162,7 @@ private fun Answer(
     onShowOnChart: () -> Unit,
 ) {
     LazyColumn(
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier.fillMaxHeight().readableMeasure(),
         contentPadding = PaddingValues(bottom = 40.dp),
     ) {
         item {
@@ -429,7 +431,7 @@ private fun PersonPicker(
     val focusRequester = remember { FocusRequester() }
     LaunchedEffect(Unit) { focusRequester.requestFocus() }
 
-    Column(Modifier.fillMaxSize()) {
+    Column(Modifier.fillMaxHeight().readableMeasure()) {
         OutlinedTextField(
             value = query,
             onValueChange = onQueryChange,

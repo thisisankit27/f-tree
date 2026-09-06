@@ -26,6 +26,9 @@ replacing it**.
   it over the running copy, so a new version keeps your tree instead of costing an export and an
   import.
 - **Export and import as a single `.ftree` file**, with merge semantics that never overwrite.
+- **Faces on the chart.** Every card carries a portrait, framed in a circle when the photograph was
+  added and a coloured initial when it was not. Photographs can be switched off for a very large
+  tree without a single card moving.
 - **Photos**, stored inside the app and carried in the export.
 
 ## Build
@@ -143,6 +146,32 @@ nothing else, and offscreen nodes cost a bounds check each.
 Notation: marriage is a doubled rule, a couple's children hang from one connector while a
 half-sibling hangs from their own, and a person with no name has a dashed brass edge — the gap is in
 what the family remembers, not a fault in the record.
+
+Every card opens with a circular portrait. With a photograph it is the square the reader framed;
+without one it is the person's initial on a ground coloured by gender, so a chart of a hundred
+faceless cards still reads as people rather than as a wall of identical discs. A person whose name
+was never recorded keeps the dashed brass ring they have everywhere else. The disc is part of the
+card at every zoom and whether or not photographs are switched on, which is what lets
+**Settings → Photos on the chart** be turned off on a very large tree without anybody moving.
+
+Photographs on a drawn surface have no `AsyncImage` to hang from, so `ui/tree/ChartPhotos.kt` is the
+equivalent for a canvas: it asks only for the faces the viewport can see, decodes them off the main
+thread at 160px in `RGB_565` — about fifty kilobytes each — and holds them in snapshot state, so a
+face arriving re-runs the draw phase and nothing else. What is held is capped, so panning across a
+thousand people trades faces in and out rather than accumulating them.
+
+### Photographs
+
+A picked photograph is always framed before it is kept. The window is a fixed circle and the picture
+moves behind it, which makes the awkward case impossible: the picture can never be smaller than the
+circle, so there is no way to frame a crescent of empty space and no error to explain. The sums are
+in `ui/person/CircleCrop.kt`, kept free of any Android type so the part that can be wrong — which
+pixels end up saved — is tested on the JVM rather than checked by eye.
+
+What is stored is the square, not a circle: roundness is drawn by every place that shows a face, so
+a round image would only mean carrying an alpha channel to save a shape we redraw anyway. It is kept
+at 512px, which is sharper than any circle in the app can show even on a 4x screen, and costs about
+twenty kilobytes a person rather than several hundred.
 
 ### Relating two people
 
@@ -268,6 +297,26 @@ Re-importing the same file, or the app's own export, is a no-op.
 | No dynamic colour | Brass means "not known" throughout, including in the chart's notation; a wallpaper-derived palette would reassign that meaning |
 | One `Canvas` for the chart | At a few hundred people, a composable per node costs far more than the drawing |
 | Backup file instead of transactional undo | A file the user can re-import is a far simpler promise, and it cannot itself go wrong |
+| A mandatory circular crop, stored square | The face is shown in a circle everywhere; framing it as a rectangle and hoping would mean choosing one thing and seeing another |
+| Photographs off changes drawing, never layout | A setting that rearranged a hundred and fifty people would cost more than the memory it saves |
+| A rail on a short window, not a bottom bar | A bottom bar takes eighty of a landscape phone's three hundred and sixty dp from the axis a tree is read along |
+
+## Turned sideways
+
+A phone on its side has about three hundred and sixty density-independent pixels of height, and the
+app was spending a third of them on its own furniture: a title bar, a mode switch, a line of counts
+and a navigation bar, all stacked along the axis a family tree is read down.
+
+On a short window — which is a question about the window, not the orientation, so a tablet on its
+side keeps the bottom bar and a phone in a split screen does not — the three destinations move to a
+`NavigationRail` on the leading edge, and the chart's title bar, mode switch and actions fold into
+one row. That is roughly a hundred and forty dp given back to the drawing, which on a real family is
+the difference between two generations on screen and four.
+
+Reading matter goes the other way. A list of names stretched across a landscape phone puts the name
+at one edge and the date at the other with a hand's width of nothing between them, so the lists,
+forms and the settings are held to a readable measure and centred (`ui/common/Windowing.kt`). The
+charts are exempt: they are pictures, not prose, and they want every pixel.
 
 ## Accessibility
 
@@ -440,8 +489,6 @@ framework, no networking, no analytics.
 - **Transactional undo of an import.** The backup file covers the same need far more simply.
 - **GEDCOM import/export.** A large format for a lightweight app; the documented `.ftree` schema
   covers sharing between users of this app.
-- **Photos on chart nodes.** Needs pre-decoded bitmaps in the canvas; the chart's value does not
-  depend on it.
 - **A whole-graph chart.** Unreadable at any real family size; re-focusing is the answer.
 
 ## Licence

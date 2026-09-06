@@ -7,12 +7,14 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CloudDownload
@@ -42,12 +44,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.vibethroughcode.ftree.BuildConfig
 import com.vibethroughcode.ftree.R
 import com.vibethroughcode.ftree.ui.common.SectionRule
+import com.vibethroughcode.ftree.ui.common.readableMeasure
 import com.vibethroughcode.ftree.ui.theme.FTreeText
 import com.vibethroughcode.ftree.ui.theme.FTreeTheme
 import com.vibethroughcode.ftree.update.AvailableUpdate
@@ -55,6 +59,7 @@ import com.vibethroughcode.ftree.update.UpdateFailure
 import com.vibethroughcode.ftree.update.UpdateState
 
 const val SettingsUpdatesToggleTag = "settings-updates-toggle"
+const val SettingsPhotosToggleTag = "settings-photos-toggle"
 const val SettingsExportTag = "settings-export"
 const val SettingsImportTag = "settings-import"
 
@@ -77,6 +82,7 @@ fun SettingsScreen(
     val context = LocalContext.current
     val enabled by viewModel.updatesEnabled.collectAsStateWithLifecycle()
     val state by viewModel.updateState.collectAsStateWithLifecycle()
+    val photosInChart by viewModel.photosInChart.collectAsStateWithLifecycle()
 
     Scaffold(
         modifier = modifier,
@@ -86,36 +92,31 @@ fun SettingsScreen(
     ) { padding ->
     Column(
         modifier = Modifier
-            .fillMaxSize()
+            .fillMaxHeight()
             .padding(padding)
+            .readableMeasure()
             .verticalScroll(rememberScrollState())
             .padding(horizontal = 24.dp),
     ) {
+        SectionRule(stringResource(R.string.settings_section_chart))
+
+        SettingsSwitch(
+            title = stringResource(R.string.settings_photos_toggle),
+            body = stringResource(R.string.settings_photos_explainer),
+            checked = photosInChart,
+            onCheckedChange = viewModel::setPhotosInChart,
+            tag = SettingsPhotosToggleTag,
+        )
+
         SectionRule(stringResource(R.string.settings_section_updates))
 
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
-            horizontalArrangement = Arrangement.spacedBy(16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Column(Modifier.weight(1f)) {
-                Text(
-                    stringResource(R.string.settings_updates_toggle),
-                    style = MaterialTheme.typography.bodyLarge,
-                )
-                Text(
-                    stringResource(R.string.settings_updates_explainer),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(top = 4.dp),
-                )
-            }
-            Switch(
-                checked = enabled,
-                onCheckedChange = viewModel::setUpdatesEnabled,
-                modifier = Modifier.testTag(SettingsUpdatesToggleTag),
-            )
-        }
+        SettingsSwitch(
+            title = stringResource(R.string.settings_updates_toggle),
+            body = stringResource(R.string.settings_updates_explainer),
+            checked = enabled,
+            onCheckedChange = viewModel::setUpdatesEnabled,
+            tag = SettingsUpdatesToggleTag,
+        )
 
         AnimatedVisibility(visible = enabled) {
             UpdatePanel(
@@ -198,6 +199,48 @@ fun SettingsScreen(
             modifier = Modifier.padding(top = 16.dp, bottom = 40.dp),
         )
     }
+    }
+}
+
+/**
+ * A setting with its explanation, and the switch that turns it.
+ *
+ * The whole row is the target, not just the switch. Reaching a 32dp control at the far edge of a
+ * phone is the sort of thing that is fine in a mock-up and irritating in the hand, and the sentence
+ * explaining a setting is the most natural thing to press.
+ */
+@Composable
+private fun SettingsSwitch(
+    title: String,
+    body: String,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+    tag: String,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .toggleable(
+                value = checked,
+                onValueChange = onCheckedChange,
+                role = Role.Switch,
+            )
+            .padding(vertical = 8.dp)
+            .testTag(tag),
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(Modifier.weight(1f)) {
+            Text(title, style = MaterialTheme.typography.bodyLarge)
+            Text(
+                body,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = 4.dp),
+            )
+        }
+        // Driven by the row, so the two cannot disagree and a screen reader hears one control.
+        Switch(checked = checked, onCheckedChange = null)
     }
 }
 

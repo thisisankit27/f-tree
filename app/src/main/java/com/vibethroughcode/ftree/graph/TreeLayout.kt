@@ -61,8 +61,20 @@ data class TreeLayout(
 
 /** Chart geometry, in dp-equivalent layout units. */
 object TreeMetrics {
-    const val NODE_WIDTH = 132f
-    const val NODE_HEIGHT = 56f
+    /**
+     * A card holds a face and a name side by side, so it is wider than a card holding only words.
+     *
+     * The avatar is part of the card at every zoom and whether or not there is a photograph behind
+     * it, which is what lets the "photos in the chart" setting be turned on and off without a
+     * single person moving: the setting changes what is drawn inside the circle, never the shape of
+     * the chart around it.
+     */
+    const val NODE_WIDTH = 160f
+    const val NODE_HEIGHT = 60f
+
+    /** The avatar's diameter and the space around it, as fractions of a card's height. */
+    const val AVATAR_DIAMETER = 0.6f
+    const val AVATAR_INSET = 0.13f
 
     /**
      * Between unrelated nodes on the same row. Deliberately much wider than [COUPLE_GAP]: the
