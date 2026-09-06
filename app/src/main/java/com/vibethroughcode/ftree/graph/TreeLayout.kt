@@ -100,7 +100,17 @@ object TreeMetrics {
      * full, remains the readable route through a large family.
      */
     fun nodeSizeFor(textScale: Float): Pair<Float, Float> {
-        val eased = 1f + (textScale.coerceIn(1f, 2f) - 1f) * 0.7f
+        val eased = cardScaleFor(textScale)
         return NODE_WIDTH * eased to NODE_HEIGHT * eased
     }
+
+    /**
+     * How much a card grows at the reader's text size, as a multiplier.
+     *
+     * Shared with the compact view so the two ways of showing a person agree about how much room a
+     * larger word needs. Tempered rather than full scale for the reason above: a chart is a spatial
+     * overview, and a card that doubles leaves almost nothing on screen.
+     */
+    fun cardScaleFor(textScale: Float): Float =
+        1f + (textScale.coerceIn(1f, 2f) - 1f) * 0.7f
 }
