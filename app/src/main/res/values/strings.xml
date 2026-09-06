@@ -317,7 +317,10 @@
     <string name="relation_find">Find a relation</string>
 
     <string name="relation_answer_term">%1$s is %2$s’s %3$s.</string>
-    <string name="relation_answer_marriage">%1$s is related to %2$s by marriage.</string>
+    <!-- Used when a marriage joins them and English has no single word for it: better to say
+         exactly who they married than to call it "related by marriage". -->
+    <string name="relation_answer_married_to">%1$s is married to %2$s’s %3$s.</string>
+    <string name="relation_answer_of_spouse">%1$s is the %3$s of %2$s’s %4$s.</string>
     <string name="relation_answer_linked">%1$s is related to %2$s.</string>
     <string name="relation_answer_same">That is the same person on both sides.</string>
     <string name="relation_answer_none">Nothing in the record joins %1$s and %2$s.</string>
@@ -357,6 +360,26 @@
     <string name="kin_niece">niece</string>
     <string name="kin_niece_or_nephew">niece or nephew</string>
     <string name="kin_self">the same person</string>
+    <string name="kin_husband">husband</string>
+    <string name="kin_wife">wife</string>
+    <string name="kin_spouse">spouse</string>
+    <!-- Relationships through one marriage. English names these outright; where it has no word,
+         relation_answer_married_to and relation_answer_of_spouse say it in a sentence instead. -->
+    <string name="kin_brother_in_law">brother-in-law</string>
+    <string name="kin_sister_in_law">sister-in-law</string>
+    <string name="kin_sibling_in_law">sibling-in-law</string>
+    <string name="kin_father_in_law">father-in-law</string>
+    <string name="kin_mother_in_law">mother-in-law</string>
+    <string name="kin_parent_in_law">parent-in-law</string>
+    <string name="kin_son_in_law">son-in-law</string>
+    <string name="kin_daughter_in_law">daughter-in-law</string>
+    <string name="kin_child_in_law">child-in-law</string>
+    <string name="kin_stepfather">stepfather</string>
+    <string name="kin_stepmother">stepmother</string>
+    <string name="kin_stepparent">step-parent</string>
+    <string name="kin_stepson">stepson</string>
+    <string name="kin_stepdaughter">stepdaughter</string>
+    <string name="kin_stepchild">stepchild</string>
     <string name="kin_great_prefix">great-</string>
     <string name="kin_cousin">%1$s cousin</string>
     <string name="kin_cousin_removed_once">%1$s once removed</string>

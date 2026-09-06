@@ -51,6 +51,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.vibethroughcode.ftree.R
 import com.vibethroughcode.ftree.data.Person
+import com.vibethroughcode.ftree.graph.KinshipTerm
 import com.vibethroughcode.ftree.graph.Relation
 import com.vibethroughcode.ftree.ui.FTreeViewModels
 import com.vibethroughcode.ftree.ui.common.PersonAvatar
@@ -319,24 +320,13 @@ private fun Verdict(state: RelationUiState) {
                 }
 
                 is Relation.Found -> {
-                    val toName = to?.displayName().orEmpty()
-                    val fromName = from?.displayName().orEmpty()
-                    Text(
-                        text = when {
-                            relation.term != null && to != null -> stringResource(
-                                R.string.relation_answer_term,
-                                toName,
-                                fromName,
-                                kinshipLabel(relation.term, to.gender),
-                            )
-
-                            relation.byMarriage ->
-                                stringResource(R.string.relation_answer_marriage, toName, fromName)
-
-                            else -> stringResource(R.string.relation_answer_linked, toName, fromName)
-                        },
-                        style = MaterialTheme.typography.titleMedium,
-                    )
+                    // Said only when there is something to say. A sentence that amounts to "these
+                    // two are related somehow" tells a reader nothing the chain below does not tell
+                    // them exactly, and "related by marriage" was worse than nothing: every
+                    // relative anybody married into the family came back under the same flat phrase.
+                    answerSentence(state, relation)?.let {
+                        Text(text = it, style = MaterialTheme.typography.titleMedium)
+                    }
                     Text(
                         text = pluralStringResource(
                             R.plurals.relation_steps,
@@ -467,5 +457,46 @@ private fun PersonPicker(
                 }
             }
         }
+    }
+}
+
+/**
+ * How the relationship reads as a sentence, or nothing when the record cannot say.
+ *
+ * Three shapes, because a relationship through a marriage is not a noun the way a blood one is.
+ * "Priya is Ankit's first cousin" works; "Madhu is Ankit's first cousin once removed's wife" is a
+ * possessive chain nobody says out loud, so that one is turned around into "Madhu is married to
+ * Ankit's first cousin once removed" — same fact, said the way a person would say it.
+ */
+@Composable
+private fun answerSentence(state: RelationUiState, relation: Relation.Found): String? {
+    val to = state.to ?: return null
+    val from = state.from ?: return null
+    val term = relation.term ?: return null
+    val toName = to.displayName()
+    val fromName = from.displayName()
+
+    kinshipLabel(term, to.gender)?.let {
+        return stringResource(R.string.relation_answer_term, toName, fromName, it)
+    }
+
+    return when (term) {
+        // Married to somebody English has a word for, even though the marriage itself is not one.
+        is KinshipTerm.SpouseOf -> {
+            val married = state.chain.getOrNull(state.chain.lastIndex - 1)?.person ?: return null
+            kinshipLabel(term.relative, married.gender)?.let {
+                stringResource(R.string.relation_answer_married_to, toName, fromName, it)
+            }
+        }
+
+        // A blood relative of the subject's own spouse: named from the spouse's side.
+        is KinshipTerm.OfSpouse -> {
+            val spouse = state.chain.firstOrNull()?.person ?: return null
+            val relative = kinshipLabel(term.relative, to.gender) ?: return null
+            val spouseWord = kinshipLabel(KinshipTerm.Spouse, spouse.gender) ?: return null
+            stringResource(R.string.relation_answer_of_spouse, toName, fromName, relative, spouseWord)
+        }
+
+        else -> null
     }
 }

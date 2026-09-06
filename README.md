@@ -157,14 +157,22 @@ pure and JVM-tested):
   group is given one unnamed stand-in ancestor to measure through — otherwise an aunt reachable only
   through her brother comes back as merely "related", the gap in the record swallowing a word the
   family uses every day. The stand-in is never shown; it has no name to show.
+  A marriage at one *end* of the line is named too, because English names those: an uncle's wife is
+  an aunt, a wife's mother a mother-in-law. Where it has no single word the pieces still say who
+  somebody married — "married to Ankit's first cousin once removed" — which beats the flat
+  "related by marriage" that every relative anybody married into the family used to get. A marriage
+  in the *middle* is not nameable and is not named; "my aunt's husband's brother" is what he is, and
+  the chain says it better than an invented word could.
 - **The line between them** is a breadth-first search over *every* edge kind. Marriage is walked as
   well as blood, because "my wife's mother" is exactly what gets asked and no blood-only search can
   answer it. Blood steps are enqueued before marriage ones, so where two routes are the same length
   the one through the family wins — reaching a cousin via their husband is a true answer and a
   useless one.
 
-The chain is always shown and the word only when there is one, because the chain is the half a
-reader can check against their own memory. `Kinship` returns the term as a *structure*, not a
+The chain is always shown and the sentence only when there is one to give: a line amounting to
+"these two are related somehow" tells a reader nothing the chain does not tell them exactly. On a
+real 148-person tree that names 55% of all 21,756 ordered pairs, up from 31% when only blood
+counted; the rest read their answer off the chain. `Kinship` returns the term as a *structure*, not a
 string; the English lives in `ui/common/KinshipLabels.kt` with the rest of the app's words.
 
 **Shown on the chart, the line is drawn on its own** rather than lit up inside the whole tree.

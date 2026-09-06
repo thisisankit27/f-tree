@@ -114,11 +114,13 @@ class KinshipTest {
     }
 
     @Test
-    fun `a term is a claim about blood, so marriage does not get one`() {
-        assertNull(term("me", "wife"))
-        assertNull(term("me", "wifes-mother"))
-        // Two people married into the same family have no blood between them at all.
-        assertNull(term("wife", "mum"))
+    fun `a marriage is named where English has a name for it, and only there`() {
+        // These three used all to come back as "related by marriage", which said nothing about any
+        // of them and the same nothing about all of them.
+        assertEquals(KinshipTerm.Spouse, term("me", "wife"))
+        assertEquals(KinshipTerm.OfSpouse(KinshipTerm.Ancestor(1)), term("me", "wifes-mother"))
+        // And read the other way round, a mother-in-law.
+        assertEquals(KinshipTerm.OfSpouse(KinshipTerm.Ancestor(1)), term("wife", "mum"))
     }
 
     /* --------------------------------------------------------------- the chain */
@@ -154,8 +156,8 @@ class KinshipTest {
             ),
             relation.chain,
         )
-        assertTrue("no blood between them, so this is a marriage", relation.byMarriage)
-        assertNull(relation.term)
+        // No blood between them, but the marriage is at the end of the line, so it has a name.
+        assertEquals(KinshipTerm.OfSpouse(KinshipTerm.Ancestor(1)), relation.term)
     }
 
     @Test
@@ -262,7 +264,6 @@ class KinshipTest {
         val relation = Kinship.relate(snapshot, "me", "aunt") as Relation.Found
 
         assertEquals(KinshipTerm.ParentsSibling(greats = 0), relation.term)
-        assertFalse("blood, not marriage", relation.byMarriage)
     }
 
     @Test
@@ -389,5 +390,97 @@ class KinshipTest {
             3,
             layout.generations,
         )
+    }
+
+    /* ------------------------------------------------------- relationships through a marriage */
+
+    /*
+     * Reported against a real tree: the wife of somebody's father's cousin came back as "related by
+     * marriage", which is both awkward and useless — every relative anybody had married into the
+     * family got the same flat phrase. A marriage at one end of the line is nameable; one in the
+     * middle is not, and saying nothing is the honest answer there.
+     */
+
+    private fun married() = Builder()
+        .person("me", "wife", "dad", "mum", "grandad", "uncle", "uncles-wife", "sister",
+            "sisters-husband", "son", "sons-wife", "wifes-mother", "wifes-brother", "cousin",
+            "cousins-wife", "stepmum")
+        .married("me", "wife")
+        .parentOf("dad", "me").parentOf("mum", "me")
+        .parentOf("grandad", "dad").parentOf("grandad", "uncle")
+        .married("uncle", "uncles-wife")
+        .parentOf("dad", "sister").parentOf("mum", "sister")
+        .married("sister", "sisters-husband")
+        .parentOf("me", "son").married("son", "sons-wife")
+        .parentOf("wifes-mother", "wife").parentOf("wifes-mother", "wifes-brother")
+        .parentOf("uncle", "cousin").parentOf("uncles-wife", "cousin")
+        .married("cousin", "cousins-wife")
+        .married("dad", "stepmum")
+        .build()
+
+    private fun termOf(from: String, to: String) =
+        (Kinship.relate(married(), from, to) as Relation.Found).term
+
+    @Test
+    fun `somebody married to the subject is named, not called a marriage`() {
+        assertEquals(KinshipTerm.Spouse, termOf("me", "wife"))
+        assertEquals(KinshipTerm.Spouse, termOf("wife", "me"))
+    }
+
+    @Test
+    fun `a marriage at the far end of the line takes the name of who it married`() {
+        assertEquals(KinshipTerm.SpouseOf(KinshipTerm.ParentsSibling(0)), termOf("me", "uncles-wife"))
+        assertEquals(KinshipTerm.SpouseOf(KinshipTerm.Sibling), termOf("me", "sisters-husband"))
+        assertEquals(KinshipTerm.SpouseOf(KinshipTerm.Descendant(1)), termOf("me", "sons-wife"))
+        assertEquals(KinshipTerm.SpouseOf(KinshipTerm.Ancestor(1)), termOf("me", "stepmum"))
+        // No word in English for this one, but it still says exactly who she married.
+        assertEquals(KinshipTerm.SpouseOf(KinshipTerm.Cousin(1, 0)), termOf("me", "cousins-wife"))
+    }
+
+    @Test
+    fun `a marriage at the near end names a relative of the subject's own spouse`() {
+        assertEquals(KinshipTerm.OfSpouse(KinshipTerm.Ancestor(1)), termOf("me", "wifes-mother"))
+        assertEquals(KinshipTerm.OfSpouse(KinshipTerm.Sibling), termOf("me", "wifes-brother"))
+    }
+
+    @Test
+    fun `a marriage in the middle of the line is not named at all`() {
+        // "My uncle's wife's mother" is what she is, and no English word says it. The chain does.
+        val snapshot = Builder()
+            .person("me", "dad", "grandad", "uncle", "uncles-wife", "her-mother")
+            .parentOf("dad", "me").parentOf("grandad", "dad").parentOf("grandad", "uncle")
+            .married("uncle", "uncles-wife")
+            .parentOf("her-mother", "uncles-wife")
+            .build()
+
+        val relation = Kinship.relate(snapshot, "me", "her-mother") as Relation.Found
+
+        assertNull("saying nothing beats saying \"related by marriage\"", relation.term)
+        assertEquals("but the chain still reaches her", 4, relation.steps)
+    }
+
+    @Test
+    fun `two marriages on one line are not named either`() {
+        val snapshot = Builder()
+            .person("me", "wife", "her-brother", "his-wife")
+            .married("me", "wife")
+            .siblingOf("wife", "her-brother")
+            .married("her-brother", "his-wife")
+            .build()
+
+        assertNull(Kinship.relate(snapshot, "me", "his-wife").let { (it as Relation.Found).term })
+    }
+
+    @Test
+    fun `blood still wins when somebody is both a relative and married in`() {
+        // Cousins who marry: they are cousins, and that is the truer thing to say.
+        val snapshot = Builder()
+            .person("me", "dad", "grandad", "uncle", "cousin")
+            .parentOf("grandad", "dad").parentOf("grandad", "uncle")
+            .parentOf("dad", "me").parentOf("uncle", "cousin")
+            .married("me", "cousin")
+            .build()
+
+        assertEquals(KinshipTerm.Cousin(1, 0), (Kinship.relate(snapshot, "me", "cousin") as Relation.Found).term)
     }
 }

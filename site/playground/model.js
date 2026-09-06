@@ -434,7 +434,101 @@ export function relate(graph, fromId, toId) {
   if (best) term = kinshipTerm(best.u, best.d, to);
 
   const path = shortestPath(graph, fromId, toId);
-  return { kind: path ? 'related' : 'none', term, path, via: best?.ancestor ?? null };
+  if (!path) return { kind: 'none', term, path, via: best?.ancestor ?? null };
+
+  // No blood between them, but one marriage at one end of the line still has a name.
+  const affinal = term ? null : affinalTerm(graph, fromId, toId, path, standIns);
+  return {
+    kind: 'related',
+    term: term ?? affinal?.term ?? null,
+    marriedTo: affinal?.marriedTo ?? null,
+    ofSpouse: affinal?.ofSpouse ?? null,
+    path,
+    via: best?.ancestor ?? null,
+  };
+}
+
+/** The blood term between two people, ignoring the line the search happened to take. */
+function bloodTerm(graph, fromId, toId, standIns, other) {
+  const mine = ancestorDistances(graph, fromId, standIns);
+  const theirs = ancestorDistances(graph, toId, standIns);
+  let best = null;
+  for (const [ancestor, u] of mine) {
+    const d = theirs.get(ancestor);
+    if (d === undefined) continue;
+    const score = u + d;
+    if (!best || score < best.score
+        || (score === best.score && Math.abs(u - d) < Math.abs(best.u - best.d))) {
+      best = { ancestor, u, d, score };
+    }
+  }
+  return best ? kinshipTerm(best.u, best.d, other) : null;
+}
+
+/**
+ * The word for a relationship that runs through exactly one marriage.
+ *
+ * A marriage at one *end* of the line is nameable: everybody on the far side of it is a blood
+ * relative of somebody, and English hangs a word off that - my uncle's wife is my aunt, my wife's
+ * mother my mother-in-law. A marriage in the *middle* is not, and no amount of wanting makes it so:
+ * "my aunt's husband's brother" is what he is, and the chain says it better than any invented word.
+ *
+ * Where the end is nameable but English has no single word for it - a first cousin's wife - the
+ * pieces come back separately so the page can say who they married instead.
+ */
+function affinalTerm(graph, fromId, toId, path, standIns) {
+  const spouseSteps = path.filter((s) => s.via === 'spouse');
+  if (spouseSteps.length !== 1) return null;
+  const at = path.findIndex((s) => s.via === 'spouse');
+  const to = graph.people.get(toId);
+
+  if (path.length === 1) return { term: spouseLabel(to, null).toLowerCase() };
+
+  if (at === path.length - 1) {
+    const married = graph.people.get(path[path.length - 2].id);
+    const relative = bloodTerm(graph, fromId, married.id, standIns, married);
+    if (!relative) return null;
+    const named = inLawTerm(relative, to, 'spouse-of');
+    return named ? { term: named } : { marriedTo: { term: relative, person: married } };
+  }
+
+  if (at === 0) {
+    const spouse = graph.people.get(path[0].id);
+    const relative = bloodTerm(graph, spouse.id, toId, standIns, to);
+    if (!relative) return null;
+    const named = inLawTerm(relative, to, 'of-spouse');
+    return named ? { term: named } : { ofSpouse: { term: relative, spouse } };
+  }
+  return null;
+}
+
+/**
+ * The single word English has for a close relationship through marriage, or null.
+ *
+ * It names the near ones and nothing past them. Null is the useful answer for the rest: it is what
+ * tells the page to say who somebody married rather than reach for a word nobody says.
+ */
+function inLawTerm(relative, other, direction) {
+  const isUncleAunt = /(^|-)(uncle|aunt)$/.test(relative) || relative === 'aunt or uncle';
+  const isSibling = relative === 'brother' || relative === 'sister' || relative === 'sibling';
+  const isParent = relative === 'father' || relative === 'mother' || relative === 'parent';
+  const isChild = relative === 'son' || relative === 'daughter' || relative === 'child';
+
+  if (direction === 'spouse-of') {
+    // A parent's sibling's spouse is simply an aunt or an uncle, and always has been.
+    if (isUncleAunt) {
+      const greatCount = (relative.match(/great-/g) ?? []).length;
+      return 'great-'.repeat(greatCount) + byGender(other, 'uncle', 'aunt', 'aunt or uncle');
+    }
+    if (isSibling) return byGender(other, 'brother-in-law', 'sister-in-law', 'sibling-in-law');
+    if (isParent) return byGender(other, 'stepfather', 'stepmother', 'step-parent');
+    if (isChild) return byGender(other, 'son-in-law', 'daughter-in-law', 'child-in-law');
+    return null;
+  }
+  if (isParent) return byGender(other, 'father-in-law', 'mother-in-law', 'parent-in-law');
+  if (isSibling) return byGender(other, 'brother-in-law', 'sister-in-law', 'sibling-in-law');
+  if (isChild) return byGender(other, 'stepson', 'stepdaughter', 'stepchild');
+  return null;
 }
 
 /** Breadth-first over every edge kind, so in-laws and step-relations are reachable too. */
