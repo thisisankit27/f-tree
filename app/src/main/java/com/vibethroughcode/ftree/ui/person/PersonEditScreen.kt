@@ -8,6 +8,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.filled.AddAPhoto
@@ -61,6 +62,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.vibethroughcode.ftree.R
 import com.vibethroughcode.ftree.data.Gender
 import com.vibethroughcode.ftree.ui.FTreeViewModels
+import com.vibethroughcode.ftree.ui.common.readableMeasure
 import com.vibethroughcode.ftree.ui.theme.FTreeText
 
 const val EditNameFieldTag = "edit-name"
@@ -80,6 +82,7 @@ fun PersonEditScreen(
     viewModel: PersonEditViewModel = viewModel(factory = FTreeViewModels.Factory),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val crop by viewModel.crop.collectAsStateWithLifecycle()
     var confirmingDiscard by remember { mutableStateOf(false) }
 
     fun attemptBack() {
@@ -112,8 +115,9 @@ fun PersonEditScreen(
     ) { padding ->
         Column(
             modifier = Modifier
-                .fillMaxSize()
+                .fillMaxHeight()
                 .padding(padding)
+                .readableMeasure()
                 .verticalScroll(rememberScrollState())
                 .imePadding()
                 .padding(horizontal = 20.dp),
@@ -197,7 +201,14 @@ fun PersonEditScreen(
             title = { Text(stringResource(R.string.edit_discard_title)) },
             text = { Text(stringResource(R.string.edit_discard_body)) },
             confirmButton = {
-                TextButton(onClick = { confirmingDiscard = false; onBack() }) {
+                TextButton(
+                    onClick = {
+                        confirmingDiscard = false
+                        // Any photograph framed but never saved goes with the rest of the form.
+                        viewModel.onDiscarded()
+                        onBack()
+                    },
+                ) {
                     Text(stringResource(R.string.edit_discard_confirm))
                 }
             },
@@ -206,6 +217,16 @@ fun PersonEditScreen(
                     Text(stringResource(R.string.edit_discard_keep))
                 }
             },
+        )
+    }
+
+    // Over the form rather than a screen of its own: the picked image is a live bitmap that cannot
+    // be handed through a route, and cancelling must leave the form exactly as it was.
+    crop?.let { request ->
+        PhotoCropDialog(
+            request = request,
+            onCancel = viewModel::onCropCancelled,
+            onConfirm = viewModel::onCropConfirmed,
         )
     }
 }

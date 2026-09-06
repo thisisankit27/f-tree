@@ -63,8 +63,82 @@ class PhotoStoreTest {
         // A family of a thousand should not be carrying a thousand camera-resolution originals.
         assertTrue(
             "stored at ${bounds.outWidth}x${bounds.outHeight}",
-            maxOf(bounds.outWidth, bounds.outHeight) <= 1024,
+            maxOf(bounds.outWidth, bounds.outHeight) <= PhotoStore.STORED_EDGE,
         )
+    }
+
+    /**
+     * A framed photograph is kept as the square the reader chose, at the size every circle in the
+     * app can actually show. Both halves matter: the wrong square is the wrong face, and the wrong
+     * size is a tree that costs gigabytes to hold a few hundred portraits.
+     */
+    @Test
+    fun aFramedPhotoIsKeptAsASquareAtTheStoredSize() = runTest {
+        val source = Bitmap.createBitmap(2000, 1200, Bitmap.Config.ARGB_8888)
+
+        val id = store.saveCrop(source, SquareCrop(x = 400, y = 0, size = 1200))!!
+
+        val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+        BitmapFactory.decodeFile(store.file(id).absolutePath, bounds)
+        assertEquals(PhotoStore.STORED_EDGE, bounds.outWidth)
+        assertEquals(PhotoStore.STORED_EDGE, bounds.outHeight)
+    }
+
+    /** A square smaller than the kept size is left alone rather than blown up into blur. */
+    @Test
+    fun aSmallFramedPhotoIsNotEnlarged() = runTest {
+        val source = Bitmap.createBitmap(300, 300, Bitmap.Config.ARGB_8888)
+
+        val id = store.saveCrop(source, SquareCrop(x = 0, y = 0, size = 300))!!
+
+        val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+        BitmapFactory.decodeFile(store.file(id).absolutePath, bounds)
+        assertEquals(300, bounds.outWidth)
+    }
+
+    /**
+     * A square that runs off the edge of the picture is pulled back inside it.
+     *
+     * Not defensiveness for its own sake: Bitmap.createBitmap throws on an out-of-bounds rectangle,
+     * so a pixel of drift after a rotation would be a crash at the moment somebody saves a face.
+     */
+    @Test
+    fun aCropOutsideThePictureIsBroughtBackInsideIt() = runTest {
+        val source = Bitmap.createBitmap(400, 400, Bitmap.Config.ARGB_8888)
+
+        val id = store.saveCrop(source, SquareCrop(x = 380, y = 380, size = 400))
+
+        assertNotNull(id)
+        assertTrue(store.exists(id))
+    }
+
+    /**
+     * The chart holds hundreds of faces at once, so it is given small ones.
+     *
+     * The comparison that matters is against decoding the stored file whole, which is what a naive
+     * chart would do: at 512px in ARGB_8888 that is a megabyte per person, and a hundred people on
+     * screen would be a hundred megabytes of faces.
+     */
+    @Test
+    fun aThumbnailIsFarCheaperThanTheStoredPhotograph() = runTest {
+        val id = store.saveBytes(jpegBytes(1000, 1000))!!
+
+        val thumb = store.thumbnail(id, edgePx = 96)!!
+
+        // Decoding samples by powers of two, so the result lands within a factor of two of the ask.
+        assertTrue(
+            "thumbnail was ${thumb.width}x${thumb.height}",
+            maxOf(thumb.width, thumb.height) <= 96 * 2,
+        )
+        assertEquals(Bitmap.Config.RGB_565, thumb.config)
+
+        val whole = PhotoStore.STORED_EDGE * PhotoStore.STORED_EDGE * 4
+        assertTrue("thumbnail cost ${thumb.byteCount} bytes", thumb.byteCount * 8 < whole)
+    }
+
+    @Test
+    fun aThumbnailOfSomethingThatIsNotThereIsNothingRatherThanACrash() = runTest {
+        assertNull(store.thumbnail("gone.jpg", edgePx = 96))
     }
 
     @Test
