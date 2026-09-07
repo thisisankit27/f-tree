@@ -31,6 +31,26 @@ class UpdatePreferences(context: Context) {
         }
     }
 
+    private val _betaChannel = MutableStateFlow(prefs.getBoolean(KEY_BETA, false))
+
+    /**
+     * Whether the updater is willing to offer an unfinished release.
+     *
+     * Separate from [enabled] rather than a third state of it, because they answer different
+     * questions: whether the app may ask GitHub anything at all, and which answer it will accept.
+     * Turning this on while update checking is off does nothing, which is the honest arrangement —
+     * no setting here can start a request on its own.
+     */
+    val betaChannel: StateFlow<Boolean> = _betaChannel.asStateFlow()
+
+    fun setBetaChannel(value: Boolean) {
+        prefs.edit().putBoolean(KEY_BETA, value).apply()
+        _betaChannel.value = value
+        // A version skipped on one channel means nothing on the other: leaving it behind would
+        // silently hide the first release the reader has just asked to be offered.
+        prefs.edit().remove(KEY_SKIPPED).apply()
+    }
+
     var lastCheckedAt: Long
         get() = prefs.getLong(KEY_LAST_CHECKED, 0L)
         set(value) = prefs.edit().putLong(KEY_LAST_CHECKED, value).apply()
@@ -44,5 +64,6 @@ class UpdatePreferences(context: Context) {
         const val KEY_ENABLED = "enabled"
         const val KEY_LAST_CHECKED = "last-checked"
         const val KEY_SKIPPED = "skipped-version"
+        const val KEY_BETA = "beta-channel"
     }
 }

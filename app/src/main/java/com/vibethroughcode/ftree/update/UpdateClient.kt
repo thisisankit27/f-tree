@@ -20,11 +20,19 @@ import kotlin.coroutines.coroutineContext
  */
 class UpdateClient(
     private val releaseUrl: String = BuildConfig.UPDATE_RELEASE_URL,
+    private val releaseListUrl: String = BuildConfig.UPDATE_RELEASES_URL,
 ) {
 
-    /** Fetches the latest release as raw JSON. Parsing is [readRelease]'s job, and is pure. */
-    suspend fun fetchLatestRelease(): String = withContext(Dispatchers.IO) {
-        val connection = open(releaseUrl)
+    /**
+     * Fetches the release to consider, as raw JSON. Parsing is [readRelease]'s job, and is pure.
+     *
+     * [includePreReleases] chooses the endpoint rather than filtering afterwards, because GitHub's
+     * `releases/latest` does not merely hide pre-releases from the response — it answers a
+     * different question, and asking it would leave a beta reader looking at the stable release
+     * forever.
+     */
+    suspend fun fetchLatestRelease(includePreReleases: Boolean = false): String = withContext(Dispatchers.IO) {
+        val connection = open(if (includePreReleases) releaseListUrl else releaseUrl)
         connection.setRequestProperty("Accept", "application/vnd.github+json")
         try {
             val code = connection.responseCode

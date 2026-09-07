@@ -86,11 +86,21 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           apk="f-tree-${{ env.version }}.apk"
+
+          # A version with a suffix — 0.6.0-beta.1 — is a beta, and GitHub has to be told so. It is
+          # what keeps `releases/latest` answering with the last stable release, which is the whole
+          # mechanism separating the two channels in the app: the ordinary updater reads that
+          # endpoint and can therefore never be handed an unfinished build by accident.
+          case "${{ env.version }}" in
+            *-*) prerelease="--prerelease" ;;
+            *)   prerelease="" ;;
+          esac
+
           # Attach to a release written by hand if there is one; otherwise create it.
           if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
             gh release upload "$GITHUB_REF_NAME" "$apk" --clobber
           else
-            gh release create "$GITHUB_REF_NAME" "$apk" \
+            gh release create "$GITHUB_REF_NAME" "$apk" $prerelease \
               --title "f-tree ${{ env.version }}" \
               --generate-notes
           fi
