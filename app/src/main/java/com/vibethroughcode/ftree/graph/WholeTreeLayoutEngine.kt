@@ -618,8 +618,8 @@ object WholeTreeLayoutEngine {
     /* ------------------------------------------------------------------ connectors */
 
     private class Links(
-        val spouses: List<WholeSpouseLink>,
-        val descents: List<WholeDescentLink>,
+        val spouses: List<SpouseLink>,
+        val descents: List<DescentLink>,
         val brackets: List<SiblingBracket>,
     )
 
@@ -627,7 +627,7 @@ object WholeTreeLayoutEngine {
         snapshot: FamilySnapshot,
         byId: Map<String, WholeTreeNode>,
     ): Links {
-        val spouses = mutableListOf<WholeSpouseLink>()
+        val spouses = mutableListOf<SpouseLink>()
         snapshot.spouseEdges.forEach { (a, b) ->
             val na = byId[a] ?: return@forEach
             val nb = byId[b] ?: return@forEach
@@ -637,11 +637,10 @@ object WholeTreeLayoutEngine {
             // Drawn only when they are actually adjacent; a rule spanning three cards would read as
             // a marriage to whoever sits in between.
             if (lower.y - upper.bottom > TreeMetrics.STACK_GAP) return@forEach
-            spouses += WholeSpouseLink(
+            spouses += SpouseLink(
                 x = upper.centerX,
                 fromY = upper.bottom,
                 toY = lower.y,
-                ended = false,
                 aId = a,
                 bId = b,
             )
@@ -649,7 +648,7 @@ object WholeTreeLayoutEngine {
 
         // One descent per parent *set*, which is what puts a couple's children on a single bar and
         // hangs a half-sibling from their own.
-        val descents = mutableListOf<WholeDescentLink>()
+        val descents = mutableListOf<DescentLink>()
         snapshot.people.keys
             .mapNotNull { child ->
                 val parents = snapshot.parentsOf[child].orEmpty().sorted()
@@ -663,7 +662,7 @@ object WholeTreeLayoutEngine {
 
                 val originX = parentNodes.maxOf { it.right }
                 val childLeftX = childNodes.minOf { it.x }
-                descents += WholeDescentLink(
+                descents += DescentLink(
                     originX = originX,
                     originY = parentNodes.map { it.centerY }.average().toFloat(),
                     // Just before the nearest child, so a child placed further along gets a longer

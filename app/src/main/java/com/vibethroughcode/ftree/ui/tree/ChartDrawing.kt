@@ -24,7 +24,6 @@ import com.vibethroughcode.ftree.data.PartialDate
 import com.vibethroughcode.ftree.data.Person
 import com.vibethroughcode.ftree.graph.DescentLink
 import com.vibethroughcode.ftree.graph.TreeMetrics
-import com.vibethroughcode.ftree.graph.WholeDescentLink
 import com.vibethroughcode.ftree.ui.theme.FTreeText
 import kotlin.math.max
 import kotlin.math.min
@@ -60,11 +59,12 @@ internal fun visibleRegion(pan: Offset, zoom: Float, unitPx: Float, viewport: Si
     visibleRegion(pan, zoom, unitPx, viewport.width, viewport.height)
 
 /**
- * One family's descent: a drop from the parents, a bar across the children, and a drop to each.
+ * One family's descent: out to the right of the parents, a bar down the children, and a stub into
+ * each.
  *
  * The bar runs from the parents' stem to the far side of the children, rather than only between the
- * first child and the last. That is not a flourish: the parents' midpoint is regularly *outside* the
- * span of their own children — a couple whose eldest child has a wide subtree of their own gets
+ * first child and the last. That is not a flourish: the parents' middle is regularly *outside* the
+ * run of their own children — a couple whose eldest child has a large family of their own gets
  * pushed clear of the whole run — and a bar drawn only between the children then leaves the stem
  * ending in mid-air. The chart silently stops claiming the parentage it was drawn to state, and a
  * reader quite reasonably concludes those children have no recorded parents. It is one line of
@@ -75,51 +75,6 @@ internal fun visibleRegion(pan: Offset, zoom: Float, unitPx: Float, viewport: Si
  */
 fun DrawScope.drawDescent(
     link: DescentLink,
-    unitPx: Float,
-    color: Color,
-    strokeWidth: Float,
-    alpha: Float = 1f,
-) {
-    val originX = link.originX * unitPx
-    val busY = link.busY * unitPx
-    val xs = link.childXs.map { it * unitPx }
-    if (xs.isEmpty()) return
-
-    drawLine(
-        color = color,
-        start = Offset(originX, link.originY * unitPx),
-        end = Offset(originX, busY),
-        strokeWidth = strokeWidth,
-        alpha = alpha,
-    )
-    drawLine(
-        color = color,
-        start = Offset(link.barStart * unitPx, busY),
-        end = Offset(link.barEnd * unitPx, busY),
-        strokeWidth = strokeWidth,
-        alpha = alpha,
-    )
-    xs.forEach { x ->
-        drawLine(
-            color = color,
-            start = Offset(x, busY),
-            end = Offset(x, link.childTopY * unitPx),
-            strokeWidth = strokeWidth,
-            alpha = alpha,
-        )
-    }
-}
-
-/**
- * The same descent, drawn sideways: out to the right of the parents, a bar down the children, and a
- * stub into each.
- *
- * The whole-tree chart runs left to right, so its connectors are this one turned through a right
- * angle. Written beside [drawDescent] rather than derived from it: they are the same idea in the
- * same notation, and keeping them next to each other is how they stay that way.
- */
-fun DrawScope.drawDescentSideways(
-    link: WholeDescentLink,
     unitPx: Float,
     color: Color,
     strokeWidth: Float,

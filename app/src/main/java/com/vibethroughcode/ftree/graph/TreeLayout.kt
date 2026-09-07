@@ -22,45 +22,66 @@ data class TreeNode(
     val bottom: Float get() = y + height
 }
 
-/** The doubled rule drawn between partners. */
-data class SpouseLink(val fromX: Float, val toX: Float, val y: Float)
+/**
+ * The doubled rule drawn between partners, down the side of the couple.
+ *
+ * Vertical because both charts run sideways: a generation is a column, so a couple is stacked one
+ * above the other and the rule that marries them runs between their facing edges.
+ */
+data class SpouseLink(
+    val x: Float,
+    val fromY: Float,
+    val toY: Float,
+    val aId: String = "",
+    val bId: String = "",
+) {
+    fun touches(personId: String): Boolean = personId == aId || personId == bId
+}
 
 /**
- * One family's descent: a drop from the parents, a bar across the children, and a drop to each.
+ * One family's descent: out to the right of the parents, a bar down the children, and a stub into
+ * each.
  *
  * Grouped by *parent set* rather than by individual parent, so a couple's children hang from one
  * connector while a half-sibling hangs from their own — which is what makes a second marriage
  * legible instead of a tangle of crossing lines.
  *
  * It carries the people it joins as well as the coordinates, because a connector that cannot say
- * whose it is cannot take part in anything the chart does with a selection. Without them the only
+ * whose it is cannot take part in anything a chart does with a selection. Without them the only
  * honest thing a highlight could do was fade the cards and leave every line at full strength —
  * which is to dim the hundred and forty people you can already tell apart and keep the lattice you
  * cannot.
+ *
+ * One type for both charts. They drew the same idea on different axes until each was turned
+ * sideways, and two shapes for one notation is how a coordinate ends up meaning different things
+ * depending on who is reading it.
  */
 data class DescentLink(
+    /** Where the stem leaves the parents: their right edge, at their middle. */
     val originX: Float,
     val originY: Float,
-    val busY: Float,
-    val childXs: List<Float>,
-    val childTopY: Float,
+    /** The column the bar stands in, between the parents and the children. */
+    val busX: Float,
+    val childYs: List<Float>,
+    /** The left edge of the children's column, where each stub arrives. */
+    val childLeftX: Float,
     val parentIds: List<String> = emptyList(),
-    /** In the same order as [childXs], so a drop and a child can be matched up. */
+    /** In the same order as [childYs], so a stub and a child can be matched up. */
     val childIds: List<String> = emptyList(),
 ) {
     /** Whether this connector runs to or from [personId] — a parent on it, or one of the children. */
     fun touches(personId: String): Boolean = personId in parentIds || personId in childIds
 
     /**
-     * The horizontal bar's extent: from the parents' stem across to the far side of the children.
+     * The bar's extent: from the parents' stem across to the far side of the children.
      *
      * Expressed here rather than worked out at drawing time so that "the bar reaches everything it
      * has to join" is a property of the connector that a test can hold it to, instead of a detail
      * of one canvas that happened to be right. Drawing the bar between the children alone is what
      * left a stem hanging in mid-air whenever the parents sat outside their own children's span.
      */
-    val barStart: Float get() = minOf(originX, childXs.minOrNull() ?: originX)
-    val barEnd: Float get() = maxOf(originX, childXs.maxOrNull() ?: originX)
+    val barStart: Float get() = minOf(originY, childYs.minOrNull() ?: originY)
+    val barEnd: Float get() = maxOf(originY, childYs.maxOrNull() ?: originY)
 }
 
 data class TreeLayout(

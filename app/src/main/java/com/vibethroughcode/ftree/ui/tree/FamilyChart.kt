@@ -196,14 +196,15 @@ fun FamilyChart(
                     drawDescent(link, unitPx, accents.rule, rulePx)
                 }
 
-                // Marriage is the doubled rule, as on a drawn pedigree.
+                // Marriage is the doubled rule, as on a drawn pedigree — down the side of the
+                // couple, since a generation is a column and the two are stacked.
                 layout.spouseLinks.forEach { link ->
-                    val y = link.y * unitPx
-                    listOf(-spouseGapPx, spouseGapPx).forEach { dy ->
+                    val x = link.x * unitPx
+                    listOf(-spouseGapPx, spouseGapPx).forEach { dx ->
                         drawLine(
                             color = accents.spouseLink,
-                            start = Offset(link.fromX * unitPx, y + dy),
-                            end = Offset(link.toX * unitPx, y + dy),
+                            start = Offset(x + dx, link.fromY * unitPx),
+                            end = Offset(x + dx, link.toY * unitPx),
                             strokeWidth = rulePx,
                         )
                     }

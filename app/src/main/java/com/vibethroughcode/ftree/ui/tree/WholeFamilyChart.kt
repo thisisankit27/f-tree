@@ -373,7 +373,7 @@ fun WholeFamilyChart(
                 layout.descentLinks.forEach { link ->
                     if (link.busX < visible.left || link.originX > visible.right) return@forEach
                     val on = lit != null && link.touches(lit)
-                    drawDescentSideways(
+                    drawDescent(
                         link = link,
                         unitPx = unitPx,
                         color = if (on) colors.primary else accents.rule,
