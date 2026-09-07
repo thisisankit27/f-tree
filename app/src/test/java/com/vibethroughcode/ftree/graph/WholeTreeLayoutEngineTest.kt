@@ -55,8 +55,9 @@ class WholeTreeLayoutEngineTest {
         .person("stranger-1", "1930").person("stranger-2").person("stranger-3", "1955")
         .build()
 
+    /** The people of one generation: a column now, since the chart reads left to right. */
     private fun WholeTreeLayout.rows(): Map<Int, List<WholeTreeNode>> =
-        nodes.groupBy { it.y.toInt() }
+        nodes.groupBy { it.x.toInt() }
 
     @Test
     fun `every person is placed exactly once`() {
@@ -69,14 +70,14 @@ class WholeTreeLayoutEngineTest {
     }
 
     @Test
-    fun `nobody overlaps anybody on their own row`() {
+    fun `nobody overlaps anybody in their own generation`() {
         val layout = WholeTreeLayoutEngine.layout(archive())
 
-        layout.rows().forEach { (_, row) ->
-            row.sortedBy { it.x }.zipWithNext { left, right ->
-                val gap = right.x - (left.x + TreeMetrics.NODE_WIDTH)
+        layout.rows().forEach { (_, column) ->
+            column.sortedBy { it.y }.zipWithNext { upper, lower ->
+                val gap = lower.y - (upper.y + TreeMetrics.NODE_HEIGHT)
                 assertTrue(
-                    "${left.person.id} and ${right.person.id} overlap by ${-gap}",
+                    "${upper.person.id} and ${lower.person.id} overlap by ${-gap}",
                     gap >= -0.5f,
                 )
             }
@@ -89,24 +90,25 @@ class WholeTreeLayoutEngineTest {
         val me = layout.node("me")!!
         val spouse = layout.node("spouse")!!
 
-        assertEquals("partners share a row", me.y, spouse.y, 0.01f)
-        val between = abs(spouse.x - me.x) - TreeMetrics.NODE_WIDTH
+        assertEquals("partners share a generation", me.x, spouse.x, 0.01f)
+        val between = abs(spouse.y - me.y) - TreeMetrics.NODE_HEIGHT
         assertTrue(
-            "partners $between apart, which is not closer than the $${TreeMetrics.SIBLING_GAP} " +
+            "partners $between apart, which is not closer than the ${TreeMetrics.STACK_GAP} " +
                 "that separates strangers",
-            between <= TreeMetrics.SIBLING_GAP,
+            between <= TreeMetrics.STACK_GAP,
         )
     }
 
     @Test
-    fun `children are drawn below their parents`() {
+    fun `children are drawn after their parents`() {
         val snapshot = archive()
         val layout = WholeTreeLayoutEngine.layout(snapshot)
 
+        // The chart reads left to right, so descent runs along x rather than down y.
         snapshot.parentEdges.forEach { (parent, child) ->
-            val above = layout.node(parent)!!
-            val below = layout.node(child)!!
-            assertTrue("$child is not below $parent", below.y > above.y)
+            val before = layout.node(parent)!!
+            val after = layout.node(child)!!
+            assertTrue("$child is not after $parent", after.x > before.x)
         }
     }
 
@@ -136,7 +138,7 @@ class WholeTreeLayoutEngineTest {
     }
 
     @Test
-    fun `a parent sits directly above their earliest child, however deep that child is`() {
+    fun `a parent sits directly beside their earliest child, however deep that child is`() {
         // Longest-path ranking alone would strand the in-law at the top of the chart, trailing a
         // connector the height of it, because their only child married three generations down.
         val snapshot = Builder()
@@ -152,9 +154,9 @@ class WholeTreeLayoutEngineTest {
         val inLaw = layout.node("in-law")!!
         val inLawParent = layout.node("in-law-parent")!!
 
-        assertEquals("married pair share a row", layout.node("g4")!!.y, inLaw.y, 0.01f)
+        assertEquals("married pair share a generation", layout.node("g4")!!.x, inLaw.x, 0.01f)
         assertEquals(
-            "the in-law's parent belongs one row above them, not at the top of the chart",
+            "the in-law's parent belongs one generation before them, not at the start of the chart",
             inLaw.level - 1,
             inLawParent.level,
         )
@@ -176,9 +178,9 @@ class WholeTreeLayoutEngineTest {
             .build()
 
         val layout = WholeTreeLayoutEngine.layout(snapshot)
-        val husband = layout.node("husband")!!.x
-        val first = layout.node("first-wife")!!.x
-        val second = layout.node("second-wife")!!.x
+        val husband = layout.node("husband")!!.y
+        val first = layout.node("first-wife")!!.y
+        val second = layout.node("second-wife")!!.y
 
         assertTrue(
             "the husband must separate his two wives, not stand beside both of them",
@@ -203,7 +205,7 @@ class WholeTreeLayoutEngineTest {
         assertEquals(2, layout.descentLinks.size)
         assertEquals(
             listOf(1, 2),
-            layout.descentLinks.map { it.childXs.size }.sorted(),
+            layout.descentLinks.map { it.childYs.size }.sorted(),
         )
     }
 
@@ -383,9 +385,9 @@ class WholeTreeLayoutEngineTest {
         layout.descentLinks.forEach { link ->
             assertTrue(
                 "the bar must reach the parents it descends from",
-                link.originX in link.barStart..link.barEnd,
+                link.originY in link.barStart..link.barEnd,
             )
-            link.childXs.forEach {
+            link.childYs.forEach {
                 assertTrue("the bar must reach every child", it in link.barStart..link.barEnd)
             }
         }
@@ -412,13 +414,56 @@ class WholeTreeLayoutEngineTest {
     }
 
     @Test
-    fun `a drop matches the child underneath it`() {
+    fun `a stub matches the child beside it`() {
         val layout = WholeTreeLayoutEngine.layout(archive())
         layout.descentLinks.forEach { link ->
-            assertEquals(link.childXs.size, link.childIds.size)
+            assertEquals(link.childYs.size, link.childIds.size)
             link.childIds.forEachIndexed { index, id ->
-                assertEquals(layout.node(id)!!.centerX, link.childXs[index], 0.01f)
+                assertEquals(layout.node(id)!!.centerY, link.childYs[index], 0.01f)
             }
         }
+    }
+
+    /**
+     * The point of the rotation, as an assertion.
+     *
+     * A family record's size shows up as one very populous generation, and a generation to a row
+     * turns that into a ribbon no phone can show: Ankit's is 78 cards wide and 5 tall. Turned on its
+     * side the same shape becomes something a phone scrolls. If this ever inverts, the chart has
+     * gone back to being the wrong way round for the thing it is read on.
+     */
+    @Test
+    fun `a populous generation makes a tall chart rather than a wide one`() {
+        val builder = Builder()
+            .person("dad", "1900").person("mum", "1904")
+            .married("dad", "mum")
+        repeat(30) { i ->
+            builder.person("child-$i", (1925 + i).toString())
+            builder.parentOf("dad", "child-$i").parentOf("mum", "child-$i")
+        }
+
+        val layout = WholeTreeLayoutEngine.layout(builder.build())
+
+        assertEquals(32, layout.nodes.size)
+        assertTrue(
+            "thirty siblings should run down the screen, not across it — " +
+                "got ${layout.width} x ${layout.height}",
+            layout.height > layout.width * 2f,
+        )
+        // Two generations, so the chart is two columns wide however many children there are.
+        assertEquals(2, layout.nodes.map { it.x }.distinct().size)
+        assertEquals(30, layout.nodes.count { it.level == 1 })
+    }
+
+    @Test
+    fun `a marriage is a rule down the side of the couple, not across it`() {
+        val layout = WholeTreeLayoutEngine.layout(archive())
+        val marriage = layout.spouseLinks.single { it.touches("me") && it.touches("spouse") }
+
+        val me = layout.node("me")!!
+        val spouse = layout.node("spouse")!!
+        assertEquals("a couple shares a generation", me.x, spouse.x, 0.01f)
+        assertTrue("the rule runs down, from one to the other", marriage.toY > marriage.fromY)
+        assertEquals(me.centerX, marriage.x, 0.01f)
     }
 }

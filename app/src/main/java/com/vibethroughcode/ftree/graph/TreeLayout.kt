@@ -112,6 +112,18 @@ object TreeMetrics {
     /** Between generations, leaving room for the descent connectors. */
     const val LEVEL_GAP = 76f
 
+    /**
+     * The whole-tree chart runs sideways, so it needs the same three gaps measured the other way.
+     *
+     * Between people in a generation the gap is smaller than [SIBLING_GAP]: that gap separates
+     * cards along their long edge, where 36 is what it takes to read as a break, and these are
+     * stacked along their short one. Between generations it is larger than [LEVEL_GAP], because a
+     * descent now leaves sideways and needs room for a stem, a bar and a stub in the space a
+     * vertical chart only has to fit a drop into.
+     */
+    const val STACK_GAP = 22f
+    const val GENERATION_GAP = 104f
+
     const val MARGIN = 24f
 
     /**
