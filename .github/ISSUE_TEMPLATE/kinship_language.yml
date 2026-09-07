@@ -1,0 +1,67 @@
+name: 🌏 Kinship terms in another language
+description: Offer to help name relationships the way your family does.
+labels: ["kinship", "help wanted", "good first issue"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **This is the most valuable contribution the project can receive, and it needs a native
+        speaker far more than it needs a developer.**
+
+        English kinship is two numbers — generations up to a shared ancestor, generations back down
+        — which throws away the side of the family and the birth order. Most languages need both.
+        f-tree already carries a `KinshipPath` recording the genders the line ran through and,
+        where the dates prove it, which of two siblings was born first.
+
+        **Bengali, Marathi, Gujarati, Punjabi, Tamil and Telugu are structurally covered by that
+        model already.** Each is a word list plus a small rules file.
+
+        Terms will not ship in a language without a native speaker checking them, so an offer to
+        *review* a list is as useful as an offer to write one.
+
+        See [docs/kinship-hindi.md](https://github.com/thisisankit27/f-tree/blob/main/docs/kinship-hindi.md)
+        for the shape of an existing one.
+
+  - type: input
+    id: language
+    attributes:
+      label: Which language
+      placeholder: Bengali
+    validations:
+      required: true
+
+  - type: dropdown
+    id: help
+    attributes:
+      label: How would you like to help?
+      multiple: true
+      options:
+        - Write the word list
+        - Review a word list somebody else writes
+        - Write the rules file (Kotlin)
+        - Test it against my own family
+    validations:
+      required: true
+
+  - type: textarea
+    id: distinctions
+    attributes:
+      label: What distinctions does your language make that English does not?
+      description: |
+        This is the part that decides whether the existing model covers it. For example, Hindi
+        needs the side of the family and the relative birth order to pick between five words
+        English calls "uncle".
+      placeholder: |
+        - Mother's brother vs father's brother: different words
+        - Elder vs younger sibling: different words
+        - Does the speaker's gender change the term?
+    validations:
+      required: true
+
+  - type: textarea
+    id: notes
+    attributes:
+      label: Anything else
+      description: Regional variation, script, transliteration preferences, or where a term is contested.
+    validations:
+      required: false

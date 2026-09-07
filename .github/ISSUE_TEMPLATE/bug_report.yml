@@ -1,0 +1,99 @@
+name: 🐛 Bug report
+description: Something in the app does not behave the way it says it does.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time. Two things matter most: **what you expected to happen**, and
+        **the shape of the family** it happened with.
+
+        ⚠️ **Please do not attach a real family's data or an unredacted `.ftree`.** Describe the
+        shape instead — "two half-siblings whose shared parent is unknown" — or reproduce it with
+        the debug seeder. If a file really is the only way to show it, invent the names.
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: What did the app do?
+      placeholder: The chart drew my grandfather on the same row as my great-grandmother.
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected instead
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: How to reproduce it
+      description: Numbered steps, if you can. Include the shape of the family involved.
+      placeholder: |
+        1. Add a person with no name as a parent of …
+        2. Open the Everyone view
+        3. …
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Which part of the app
+      options:
+        - The chart (Chart / Everyone)
+        - The compact view
+        - The relation finder
+        - Hindi kinship terms
+        - Adding or editing a person
+        - Import, export or merge
+        - Sharing a branch or a relationship card
+        - Photos
+        - Updating in place
+        - The website or the browser viewer
+        - Something else / not sure
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: f-tree version
+      description: Settings → About, or the name of the APK you installed.
+      placeholder: "0.7.0"
+    validations:
+      required: true
+
+  - type: input
+    id: device
+    attributes:
+      label: Phone and Android version
+      placeholder: "Pixel 6a, Android 15"
+    validations:
+      required: true
+
+  - type: textarea
+    id: extra
+    attributes:
+      label: Screenshots or anything else
+      description: |
+        Screenshots help a lot for layout problems. Blur or crop out real names first.
+        A `logcat` excerpt is welcome for a crash.
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before submitting
+      options:
+        - label: I searched the existing issues.
+          required: true
+        - label: I am on the latest release, or I have said which older one I am on.
+          required: true
+        - label: This report contains no real personal data belonging to anyone but me.
+          required: true

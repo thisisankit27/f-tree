@@ -1,0 +1,14 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 💬 Questions and ideas
+    url: https://github.com/thisisankit27/f-tree/discussions
+    about: Ask how something works, or float an idea before it becomes an issue.
+  - name: 🔒 Report a security vulnerability
+    url: https://github.com/thisisankit27/f-tree/security/advisories/new
+    about: Please do not open a public issue for a security problem. Report it privately here.
+  - name: 📖 Documentation
+    url: https://github.com/thisisankit27/f-tree/tree/main/docs
+    about: Architecture, the .ftree format, the data model, and how to build.
+  - name: 🌐 Website and install guide
+    url: https://ftree.vibethroughcode.com/
+    about: Download the app, check a release hash, or try the browser viewer.

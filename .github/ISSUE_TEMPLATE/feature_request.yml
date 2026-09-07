@@ -1,0 +1,48 @@
+name: 💡 Feature request
+description: Suggest something f-tree should be able to do.
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        f-tree is deliberately small, and some things are
+        [deliberately not built](https://github.com/thisisankit27/f-tree#deliberately-not-built) —
+        GEDCOM, cloud sync, transactional undo. Suggesting one of those is still fine; just say why
+        the stated reasoning does not hold for your case, because that is the interesting part.
+
+        The [design decisions table](https://github.com/thisisankit27/f-tree/blob/main/docs/architecture.md#design-decisions-worth-knowing)
+        records why the obvious alternative was not chosen in a dozen places. Worth a skim.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What are you trying to do?
+      description: Describe the situation, not the solution. What did you reach for the app to do?
+      placeholder: I wanted to record that my grandmother was adopted, but …
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What would you like f-tree to do?
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: What do you do at the moment instead?
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: scope
+    attributes:
+      label: Does this fit the project?
+      description: f-tree keeps everything on the device and asks for nothing.
+      options:
+        - label: This does not require an account, a server, or sending anything off the device.
+          required: false
+        - label: I have read "Deliberately not built" in the README.
+          required: true
