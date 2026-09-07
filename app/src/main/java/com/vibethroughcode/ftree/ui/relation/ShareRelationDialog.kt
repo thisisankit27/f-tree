@@ -1,21 +1,17 @@
 package com.vibethroughcode.ftree.ui.relation
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Share
@@ -24,31 +20,29 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.TransformOrigin
-import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.layer.GraphicsLayer
 import androidx.compose.ui.graphics.layer.drawLayer
 import androidx.compose.ui.graphics.rememberGraphicsLayer
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
@@ -58,9 +52,8 @@ import com.vibethroughcode.ftree.graph.Relation
 import com.vibethroughcode.ftree.ui.common.displayName
 import com.vibethroughcode.ftree.ui.theme.FTreeText
 import kotlinx.coroutines.launch
+import kotlin.math.roundToInt
 
-const val ShareCardTreeTag = "share-card-tree"
-const val ShareCardListTag = "share-card-list"
 const val ShareCardSendTag = "share-card-send"
 const val ShareCardPreviewTag = "share-card-preview"
 
@@ -85,7 +78,6 @@ fun ShareRelationDialog(
     onDismiss: () -> Unit,
     onSend: (RelationPicture) -> Unit,
 ) {
-    var style by rememberSaveable { mutableStateOf(CardStyle.TREE) }
     var working by remember { mutableStateOf(false) }
     val layer = rememberGraphicsLayer()
     val scope = rememberCoroutineScope()
@@ -123,35 +115,19 @@ fun ShareRelationDialog(
                     )
                 }
 
-                Box(
-                    modifier = Modifier.fillMaxWidth().weight(1f).padding(horizontal = 20.dp),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    CardPreview(state, relation, style, layer)
-                }
+                CardPreview(
+                    state = state,
+                    relation = relation,
+                    layer = layer,
+                    modifier = Modifier.fillMaxWidth().weight(1f).padding(horizontal = 20.dp, vertical = 8.dp),
+                )
 
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .widthIn(max = 480.dp)
                         .padding(horizontal = 20.dp, vertical = 12.dp),
                     verticalArrangement = Arrangement.spacedBy(14.dp),
                 ) {
-                    SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
-                        SegmentedButton(
-                            selected = style == CardStyle.TREE,
-                            onClick = { style = CardStyle.TREE },
-                            shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2),
-                            modifier = Modifier.testTag(ShareCardTreeTag),
-                        ) { Text(stringResource(R.string.card_style_tree)) }
-                        SegmentedButton(
-                            selected = style == CardStyle.LIST,
-                            onClick = { style = CardStyle.LIST },
-                            shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2),
-                            modifier = Modifier.testTag(ShareCardListTag),
-                        ) { Text(stringResource(R.string.card_style_list)) }
-                    }
-
                     // Shown rather than hidden: somebody about to post this in a family group should
                     // know what is going with it before the chat app opens, not after.
                     Column {
@@ -210,40 +186,49 @@ fun ShareRelationDialog(
 private fun CardPreview(
     state: RelationUiState,
     relation: Relation.Found,
-    style: CardStyle,
-    layer: androidx.compose.ui.graphics.layer.GraphicsLayer,
+    layer: GraphicsLayer,
+    modifier: Modifier = Modifier,
 ) {
-    val outer = LocalDensity.current
-    BoxWithConstraints(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        val widthPx = CARD_PIXEL_WIDTH
-        val heightPx = CARD_PIXEL_HEIGHT
-        val scale = minOf(
-            constraints.maxWidth / widthPx.toFloat(),
-            constraints.maxHeight / heightPx.toFloat(),
-        ).coerceAtMost(1f)
-
-        Box(
-            modifier = Modifier
-                .size(with(outer) { (widthPx * scale).toDp() }, with(outer) { (heightPx * scale).toDp() })
-                .testTag(ShareCardPreviewTag),
-        ) {
-            CompositionLocalProvider(LocalDensity provides Density(CARD_DENSITY, 1f)) {
-                Box(
-                    Modifier
-                        .requiredSize(CARD_WIDTH, CARD_HEIGHT)
-                        .graphicsLayer {
-                            scaleX = scale
-                            scaleY = scale
-                            transformOrigin = TransformOrigin(0f, 0f)
-                        }
-                        .drawWithContent {
-                            layer.record { this@drawWithContent.drawContent() }
-                            drawLayer(layer)
-                        },
-                ) {
-                    RelationCard(state = state, relation = relation, style = style)
-                }
+    Box(modifier.clipToBounds(), contentAlignment = Alignment.Center) {
+        CompositionLocalProvider(LocalDensity provides Density(CARD_DENSITY, 1f)) {
+            Box(
+                Modifier
+                    .testTag(ShareCardPreviewTag)
+                    .scaledToFit()
+                    .requiredSize(CARD_WIDTH, CARD_HEIGHT)
+                    .drawWithContent {
+                        layer.record { this@drawWithContent.drawContent() }
+                        drawLayer(layer)
+                    },
+            ) {
+                RelationCard(state = state, relation = relation)
             }
+        }
+    }
+}
+
+/**
+ * Fits whatever it wraps to the room it is given, and then takes up exactly that much room.
+ *
+ * The scale is worked out and applied in one measurement, so what the parent is told about this
+ * element is by construction the size it draws at. Kept as one function because the alternative —
+ * measuring in one place and scaling in another — is how a preview ends up centred on a size it
+ * isn't, hanging off the top-left corner of its own frame.
+ */
+private fun Modifier.scaledToFit(): Modifier = layout { measurable, constraints ->
+    // Measured free of the incoming constraints: the card has a size of its own and it is that size
+    // being fitted, not a squashed version of it. What is scaled is a recorded display list, so a
+    // roomy screen gets a larger card drawn again rather than a small one stretched.
+    val placeable = measurable.measure(Constraints())
+    val scale = minOf(
+        constraints.maxWidth / placeable.width.toFloat(),
+        constraints.maxHeight / placeable.height.toFloat(),
+    )
+    layout((placeable.width * scale).roundToInt(), (placeable.height * scale).roundToInt()) {
+        placeable.placeWithLayer(0, 0) {
+            scaleX = scale
+            scaleY = scale
+            transformOrigin = TransformOrigin(0f, 0f)
         }
     }
 }
