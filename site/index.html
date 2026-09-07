@@ -3,17 +3,49 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>f-tree — a family tree that holds the people you can't name</title>
-<meta name="description" content="A free, open-source family tree app for Android. Record relatives whose names nobody remembers, keep the whole tree on your phone, and merge someone else's tree into yours without overwriting a thing.">
+<title>f-tree — a private family tree app for Android, with a relationship finder</title>
+<meta name="description" content="A free, offline family tree app for Android. Ask how any two people are related and it names the relationship and shows the line. Record relatives whose names nobody remembers, keep everything on your phone, and share a branch as a file. No account, no server. English and Hindi kinship terms.">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="canonical" href="https://ftree.vibethroughcode.com/">
 
 <meta property="og:type" content="website">
+<meta property="og:site_name" content="f-tree">
 <meta property="og:url" content="https://ftree.vibethroughcode.com/">
-<meta property="og:title" content="f-tree — a family tree that holds the people you can't name">
-<meta property="og:description" content="Free and open source, for Android. No account, no server, no permissions. Your family tree stays on your phone.">
-<meta property="og:image" content="https://ftree.vibethroughcode.com/shots/tree.webp">
+<meta property="og:title" content="f-tree — your family tree, including the people nobody can name">
+<meta property="og:description" content="Ask how any two people are related and f-tree answers, then shows you the line. Free for Android. No account, no server — your family stays on your phone.">
+<meta property="og:image" content="https://ftree.vibethroughcode.com/og-card.png">
+<meta property="og:image:type" content="image/png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="f-tree — your family tree, including the people nobody can name. Beside it, the picture the app makes of a relationship: Rohit is Aarav Kumar's first cousin once removed.">
 <meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="f-tree — your family tree, including the people nobody can name">
+<meta name="twitter:description" content="Ask how any two people are related and f-tree answers, then shows you the line. Free for Android. No account, no server.">
+<meta name="twitter:image" content="https://ftree.vibethroughcode.com/og-card.png">
+
+<!--
+  Structured data. Deliberately without a version or a rating: the version is read live from
+  the GitHub releases API so that cutting a release needs no edit here, and there are no
+  ratings or review counts to state.
+-->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "f-tree",
+  "description": "A local-first family tree app for Android. Records relatives whose names are not known, names the relationship between any two people and shows the line between them, and keeps everything on the device.",
+  "url": "https://ftree.vibethroughcode.com/",
+  "applicationCategory": "LifestyleApplication",
+  "operatingSystem": "Android 8.0+",
+  "downloadUrl": "https://github.com/thisisankit27/f-tree/releases/latest",
+  "installUrl": "https://ftree.vibethroughcode.com/thanks/",
+  "license": "https://github.com/thisisankit27/f-tree/blob/main/LICENSE",
+  "isAccessibleForFree": true,
+  "inLanguage": ["en", "hi"],
+  "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+  "author": { "@type": "Person", "name": "thisisankit27", "url": "https://github.com/thisisankit27" }
+}
+</script>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -37,6 +69,7 @@
       f-tree
     </a>
     <nav>
+      <a class="nav-link" href="#relate">Relation finder</a>
       <a class="nav-link" href="#what">What it does</a>
       <a class="nav-link" href="#merge">Sharing</a>
       <a class="nav-link" href="playground/">Viewer</a>
@@ -51,12 +84,12 @@
 <!-- ============================================================ hero -->
 <section class="shell hero">
   <div>
-    <p class="eyebrow">For Android · Free · Open source</p>
-    <h1>Record the relatives <em>whose names nobody remembers.</em></h1>
+    <p class="eyebrow">For Android · Free · No account · Open source</p>
+    <h1>Your family tree, <em>including the people nobody can name.</em></h1>
     <p class="lede">
-      f-tree treats a person you can't name as a real person. Add your grandfather's
-      brother now, fill in who he was whenever you find out, and everything you built
-      around him stays exactly where it is. The whole tree lives on your phone.
+      f-tree keeps your family on your phone — every branch, every marriage, and the
+      relatives whose names were never written down. Ask it how any two people are
+      related and it gives you the word for it, and the line it followed to get there.
     </p>
 
     <div class="cta-row">
@@ -70,12 +103,7 @@
     </div>
 
     <p class="spec" id="spec">
-      <span data-spec="version">Latest release</span><span class="sep">·</span><span data-spec="size">~2 MB</span><span class="sep">·</span><span>Android 8.0+</span><span class="sep">·</span><span>MIT licence</span>
-    </p>
-
-    <p class="counter" id="counter" data-state="loading">
-      <b id="counter-value">&mdash;</b><br>
-      <span id="counter-label">downloads so far, counted by GitHub rather than by us</span>
+      <span data-spec="version">Latest release</span><span class="sep" aria-hidden="true">·</span><span data-spec="size">~2 MB</span><span class="sep" aria-hidden="true">·</span><span>Android 8.0+</span><span class="sep" aria-hidden="true">·</span><span>MIT licence</span>
     </p>
   </div>
 
@@ -151,6 +179,101 @@
   </div>
 </section>
 
+<!-- ============================================================ relation finder -->
+<!--
+  The magic moment, and the reason this section sits directly under the hero rather than as
+  the third bullet of six. The demo is a screen recording of the shipped release doing exactly
+  what the copy says — no mock-ups — and it stays click-to-play with preload="none" so the page
+  costs nothing on a phone until somebody asks for it.
+-->
+<section class="band" id="relate">
+  <div class="shell split split-demo">
+    <div>
+      <p class="rule-label">The relation finder</p>
+      <h2>“So how is he related to me?”</h2>
+      <p>
+        Somebody points across the room at a wedding, and four people start counting on their
+        fingers. Somebody's mother is somebody's cousin, and by the third step everyone has
+        lost it.
+      </p>
+      <p>
+        Pick the two of them in f-tree. It names the relationship — <i>first cousin once
+        removed</i> — tells you which ancestor they share, and lists every person the line
+        runs through, so you can see how it got there. It walks marriages as well as blood,
+        which is how it answers <i>my wife's mother's brother</i>. Where English has no word
+        for it, the line itself is the answer.
+      </p>
+      <p class="spec">
+        <span>Any two people</span><span class="sep" aria-hidden="true">&middot;</span><span>However far apart</span><span class="sep" aria-hidden="true">&middot;</span><span>Blood or marriage</span>
+      </p>
+    </div>
+    <div>
+      <figure class="demo-figure">
+        <div class="demo-stage" id="demo-stage">
+        <video class="demo" id="demo" width="620" height="1282" playsinline muted loop controls
+               preload="none" poster="shots/relation-poster.webp"
+               aria-label="A screen recording of f-tree: opening the relation finder, choosing Aarav Kumar and Rohit, and reading the answer — Rohit is Aarav Kumar's first cousin once removed, four steps apart, through Raj Kumar — then showing the line drawn across the family chart.">
+          <source src="video/relation-finder.mp4" type="video/mp4">
+          <p>Your browser can't play this video. The
+             <a href="shots/relation-poster.webp">poster frame</a> shows the answer it arrives at.</p>
+        </video>
+        </div>
+        <figcaption>17 seconds, no sound. Recorded from the released app.</figcaption>
+      </figure>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ answer, shared -->
+<!--
+  The share picture and the Hindi terms are both things the relation finder does with its
+  answer, so they sit under it rather than in the feature register.
+-->
+<section class="band band-sunk" id="answer">
+  <div class="shell">
+    <div class="split">
+      <div>
+        <p class="rule-label">Send the answer</p>
+        <h2>The part your family will actually read.</h2>
+        <p>
+          A family tree is not much use to the person who didn't build it. So f-tree draws the
+          answer as a picture — the two names, the words for it, and the line between them —
+          and sends it to a chat like any other photograph.
+        </p>
+        <p>
+          Which is usually when somebody asks where <em>they</em> sit in all of this.
+        </p>
+      </div>
+      <div>
+        <img class="shot shot-card" src="shots/relation-card.webp" width="620" height="784" loading="lazy"
+             alt="The picture f-tree makes of a relationship: 'Rohit is Aarav Kumar's first cousin once removed', four steps apart, with Aarav Kumar, Ankit Kumar (Father), two more people, and Rohit (Son) listed down a line.">
+      </div>
+    </div>
+
+    <div class="split split-hindi">
+      <div>
+        <p class="rule-label">Family words</p>
+        <h2>Or in the words your family actually uses.</h2>
+        <p>
+          Turn on <b>Family words &rarr; <span lang="hi">हिन्दी</span></b> and your mother's brother is <b lang="hi">मामा</b>,
+          your father's younger brother <b lang="hi">चाचा</b>, and his wife <b lang="hi">चाची</b>. This isn't a
+          translation. Hindi has five words where English has "uncle", and picking the right
+          one needs facts English throws away — which side of the family, and who was born
+          first. f-tree only uses a word when the record earns it; where it can't tell an
+          elder brother from a younger one, it says <span lang="hi">पिता के भाई</span> and offers to sharpen it.
+        </p>
+        <p class="spec">
+          <span>English and Hindi</span><span class="sep" aria-hidden="true">&middot;</span><span><a href="https://github.com/thisisankit27/f-tree/blob/main/docs/kinship-hindi.md">Every term, listed</a></span>
+        </p>
+      </div>
+      <div>
+        <img class="shot shot-narrow" src="shots/hindi.webp" width="620" height="1282" loading="lazy"
+             alt="The relation finder answering that Meena is Ankit Kumar's बुआ, his father's sister, and listing the people the line runs through.">
+      </div>
+    </div>
+  </div>
+</section>
+
 <!-- ============================================================ what it does -->
 <section class="band" id="what">
   <div class="shell">
@@ -170,15 +293,6 @@
           Second marriages, half-siblings, children across two households, adoptive, step
           and foster parents. f-tree stores your family as a graph, so it holds the shape
           a real family actually has instead of the shape a tidy diagram wants.
-        </p>
-      </div>
-      <div class="entry">
-        <h3>How am I related to them?</h3>
-        <p>
-          Pick two people — any two, however far apart — and f-tree names the relationship
-          and shows every person the line passes through. It walks marriages as well as
-          blood, so it can answer the ones English has no single word for, and it will
-          draw the line across the whole tree for you.
         </p>
       </div>
       <div class="entry">
@@ -233,7 +347,7 @@
       <p class="spec">A backup of your tree is written before every import.</p>
     </div>
     <div>
-      <img class="shot shot-narrow" src="shots/merge.webp" width="620" height="1264" loading="lazy"
+      <img class="shot shot-narrow" src="shots/merge.webp" width="620" height="789" loading="lazy"
            alt="The import review screen, listing Priya Sharma as a possible duplicate with the evidence 'name matches, dates match' and a choice between keeping her separate or treating her as the same person.">
     </div>
   </div>
@@ -258,14 +372,14 @@
           by a marriage four steps away, and light the path between them.
         </p>
         <p class="spec">
-          <span>Runs in the browser</span><span class="sep">&middot;</span><span>Nothing is uploaded</span><span class="sep">&middot;</span><span>No account</span>
+          <span>Runs in the browser</span><span class="sep" aria-hidden="true">&middot;</span><span>Nothing is uploaded</span><span class="sep" aria-hidden="true">&middot;</span><span>No account</span>
         </p>
         <div class="cta-row">
           <a class="btn btn-primary" href="playground/">Open the viewer</a>
         </div>
       </div>
       <div>
-        <a href="playground/" class="shot-link">
+        <a href="playground/" class="shot-link" aria-label="Open the viewer">
           <img class="shot shot-wide" src="shots/viewer.webp" width="1240" height="777" loading="lazy"
                alt="The viewer showing a whole family archive: five generations of cards on one canvas, with a separate dashed block at the bottom labelled 'Not connected to anyone, 4 people'.">
         </a>
@@ -322,11 +436,6 @@
         <figcaption>The chart. Dashed cards are people whose names aren't known.</figcaption>
       </figure>
       <figure>
-        <img class="shot" src="shots/hindi.webp" width="620" height="1282" loading="lazy"
-             alt="The relation finder answering &quot;Meena is Ankit Kumar's बुआ (father's sister)&quot;, and listing the two people the line runs through.">
-        <figcaption>Relationships in Hindi, with the line they were worked out along.</figcaption>
-      </figure>
-      <figure>
         <img class="shot" src="shots/detail.webp" width="620" height="1282" loading="lazy"
              alt="A person screen for Ankit Kumar, with sections for parents, spouse, children and siblings.">
         <figcaption>Everyone's page lists the family around them, with a plus on each section.</figcaption>
@@ -374,7 +483,7 @@
         <div><dt>Version</dt><dd data-spec="version-bare">the latest release</dd></div>
         <div><dt>Size</dt><dd data-spec="size">about 2 MB</dd></div>
         <div><dt>Requires</dt><dd>Android 8.0 (Oreo) or newer</dd></div>
-        <div><dt>Permissions</dt><dd>None</dd></div>
+        <div><dt>Permissions</dt><dd>No runtime permissions — no contacts, location, storage or camera roll. Two install-time ones (internet, and installing an update), both only for the optional updater</dd></div>
         <div><dt>Licence</dt><dd>MIT — <a href="https://github.com/thisisankit27/f-tree/blob/main/LICENSE">read it</a></dd></div>
         <div><dt>Source</dt><dd><a href="https://github.com/thisisankit27/f-tree">github.com/thisisankit27/f-tree</a></dd></div>
       </dl>

@@ -174,7 +174,9 @@ h2.rule-label,
   padding-block: clamp(48px, 7vw, 92px) clamp(40px, 6vw, 76px);
 }
 @media (max-width: 900px) {
-  .hero { grid-template-columns: 1fr; gap: 40px; }
+  /* minmax(0,…) not 1fr: a bare 1fr takes its minimum from the column's max-content, so a
+     single long unbreakable run inside can widen the page rather than being clipped. */
+  .hero { grid-template-columns: minmax(0, 1fr); gap: 40px; }
 }
 
 .eyebrow {
@@ -247,8 +249,19 @@ h2.rule-label,
 }
 
 /* Spec line + live download counter, both in the records voice. */
+/*
+ * The spec line's spans are butted together with no whitespace between them, so that the
+ * separators sit tight against the words. That leaves the browser no break opportunity at
+ * all, and an unbreakable 360px run sets the min-content width of whatever grid column it
+ * sits in — which is what used to push the whole page sideways on a phone. Flex items are
+ * break opportunities, so laying it out as a wrapping flex row keeps the tight separators
+ * and lets the line fold.
+ */
 .spec {
   margin: 18px 0 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
   font-family: var(--mono);
   font-size: 12.5px;
   color: var(--ink-faint);
@@ -379,11 +392,11 @@ h2.rule-label,
   gap: clamp(32px, 5vw, 72px);
   align-items: center;
 }
-@media (max-width: 860px) { .split { grid-template-columns: 1fr; } }
+@media (max-width: 860px) { .split { grid-template-columns: minmax(0, 1fr); } }
 
 /* The viewer shot is a landscape screen, so it earns more of the row than a phone screenshot. */
 .split-wide { grid-template-columns: minmax(0, 0.86fr) minmax(0, 1.14fr); }
-@media (max-width: 860px) { .split-wide { grid-template-columns: 1fr; } }
+@media (max-width: 860px) { .split-wide { grid-template-columns: minmax(0, 1fr); } }
 
 .shot-wide { max-width: 100%; }
 .shot-link { display: block; border-radius: 18px; }
@@ -446,6 +459,84 @@ h2.rule-label,
   background: var(--bone-raised);
 }
 .shot-narrow { max-width: 360px; }
+.shot-card { max-width: 400px; }
+
+/* --------------------------------------------------------------- the demo */
+/*
+ * A screen recording of the shipped app, framed exactly like a screenshot so the section
+ * reads as one object. It is click-to-play with preload="none": the poster frame already
+ * carries the whole answer, so nobody pays for the video until they ask for it, and there
+ * is no autoplay for prefers-reduced-motion to have to suppress.
+ */
+.demo-figure { margin: 0; max-width: 360px; }
+.demo-stage { position: relative; }
+.demo {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 18px;
+  border: 1px solid var(--rule);
+  background: var(--bone-raised);
+}
+.demo-figure figcaption {
+  margin-top: 12px;
+  font-family: var(--mono);
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--ink-faint);
+}
+
+/*
+ * The play control. The video ships with native `controls` so it works with JavaScript off;
+ * app.js takes them away and puts this in front instead, then hands them back the moment the
+ * video is playing. The native bar is a black slab with a gradient scrim, which sits badly on
+ * a bone poster and covers the very rows the poster exists to show.
+ */
+.demo-play {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  display: grid;
+  place-items: center;
+  gap: 0;
+  border: 0;
+  border-radius: 18px;
+  background: transparent;
+  cursor: pointer;
+  font: inherit;
+  /* Sat at the bottom rather than the middle: the poster's centre is the sentence the whole
+     section is about, and a disc placed over "…first cousin once removed" hides the answer
+     from anybody who never presses play. */
+  align-items: end;
+  padding: 0 0 26px;
+}
+.demo-play .disc {
+  display: grid;
+  place-items: center;
+  width: 66px;
+  height: 66px;
+  border-radius: 999px;
+  background: var(--forest);
+  box-shadow: 0 6px 20px rgba(12, 36, 23, .28);
+  transition: background-color .15s ease, transform .15s ease;
+}
+.demo-play .disc svg { margin-left: 3px; }   /* a triangle looks off-centre when it is centred */
+.demo-play:hover .disc { background: var(--forest-deep); }
+.demo-play:focus-visible { outline: 2px solid var(--forest); outline-offset: 3px; }
+@media (prefers-reduced-motion: no-preference) {
+  .demo-play:hover .disc { transform: scale(1.05); }
+}
+/* The demo and the card are portrait, so they sit to the right of their text rather than
+   taking an equal half of a very wide row. */
+.split-demo { grid-template-columns: minmax(0, 1.06fr) minmax(0, 0.94fr); }
+@media (max-width: 860px) { .split-demo { grid-template-columns: minmax(0, 1fr); } }
+
+/* Two stacked splits in one band need a rule between them, not just more air. */
+.split-hindi {
+  margin-top: clamp(48px, 6vw, 84px);
+  padding-top: clamp(48px, 6vw, 84px);
+  border-top: 1px solid var(--rule);
+}
 
 .gallery {
   display: grid;
