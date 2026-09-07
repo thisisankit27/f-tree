@@ -38,6 +38,13 @@ android {
             "RELEASES_PAGE_URL",
             "\"https://github.com/thisisankit27/f-tree/releases\"",
         )
+        // Where somebody who has been sent a family goes to get the app. Here for the same reason
+        // as the two above: a fork points at its own place by editing one line.
+        buildConfigField(
+            "String",
+            "SITE_URL",
+            "\"https://ftree.vibethroughcode.com\"",
+        )
     }
 
     signingConfigs {

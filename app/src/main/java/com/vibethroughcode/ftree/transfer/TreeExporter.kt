@@ -19,7 +19,7 @@ data class ExportSummary(
 )
 
 /**
- * Writes the whole tree to a `.ftree` archive.
+ * Writes a tree, or one branch of it, to a `.ftree` archive.
  *
  * Streams straight into the destination rather than building the file in memory, so exporting a
  * large family with photographs costs no more memory than exporting a small one.
@@ -31,9 +31,24 @@ class TreeExporter(
     private val json: Json = ExportJson,
 ) {
 
-    suspend fun exportTo(destination: OutputStream): ExportSummary = withContext(Dispatchers.IO) {
-        val people = repository.allPeople()
-        val relationships = repository.allRelationships()
+    /**
+     * [only] narrows the archive to those people. A relationship travels when *both* ends do, so a
+     * shared branch never carries an edge pointing at somebody who is not in the file — the reader
+     * would have no way to resolve it, and it would leak the existence of a person who was
+     * deliberately left behind.
+     */
+    suspend fun exportTo(
+        destination: OutputStream,
+        only: Set<String>? = null,
+    ): ExportSummary = withContext(Dispatchers.IO) {
+        val people = repository.allPeople().let { all ->
+            if (only == null) all else all.filter { it.id in only }
+        }
+        val kept = people.mapTo(mutableSetOf()) { it.id }
+        val relationships = repository.allRelationships().let { all ->
+            if (only == null) all
+            else all.filter { it.fromPersonId in kept && it.toPersonId in kept }
+        }
         val origins = repository.originsOf(people.map { it.id }).groupBy { it.personId }
 
         val referenced = people.mapNotNull { it.photoId }

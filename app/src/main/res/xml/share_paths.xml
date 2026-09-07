@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    The one directory a shared branch is written to. It lives in the cache because a shared file is
+    a message rather than a document: it is rewritten on every share and the system may reclaim it
+    whenever it likes.
+-->
+<paths>
+    <cache-path name="shared" path="shared/" />
+</paths>

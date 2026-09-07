@@ -4,11 +4,13 @@ import android.content.ContentResolver
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.vibethroughcode.ftree.transfer.BranchShare
 import com.vibethroughcode.ftree.transfer.ExportSummary
 import com.vibethroughcode.ftree.transfer.ImportFailure
 import com.vibethroughcode.ftree.transfer.ImportPlan
 import com.vibethroughcode.ftree.transfer.ImportProblem
 import com.vibethroughcode.ftree.transfer.ImportResult
+import com.vibethroughcode.ftree.transfer.SharedBranch
 import com.vibethroughcode.ftree.transfer.TreeExporter
 import com.vibethroughcode.ftree.transfer.TreeImporter
 import com.vibethroughcode.ftree.data.FamilyRepository
@@ -27,11 +29,13 @@ sealed interface TransferOutcome {
     data object ExportFailed : TransferOutcome
     data class Imported(val result: ImportResult) : TransferOutcome
     data class ImportFailed(val problem: ImportProblem) : TransferOutcome
+    data object ShareFailed : TransferOutcome
 }
 
 class TransferViewModel(
     private val exporter: TreeExporter,
     private val importer: TreeImporter,
+    private val branchShare: BranchShare,
     private val contentResolver: ContentResolver,
     repository: FamilyRepository,
 ) : ViewModel() {
@@ -79,6 +83,27 @@ class TransferViewModel(
             _busy.value = false
         }
     }
+
+    /**
+     * One person's branch, written and waiting to be handed to another app.
+     *
+     * Held here rather than returned, because the file has to exist before the chooser opens and
+     * writing it is not instant on a large family. The screen watches this, sends it once, and
+     * clears it; a share left in this state is a file nobody asked for.
+     */
+    private val _share = MutableStateFlow<SharedBranch?>(null)
+    val share: StateFlow<SharedBranch?> = _share.asStateFlow()
+
+    fun shareBranch(personId: String) {
+        viewModelScope.launch {
+            _busy.value = true
+            _share.value = runCatching { branchShare.prepare(personId) }.getOrNull()
+            if (_share.value == null) _outcome.value = TransferOutcome.ShareFailed
+            _busy.value = false
+        }
+    }
+
+    fun clearShare() { _share.value = null }
 
     fun clearOutcome() { _outcome.value = null }
 

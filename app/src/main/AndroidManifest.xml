@@ -47,6 +47,22 @@
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/update_paths" />
         </provider>
+
+        <!--
+            Hands one person's exported branch to whichever app the user picked to send it with.
+            Separate from the updater's provider so the two never share a directory: one holds an
+            APK about to be installed, the other a piece of somebody's family about to leave the
+            device, and they should not be one setting away from each other.
+        -->
+        <provider
+            android:name=".transfer.ShareFileProvider"
+            android:authorities="${applicationId}.shares"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/share_paths" />
+        </provider>
     </application>
 
 </manifest>

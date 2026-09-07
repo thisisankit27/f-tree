@@ -33,6 +33,11 @@ replacing it**.
   it over the running copy, so a new version keeps your tree instead of costing an export and an
   import.
 - **Export and import as a single `.ftree` file**, with merge semantics that never overwrite.
+- **Share one person's family.** Tap somebody and send their household — their partner, their
+  children, and everyone below them — as a small `.ftree` over WhatsApp or anything else. The people
+  *above* them stay behind. The recipient imports it and it merges into their own tree, which is
+  also how you graft a relative's branch onto yours: import it, then marry the two families together
+  with one relationship.
 - **Faces on the chart.** Every card carries a portrait, framed in a circle when the photograph was
   added and a coloured initial when it was not. Photographs can be switched off for a very large
   tree without a single card moving.
@@ -328,6 +333,56 @@ they equal their defaults, because they are how a reader knows what it is holdin
 `sourceTreeId` identifies the installation that wrote the file. With a person's id it forms a stable
 identity across exports; each person also carries the `origins` they were imported with, so a tree
 that has already been merged once still matches exactly on a later import.
+
+## Sharing one branch
+
+Export writes the whole archive, because it is the user's archive and they are keeping it. Sharing
+is a different act with a different shape: it is a message, it goes to somebody who may not have the
+app, and it should carry a part of the family rather than all of it.
+
+**What travels is a household and the households under it** — the person, everyone descended from
+them, and the partners of all of them. Sandeep's share is Sandeep, his wife, his children and their
+partners, and so on down. What stays behind is everything *above* and *beside* him: his parents, his
+siblings, their children. Sending somebody a branch should not quietly hand over the rest of the
+sharer's family, and a recipient starting their own tree from a relative's file wants the people
+below that relative, not the archive they came from.
+
+Partners come along at every level, because a couple is how a family is read and a child arriving
+without the parent they married is a hole in the story. Their *parents* do not: they are the doorway
+back into another whole family, which is exactly what this is not.
+
+A relationship travels only when **both** ends do. A shared branch therefore never carries an edge
+pointing at somebody who is not in the file — the reader could not resolve it, and it would leak the
+existence of a person deliberately left behind.
+
+The rule is [`FamilyGraph.branchFrom`](app/src/main/java/com/vibethroughcode/ftree/graph/FamilyGraph.kt),
+which is an ordinary function over adjacency lookups and is tested as one.
+
+### The file, and the message with it
+
+The whole-tree export asks where to put the file. A share does not: nobody wants to name a message.
+It is written to the cache as `Sandeep-Kumar-family.ftree`, handed over as a content URI for the
+length of one intent, and the previous one is deleted on the next share rather than leaving copies of
+a family in a temporary directory. It has its own `FileProvider` — a subclass, because two
+`<provider>` entries naming the same class are one component to Android, and the first version of
+this shipped URIs that arrived at the updater's provider and were refused.
+
+The message that goes with it has to work for somebody looking at an attachment in a chat who has
+never heard of this app: whose family it is, how many people, where to get the app, and that
+importing will not overwrite anything they already have. Whether a given chat app *shows* that
+message beside the document is that app's decision — which is why the file is named after whose
+family it is. The name is the part that always arrives.
+
+### Joining a shared branch to your own tree
+
+This is the other half of why it exists. Import the branch, then create one relationship between
+somebody in it and somebody in yours, and the two families are one graph: your wife's father is your
+father-in-law, her brother your brother-in-law, and the relation finder can walk between them. There
+is no special "merge two trees" mode, because there does not need to be — a tree is a graph and a
+marriage is an edge.
+
+Re-importing the same file is a no-op. Every record carries where it came from, so the second import
+recognises those people outright rather than proposing them as duplicates.
 
 ## Merge behaviour
 
