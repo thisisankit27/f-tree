@@ -234,7 +234,7 @@
     <string name="compact_actions_for">What you can do with %1$s</string>
     <string name="a11y_compact_person">%1$s, %2$s</string>
     <string name="tree_focused_on">Centred on %1$s</string>
-    <string name="tree_recentre">Recentre</string>
+    <string name="tree_recentre">Recentre the chart</string>
 
     <!-- The whole-tree chart -->
     <string name="whole_group_family">%1$d people · %2$d generations</string>
