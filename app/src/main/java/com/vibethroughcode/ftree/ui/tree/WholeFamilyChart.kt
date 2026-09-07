@@ -146,7 +146,6 @@ fun WholeFamilyChart(
     val rulePx = with(density) { 1.5.dp.toPx() }
     val spouseGapPx = with(density) { 2.dp.toPx() }
     val unitPx = with(density) { 1.dp.toPx() }
-    val keepOnScreenPx = with(density) { KEEP_ON_SCREEN.toPx() }
 
     /*
      * Which faces to decode: the ones on screen, and only when the chart is close enough in for a
@@ -188,7 +187,6 @@ fun WholeFamilyChart(
                         contentWidth = layout.width * unitPx * next,
                         contentHeight = layout.height * unitPx * next,
                         viewport = viewport,
-                        keep = keepOnScreenPx,
                     )
                 }
             }

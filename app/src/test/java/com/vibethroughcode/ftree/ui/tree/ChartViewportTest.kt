@@ -6,50 +6,69 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
-/** The rule that stops a chart being dragged off its own page. */
+/**
+ * The rule that stops a chart being dragged off its own page: the middle of the screen stays over
+ * the chart.
+ */
 class ChartViewportTest {
 
     private val viewport = IntSize(1080, 2000)
-    private val keep = 200f
+    private val midX = 540f
+    private val midY = 1000f
 
     private fun clamp(x: Float, y: Float, w: Float = 4000f, h: Float = 6000f) =
-        clampPan(Offset(x, y), w, h, viewport, keep)
+        clampPan(Offset(x, y), w, h, viewport)
+
+    /** Where the middle of the screen falls, in the chart's own coordinates. */
+    private fun centreOver(pan: Offset, viewport: IntSize = this.viewport) =
+        Offset(viewport.width / 2f - pan.x, viewport.height / 2f - pan.y)
 
     @Test
-    fun `a pan that keeps the chart on screen is left alone`() {
+    fun `a pan that keeps the middle over the chart is left alone`() {
         assertEquals(Offset(-500f, -900f), clamp(-500f, -900f))
     }
 
     @Test
-    fun `dragging the chart off to the left stops with a strip of it showing`() {
-        val panned = clamp(-9999f, 0f)
-        assertEquals(keep, panned.x + 4000f, 0.01f)
+    fun `dragging the chart away to the left stops when its far edge reaches the middle`() {
+        val panned = clamp(-99999f, 0f)
+        assertEquals(4000f, centreOver(panned).x, 0.01f)
     }
 
     @Test
-    fun `dragging the chart off to the right stops with a strip of it showing`() {
-        val panned = clamp(9999f, 0f)
-        assertEquals(viewport.width - keep, panned.x, 0.01f)
+    fun `dragging it the other way stops when its near edge reaches the middle`() {
+        val panned = clamp(99999f, 0f)
+        assertEquals(0f, centreOver(panned).x, 0.01f)
     }
 
     @Test
     fun `it holds vertically on the same rule`() {
-        assertEquals(keep, clamp(0f, -9999f).y + 6000f, 0.01f)
-        assertEquals(viewport.height - keep, clamp(0f, 9999f).y, 0.01f)
+        assertEquals(6000f, centreOver(clamp(0f, -99999f)).y, 0.01f)
+        assertEquals(0f, centreOver(clamp(0f, 99999f)).y, 0.01f)
     }
 
     @Test
-    fun `a chart smaller than the strip is held whole rather than by part of itself`() {
-        val panned = clamp(-9999f, -9999f, w = 160f, h = 60f)
-        assertTrue(panned.x + 160f >= 0f)
-        assertTrue(panned.y + 60f >= 0f)
-        assertTrue(panned.x <= viewport.width)
-        assertTrue(panned.y <= viewport.height)
+    fun `the middle stays over the chart however hard it is thrown`() {
+        for (x in listOf(-99999f, -4000f, 0f, 4000f, 99999f)) {
+            for (y in listOf(-99999f, -6000f, 0f, 6000f, 99999f)) {
+                val c = centreOver(clamp(x, y))
+                assertTrue("x=$x y=$y gave $c", c.x in 0f..4000f && c.y in 0f..6000f)
+            }
+        }
+    }
+
+    @Test
+    fun `a lone person cannot be pushed off either`() {
+        // 160 x 60 layout units at roughly 2.6px each.
+        val w = 420f
+        val h = 157f
+        val panned = clampPan(Offset(-99999f, -99999f), w, h, viewport)
+        val c = centreOver(panned)
+        assertTrue(c.x in 0f..w && c.y in 0f..h)
     }
 
     @Test
     fun `it does nothing before the viewport has been measured`() {
-        val pan = Offset(-9999f, -9999f)
-        assertEquals(pan, clampPan(pan, 4000f, 6000f, IntSize.Zero, keep))
+        val pan = Offset(-99999f, -99999f)
+        assertEquals(pan, clampPan(pan, 4000f, 6000f, IntSize.Zero))
     }
 }
