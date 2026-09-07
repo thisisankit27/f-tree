@@ -12,6 +12,8 @@ import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.swipeUp
 import androidx.compose.ui.test.performTextInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
@@ -23,12 +25,12 @@ import com.vibethroughcode.ftree.data.RelativeKind
 import com.vibethroughcode.ftree.ui.relation.RelationAnswerTag
 import com.vibethroughcode.ftree.ui.relation.RelationPickListTag
 import com.vibethroughcode.ftree.ui.relation.RelationPickSearchTag
-import com.vibethroughcode.ftree.ui.relation.RelationShowOnChartTag
+import com.vibethroughcode.ftree.ui.relation.RelationCloseTag
+import com.vibethroughcode.ftree.ui.relation.RelationShareCardTag
 import com.vibethroughcode.ftree.ui.relation.RelationSlotFromTag
 import com.vibethroughcode.ftree.ui.relation.RelationSlotToTag
 import com.vibethroughcode.ftree.ui.relation.RelationSwapTag
 import com.vibethroughcode.ftree.ui.tree.FamilyChartTag
-import com.vibethroughcode.ftree.ui.tree.TreeClearTraceTag
 import com.vibethroughcode.ftree.ui.tree.TreeRelateTag
 import com.vibethroughcode.ftree.ui.tree.WholeFamilyChartTag
 import kotlinx.coroutines.runBlocking
@@ -38,11 +40,12 @@ import org.junit.Test
 import org.junit.runner.RunWith
 
 /**
- * Asking how two people are related, from the chart through to the answer and back onto the chart.
+ * Asking how two people are related, on the chart that draws the answer.
  *
  * The words themselves are settled on the JVM in `KinshipTest`; what is worth an emulator is that
  * the two people can actually be picked, that the answer names the pair the right way round, and
- * that "show me" lands on a chart with the line on it.
+ * that the sentence and the drawing of it are on screen *together* — there is no longer a second
+ * place to go and look at the line, which is the whole point of the sheet.
  */
 @RunWith(AndroidJUnit4::class)
 class RelationFinderTest {
@@ -106,6 +109,23 @@ class RelationFinderTest {
     }
 
     /**
+     * Opens the sheet the rest of the way.
+     *
+     * The sentence and the way to send it stand above the fold; who exactly the line runs through
+     * is underneath it, because that is what a reader consults rather than reads. Anything below
+     * has to be dragged for, here as on the phone.
+     */
+    private fun openTheWorking() {
+        // Dragged from the sentence rather than from the sheet as a whole: the sheet is taller
+        // than the screen once it holds a chain, and a gesture aimed at the middle of it starts
+        // somewhere the window does not reach.
+        rule.onNodeWithTag(RelationAnswerTag).performTouchInput {
+            swipeUp(startY = center.y, endY = center.y - 1_200f, durationMillis = 300)
+        }
+        rule.waitForIdle()
+    }
+
+    /**
      * Relating two people walks the whole graph off the main thread, so the answer lands a beat
      * after the pick. Waiting for the sentence is the honest way to say "eventually it reads this".
      */
@@ -130,6 +150,7 @@ class RelationFinderTest {
 
         // The working, not just the verdict: the father is the person the line runs through, and
         // saying so is what lets a reader check the answer against what they already know.
+        openTheWorking()
         rule.onNodeWithText("Father of Ankit Kumar").assertIsDisplayed()
         rule.onNodeWithText("Sister of Vinod Kumar").assertIsDisplayed()
     }
@@ -143,6 +164,7 @@ class RelationFinderTest {
         pick(RelationSlotToTag, "Raj Kumar")
         awaitText("Raj Kumar is Ankit Kumar’s grandfather.")
 
+        openTheWorking()
         rule.onNodeWithTag(RelationSwapTag).performClick()
         rule.waitUntil(5_000) {
             rule.onAllNodesWithText("Ankit Kumar is Raj Kumar’s grandson.")
@@ -169,33 +191,34 @@ class RelationFinderTest {
         rule.onNodeWithText("They may well be related", substring = true).assertIsDisplayed()
     }
 
+    /**
+     * The answer and the picture of it are on screen at once.
+     *
+     * This is the fix for the thing that made the old flow unusable: seeing the line used to mean
+     * leaving the sentence behind on a screen with no way back to it. Nothing is navigated here —
+     * the same act that answers the question draws it.
+     */
     @Test
-    fun showingTheLineOnTheChartSwitchesToTheChartThatCanHoldIt() {
+    fun theLineIsDrawnWithoutLeavingTheAnswerBehind() {
         seedFourPeople()
         openFinder()
 
         pick(RelationSlotFromTag, "Ankit Kumar")
         pick(RelationSlotToTag, "Meena Devi")
-        rule.waitUntil(5_000) {
-            rule.onAllNodesWithTag(RelationShowOnChartTag).fetchSemanticsNodes().isNotEmpty()
-        }
-        rule.onNodeWithTag(RelationShowOnChartTag).performClick()
 
         // The focused chart draws one person's neighbourhood, so a line across the family only
-        // means anything on the whole-tree one; asking to see it has to take you there.
+        // means anything on the whole-tree one: answering has to switch to the chart that holds it.
         rule.waitUntil(5_000) {
             rule.onAllNodesWithTag(WholeFamilyChartTag).fetchSemanticsNodes().isNotEmpty()
         }
-        rule.onNodeWithText("Tracing how two people connect").assertIsDisplayed()
-
-        rule.onNodeWithTag(TreeClearTraceTag).performClick()
-        rule.waitUntil(5_000) {
-            rule.onAllNodesWithText("Tracing how two people connect").fetchSemanticsNodes().isEmpty()
-        }
+        // And the sentence is still there, on top of it.
+        awaitText("Meena Devi is Ankit Kumar’s aunt.")
+        // As is the way to send it — which used to exist only on the screen you had just left.
+        rule.onNodeWithTag(RelationShareCardTag).assertIsDisplayed()
     }
 
     @Test
-    fun theTracedChartDrawsTheLineAndNobodyElse() {
+    fun closingTheQuestionPutsTheRestOfTheFamilyBack() {
         seedFourPeople()
         // Somebody with no part in the answer, who must not be on the chart while it is given.
         runBlocking {
@@ -207,10 +230,6 @@ class RelationFinderTest {
 
         pick(RelationSlotFromTag, "Ankit Kumar")
         pick(RelationSlotToTag, "Meena Devi")
-        rule.waitUntil(5_000) {
-            rule.onAllNodesWithTag(RelationShowOnChartTag).fetchSemanticsNodes().isNotEmpty()
-        }
-        rule.onNodeWithTag(RelationShowOnChartTag).performClick()
 
         /*
          * Four: Ankit, his father, his aunt, and the grandfather the two of them are siblings
@@ -222,8 +241,31 @@ class RelationFinderTest {
          */
         awaitChartOf(4)
 
-        rule.onNodeWithTag(TreeClearTraceTag).performClick()
+        rule.onNodeWithTag(RelationCloseTag).performClick()
         awaitChartOf(5)
+        rule.waitUntil(5_000) {
+            rule.onAllNodesWithText("Meena Devi is Ankit Kumar’s aunt.").fetchSemanticsNodes().isEmpty()
+        }
+    }
+
+    /**
+     * Backing out of the question leaves the chart, not the screen.
+     *
+     * A sheet that the back gesture walked straight past would put the reader somewhere else
+     * entirely, which is the failure the old flow had in the other direction.
+     */
+    @Test
+    fun theBackGestureClosesTheQuestionRatherThanTheChart() {
+        seedFourPeople()
+        openFinder()
+        pick(RelationSlotFromTag, "Ankit Kumar")
+
+        rule.activity.runOnUiThread { rule.activity.onBackPressedDispatcher.onBackPressed() }
+
+        rule.waitUntil(5_000) {
+            rule.onAllNodesWithTag(RelationSlotFromTag).fetchSemanticsNodes().isEmpty()
+        }
+        rule.onNodeWithTag(FamilyChartTag).assertIsDisplayed()
     }
 
     /** Waits for the whole-tree canvas to say, in its own words, how many people it is drawing. */

@@ -11,6 +11,8 @@ import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.swipeUp
 import androidx.compose.ui.test.performTextInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
@@ -20,6 +22,7 @@ import com.vibethroughcode.ftree.data.Gender
 import com.vibethroughcode.ftree.data.KinshipLanguage
 import com.vibethroughcode.ftree.data.Person
 import com.vibethroughcode.ftree.data.RelativeKind
+import com.vibethroughcode.ftree.ui.relation.RelationAnswerTag
 import com.vibethroughcode.ftree.ui.relation.RelationPickListTag
 import com.vibethroughcode.ftree.ui.relation.RelationPickSearchTag
 import com.vibethroughcode.ftree.ui.relation.RelationSlotFromTag
@@ -143,6 +146,12 @@ class HindiRelationTest {
         relate(from = "Ankit Kumar", to = "Kinshuk Kumar")
         awaitText("मामा")
 
+        // Changing one of the two means reaching under the fold: with an answer on screen the
+        // sheet shows the sentence, and the pair it was worked out from is a drag below it.
+        rule.onNodeWithTag(RelationAnswerTag).performTouchInput {
+            swipeUp(startY = center.y, endY = center.y - 1_200f, durationMillis = 300)
+        }
+        rule.waitForIdle()
         rule.onNodeWithTag(RelationSlotToTag).performClick()
         rule.waitUntil(5_000) {
             rule.onAllNodesWithTag(RelationPickSearchTag).fetchSemanticsNodes().isNotEmpty()

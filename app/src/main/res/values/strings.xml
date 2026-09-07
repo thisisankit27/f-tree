@@ -166,6 +166,7 @@
     <string name="card_more">+%1$d more</string>
     <string name="card_footer">ftree.vibethroughcode.com</string>
     <string name="card_share">Share this relationship</string>
+    <string name="card_share_short">Share</string>
     <string name="card_title">Share</string>
     <string name="card_caption_label">Sent with the picture</string>
     <string name="card_send">Send</string>
@@ -373,6 +374,9 @@
     <string name="relation_pick_hint">Search by name</string>
     <string name="relation_pick_none">Nobody by that name.</string>
     <string name="relation_hint">Pick two people and f-tree traces the line between them, however far apart they sit in the tree.</string>
+    <string name="relation_hint_chart">Choose two people below, or tap them on the chart.</string>
+    <string name="relation_close">Close</string>
+    <string name="relation_change_pair">Change who</string>
     <string name="relation_open_from_person">How are we related?</string>
     <string name="relation_find">Find a relation</string>
 
@@ -393,8 +397,6 @@
     <string name="relation_chain_step">%1$s of %2$s</string>
     <string name="relation_chain_start">Where the line starts</string>
     <string name="relation_shared_ancestor">Through %1$s, the nearest ancestor they share.</string>
-    <string name="relation_show_on_chart">Show on the chart</string>
-    <string name="relation_tracing">Tracing how two people connect</string>
     <string name="relation_clear">Clear</string>
 
     <!-- Kinship terms, lower case because they are read inside a sentence rather than as headings -->

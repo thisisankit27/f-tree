@@ -20,21 +20,13 @@ import kotlinx.serialization.Serializable
 data class TreeRoute(
     val focusId: String? = null,
     /**
-     * The people on a relation the reader asked to see drawn — both ends and everyone between.
+     * Somebody a relation is being asked about, arriving from their own page.
      *
-     * Carried in the route rather than held in a view model because it is part of *where you are*:
-     * pressing back must leave the trace behind, and coming back to the chart later must not
-     * silently relight a line from a question asked an hour ago.
+     * Only the *question* travels, never the answer: the line between two people is worked out
+     * where it is drawn. Carrying a traced list of ids in the route was how the app came to have
+     * two places holding one answer, each able to be navigated away from the other.
      */
-    val trace: List<String> = emptyList(),
-    /**
-     * Open on the whole-tree chart rather than the focused one.
-     *
-     * Set when a traced line is cleared. Clearing means "put the rest of the family back", so it
-     * has to land on the chart that holds them; dropping onto the focused chart instead reads as
-     * the chart having vanished along with the answer.
-     */
-    val whole: Boolean = false,
+    val relateFrom: String? = null,
 )
 
 @Serializable
@@ -49,10 +41,6 @@ data class EditPersonRoute(val personId: String? = null)
 
 @Serializable
 data object SettingsRoute
-
-/** Finding how two people are related. Either end may arrive already chosen, or neither. */
-@Serializable
-data class RelationRoute(val fromId: String? = null, val toId: String? = null)
 
 /** Picking who to attach to [anchorPersonId] as a [kind]. */
 @Serializable

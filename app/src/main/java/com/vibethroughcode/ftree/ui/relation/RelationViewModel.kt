@@ -141,6 +141,32 @@ class RelationViewModel(
         query.value = value
     }
 
+    /**
+     * Somebody named for the relation without saying which side they go on.
+     *
+     * This is what a tap on the chart means. The first name fills the first slot, the second fills
+     * the other, and a third replaces the far end — so tapping person after person walks the
+     * question across the family instead of demanding the reader empty a field first. Naming
+     * somebody already chosen does nothing rather than moving them, which is what a mis-tap on a
+     * crowded chart should cost.
+     */
+    fun name(personId: String) {
+        when {
+            fromId.value == personId || toId.value == personId -> return
+            fromId.value == null -> choose(RelationSlot.FROM, personId)
+            else -> choose(RelationSlot.TO, personId)
+        }
+    }
+
+    /** Ends the question. A line left lit is a question the reader has stopped asking. */
+    fun clear() {
+        fromId.value = null
+        toId.value = null
+        query.value = ""
+        savedStateHandle[FROM_KEY] = null
+        savedStateHandle[TO_KEY] = null
+    }
+
     private companion object {
         const val FROM_KEY = "relation-from"
         const val TO_KEY = "relation-to"

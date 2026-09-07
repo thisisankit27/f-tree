@@ -33,7 +33,11 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.Scaffold
+import androidx.activity.compose.BackHandler
+import androidx.compose.material3.BottomSheetScaffold
+import androidx.compose.material3.SheetValue
+import androidx.compose.material3.rememberBottomSheetScaffoldState
+import androidx.compose.material3.rememberStandardBottomSheetState
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
@@ -50,6 +54,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.pluralStringResource
@@ -67,6 +72,11 @@ import com.vibethroughcode.ftree.ui.common.PersonRow
 import com.vibethroughcode.ftree.ui.common.TreeGlyph
 import com.vibethroughcode.ftree.ui.common.displayName
 import com.vibethroughcode.ftree.ui.common.isShortWindow
+import com.vibethroughcode.ftree.graph.Relation
+import com.vibethroughcode.ftree.ui.relation.RelationSheet
+import com.vibethroughcode.ftree.ui.relation.RelationSlot
+import com.vibethroughcode.ftree.ui.relation.RelationViewModel
+import com.vibethroughcode.ftree.ui.relation.ShareCard
 import com.vibethroughcode.ftree.ui.common.relativeKindLabel
 import com.vibethroughcode.ftree.ui.theme.FTreeText
 
@@ -79,7 +89,6 @@ const val TreeModeWholeTag = "tree-mode-whole"
 const val TreeRelateTag = "tree-relate"
 const val TreeRelateFromTag = "tree-relate-from"
 const val TreeShareTag = "tree-share"
-const val TreeClearTraceTag = "tree-clear-trace"
 const val TreeFrameTag = "tree-frame"
 
 /**
@@ -98,6 +107,9 @@ const val TreeFrameTag = "tree-frame"
  * the middle one is where the screen opens, because "the family around me" is the question people
  * arrive with.
  */
+/** The drag handle Material draws above the sheet's own content. */
+private val SHEET_HANDLE = 48.dp
+
 private enum class ChartMode { COMPACT, FOCUSED, WHOLE }
 
 private val ChartMode.label: Int
@@ -126,16 +138,13 @@ fun TreeScreen(
     onOpenPerson: (String) -> Unit,
     onAddPerson: () -> Unit,
     onAddRelative: (String, RelativeKind) -> Unit,
-    onRelate: (String?) -> Unit,
     onShare: (String) -> Unit,
-    onClearTrace: () -> Unit,
     modifier: Modifier = Modifier,
-    /** The people on a relation to draw: both ends and everyone between. Empty is the usual case. */
-    trace: List<String> = emptyList(),
-    /** Open on the whole-tree chart — set when a traced line has just been cleared. */
-    startWhole: Boolean = false,
+    /** Somebody the reader has already named for a relation, arriving from their page. */
+    relateFrom: String? = null,
     viewModel: TreeViewModel = viewModel(factory = FTreeViewModels.Factory),
     wholeTreeViewModel: WholeTreeViewModel = viewModel(factory = FTreeViewModels.Factory),
+    relationViewModel: RelationViewModel = viewModel(factory = FTreeViewModels.Factory),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val photosInChart by viewModel.photosInChart.collectAsStateWithLifecycle()
@@ -144,9 +153,7 @@ fun TreeScreen(
     val highlighted by wholeTreeViewModel.highlighted.collectAsStateWithLifecycle()
     val wholeSelection by wholeTreeViewModel.selected.collectAsStateWithLifecycle()
 
-    var mode by rememberSaveable {
-        mutableStateOf(if (startWhole) ChartMode.WHOLE else ChartMode.FOCUSED)
-    }
+    var mode by rememberSaveable { mutableStateOf(ChartMode.FOCUSED) }
     var selected by remember { mutableStateOf<Person?>(null) }
     /*
      * Bumped to put a chart back on its family.
@@ -156,23 +163,67 @@ fun TreeScreen(
      * the same framing the chart opens with rather than a second idea of where "home" is.
      */
     var frameSignal by remember { mutableIntStateOf(0) }
-    val sheetState = rememberModalBottomSheetState()
+    val personSheetState = rememberModalBottomSheetState()
 
     /*
-     * A traced relation is only meaningful on the whole-tree chart — the focused one draws three
-     * generations around one person, and the far end of a line is usually not among them. So
-     * arriving with a trace switches charts rather than showing an empty highlight.
+     * The relation, asked and answered on this screen.
+     *
+     * `relating` is whether the sheet is up rather than whether an answer exists: the reader opens
+     * it to ask, and the two ends arrive one at a time. The chart draws the line as soon as there
+     * is one, so the picture assembles itself while the question is still being put together.
      */
+    val relation by relationViewModel.uiState.collectAsStateWithLifecycle()
+    val relationQuery by relationViewModel.currentQuery.collectAsStateWithLifecycle()
+    var relating by rememberSaveable { mutableStateOf(relateFrom != null) }
+    var picking by rememberSaveable { mutableStateOf<RelationSlot?>(null) }
+    var sharingRelation by rememberSaveable { mutableStateOf(false) }
+    /*
+     * How much of the sheet stands above the fold, measured from the sentence rather than set to a
+     * number — so a long answer, a Hindi term with its gloss, and somebody's larger type all still
+     * show whole. Until it has been measured the sheet is closed and the value is not used.
+     */
+    var answerHeight by remember { mutableStateOf(0.dp) }
+    var askHeight by remember { mutableStateOf(0.dp) }
+
+    val fold = if (relation.relation == null) askHeight else answerHeight
+    val trace = if (relating) relation.trace else emptyList()
     val tracing = remember(trace) { trace.toSet() }
 
     // The chart draws the traced line on its own rather than lighting it inside the whole record,
     // so the view model has to know before it lays anything out.
     LaunchedEffect(trace) { wholeTreeViewModel.onTraceChanged(trace) }
     LaunchedEffect(tracing) {
+        // A traced line is only meaningful on the whole-tree chart: the focused one draws three
+        // generations around one person, and the far end of a line is usually not among them.
         if (tracing.isNotEmpty()) {
             mode = ChartMode.WHOLE
             wholeTreeViewModel.select(null)
         }
+    }
+    /*
+     * Put the chart back on its family whenever the room it has changes.
+     *
+     * The sheet takes the bottom of the screen and gives it back, and a chart framed for the taller
+     * viewport is left sitting against one edge of the shorter one. Re-framing is the same framing
+     * the chart opens with, so the line lands where a reader would expect to find it.
+     */
+    LaunchedEffect(fold, relating) { frameSignal++ }
+
+    /*
+     * Opening the sheet is what makes it a question; closing it is what ends one.
+     *
+     * Closing also clears the pair, because the alternative — coming back to the chart tomorrow
+     * and finding a line still lit from a question asked today — is the thing the old route
+     * argument existed to prevent.
+     */
+    val openRelation: (String?) -> Unit = { personId ->
+        personId?.let(relationViewModel::name)
+        relating = true
+    }
+    val closeRelation: () -> Unit = {
+        relating = false
+        picking = null
+        relationViewModel.clear()
     }
 
     // The chart is drawn, not composed, so it has to be told about the reader's text size itself.
@@ -198,8 +249,70 @@ fun TreeScreen(
         if (it.isAroundOnePerson) wholeTreeViewModel.select(null)
     }
 
-    Scaffold(
+    /*
+     * A sheet that the chart lives behind rather than under.
+     *
+     * Standard rather than modal, because a modal one would put a scrim over the very thing the
+     * answer is about. The chart keeps its gestures while the sheet is up, which is what lets a
+     * tap on somebody's card fill the other half of the question.
+     */
+    val sheetState = rememberBottomSheetScaffoldState(
+        bottomSheetState = rememberStandardBottomSheetState(
+            initialValue = SheetValue.PartiallyExpanded,
+            /*
+             * The sheet is never hidden; when there is no question its fold is nothing, so there is
+             * nothing to see or to take hold of. Keeping one state rather than two means changing
+             * the height of the fold — which happens as soon as an answer arrives — cannot be
+             * mistaken for the reader dismissing it, which is exactly what a hideable sheet did.
+             */
+            skipHiddenState = true,
+        )
+    )
+    LaunchedEffect(relating, picking) {
+        when {
+            picking != null -> sheetState.bottomSheetState.expand()
+            else -> sheetState.bottomSheetState.partialExpand()
+        }
+    }
+    BackHandler(enabled = relating) {
+        if (picking != null) picking = null else closeRelation()
+    }
+
+    BottomSheetScaffold(
         modifier = modifier,
+        scaffoldState = sheetState,
+        sheetPeekHeight = if (relating) fold + SHEET_HANDLE else 0.dp,
+        sheetSwipeEnabled = relating,
+        sheetContent = {
+            RelationSheet(
+                /*
+                 * Composed even when there is no question, because the height of the fold is
+                 * measured from this content and a sheet cannot measure what it has not laid out.
+                 * Silenced instead: a sheet folded to nothing is still a sheet, and left as it was
+                 * its sentence and its list of people stay reachable by a screen reader that would
+                 * be read an answer nobody asked for and nobody can see.
+                 */
+                modifier = if (relating) Modifier else Modifier.clearAndSetSemantics {},
+                state = relation,
+                query = relationQuery,
+                picking = picking,
+                onStartPicking = { picking = it },
+                onStopPicking = { picking = null },
+                onChoose = { slot, id ->
+                    relationViewModel.choose(slot, id)
+                    picking = null
+                },
+                onQueryChange = relationViewModel::onQueryChange,
+                onSwap = relationViewModel::swap,
+                onOpenPerson = onOpenPerson,
+                onShare = { sharingRelation = true },
+                onClose = closeRelation,
+                onFoldHeight = { answered, asking ->
+                    answerHeight = answered
+                    askHeight = asking
+                },
+            )
+        },
         topBar = {
             Column {
                 if (!short || treeIsEmpty) {
@@ -211,7 +324,7 @@ fun TreeScreen(
                                     showRelate = true,
                                     showMore = mode.isAroundOnePerson && state.layout.truncated,
                                     showFrame = mode.isDrawn,
-                                    onRelate = { onRelate(null) },
+                                    onRelate = { openRelation(null) },
                                     onMore = viewModel::showMoreGenerations,
                                     onFrame = { frameSignal++ },
                                 )
@@ -225,15 +338,13 @@ fun TreeScreen(
                         onModeChange = onModeChange,
                         summary = wholeSummary(wholeState)
                             .takeIf { mode == ChartMode.WHOLE && !short },
-                        tracing = tracing.isNotEmpty() && mode == ChartMode.WHOLE,
-                        onClearTrace = onClearTrace,
                         compact = short,
                         actions = if (!short) null else ({
                             ChartActions(
                                 showRelate = true,
                                 showMore = mode.isAroundOnePerson && state.layout.truncated,
                                 showFrame = mode.isDrawn,
-                                onRelate = { onRelate(null) },
+                                onRelate = { openRelation(null) },
                                 onMore = viewModel::showMoreGenerations,
                                 onFrame = { frameSignal++ },
                             )
@@ -242,18 +353,21 @@ fun TreeScreen(
                 }
             }
         },
-        floatingActionButton = {
-            if (!treeIsEmpty) {
-                FloatingActionButton(
-                    onClick = onAddPerson,
-                    modifier = Modifier.testTag(TreeAddButtonTag),
-                ) {
-                    Icon(Icons.Default.Add, contentDescription = stringResource(R.string.people_add))
-                }
-            }
-        },
     ) { padding ->
-        Box(Modifier.fillMaxSize().padding(padding)) {
+        Box(
+            Modifier
+                .fillMaxSize()
+                /*
+                 * The chart gives up the height the sheet stands in rather than being covered by
+                 * it: a line traced across a family is no use drawn behind an opaque panel, and a
+                 * smaller viewport means the chart's own framing puts the line in what is left.
+                 *
+                 * The scaffold's own padding is that height — it already counts the fold — so
+                 * subtracting it a second time here is how the chart ended up with a fifth of the
+                 * screen and a line pinned to the corner of it.
+                 */
+                .padding(padding)
+        ) {
             when {
                 treeIsEmpty -> EmptyState(
                     title = stringResource(R.string.empty_title),
@@ -282,7 +396,7 @@ fun TreeScreen(
                     state.loading -> CircularProgressIndicator(Modifier.align(Alignment.Center))
                     else -> FamilyChart(
                         layout = state.layout,
-                        onSelect = { selected = it },
+                        onSelect = { if (relating) relationViewModel.name(it.id) else selected = it },
                         photos = photos,
                         frameSignal = frameSignal,
                     )
@@ -301,20 +415,49 @@ fun TreeScreen(
                         tracing = tracing.isNotEmpty(),
                         photos = photos,
                         frameSignal = frameSignal,
+                        /*
+                         * The chart is the other picker.
+                         *
+                         * A name in a list is a poor way to find somebody in a family you are
+                         * already looking at, so while the question is open a tap fills the next
+                         * empty side of it. This is why the sheet is not a modal one: the thing
+                         * you choose from has to stay live underneath.
+                         */
                         onSelect = {
-                            wholeTreeViewModel.select(it)
-                            selected = it
+                            if (relating) {
+                                relationViewModel.name(it.id)
+                            } else {
+                                wholeTreeViewModel.select(it)
+                                selected = it
+                            }
                         },
                     )
+                }
+            }
+
+            if (!treeIsEmpty && !relating) {
+                FloatingActionButton(
+                    onClick = onAddPerson,
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .padding(16.dp)
+                        .testTag(TreeAddButtonTag),
+                ) {
+                    Icon(Icons.Default.Add, contentDescription = stringResource(R.string.people_add))
                 }
             }
         }
     }
 
+    val found = relation.relation as? Relation.Found
+    if (sharingRelation && found != null) {
+        ShareCard(state = relation, relation = found, onDismiss = { sharingRelation = false })
+    }
+
     selected?.let { person ->
         ModalBottomSheet(
             onDismissRequest = { selected = null },
-            sheetState = sheetState,
+            sheetState = personSheetState,
         ) {
             PersonActions(
                 person = person,
@@ -334,7 +477,7 @@ fun TreeScreen(
                 },
                 onRelate = {
                     selected = null
-                    onRelate(person.id)
+                    openRelation(person.id)
                 },
                 onShare = {
                     selected = null
@@ -361,8 +504,6 @@ private fun ChartModeBar(
     mode: ChartMode,
     onModeChange: (ChartMode) -> Unit,
     summary: String?,
-    tracing: Boolean,
-    onClearTrace: () -> Unit,
     /** Fold the switch, the app bar's actions and the way out of a trace into a single row. */
     compact: Boolean = false,
     actions: (@Composable RowScope.() -> Unit)? = null,
@@ -388,12 +529,6 @@ private fun ChartModeBar(
         }
     }
 
-    val clearTrace: @Composable () -> Unit = {
-        TextButton(onClick = onClearTrace, modifier = Modifier.testTag(TreeClearTraceTag)) {
-            Text(stringResource(R.string.relation_clear))
-        }
-    }
-
     Column(Modifier.fillMaxWidth()) {
         if (compact) {
             Row(
@@ -404,28 +539,11 @@ private fun ChartModeBar(
                 // is not, and what is left over belongs to the chart rather than to the furniture.
                 modeSwitch(Modifier.widthIn(min = 340.dp, max = 420.dp))
                 Spacer(Modifier.weight(1f))
-                if (tracing) clearTrace()
                 actions?.invoke(this)
             }
         } else {
             modeSwitch(Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 4.dp))
-
-            // While a line is traced, saying so — and offering the way out — matters more than the
-            // record's counts, which are unchanged and still a chip away.
-            if (tracing) {
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(start = 24.dp, end = 12.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text(
-                        text = stringResource(R.string.relation_tracing),
-                        style = FTreeText.recordSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.weight(1f),
-                    )
-                    clearTrace()
-                }
-            } else summary?.let {
+            summary?.let {
                 Text(
                     text = it,
                     style = FTreeText.recordSmall,
