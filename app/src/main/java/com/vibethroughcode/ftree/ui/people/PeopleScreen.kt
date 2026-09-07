@@ -78,8 +78,16 @@ fun PeopleScreen(
         if (searching) focusRequester.requestFocus()
     }
 
+    /*
+     * The measure is put on the whole screen rather than on the list inside it.
+     *
+     * The top bar, the search icon and the "add a person" button are laid out by the scaffold, so
+     * insetting only the body left them out in the margin: a search icon against the far bezel
+     * above a list that stopped a hundred points short of it, and nothing on the screen sharing an
+     * edge with anything else.
+     */
     Scaffold(
-        modifier = modifier,
+        modifier = modifier.readableMeasure(),
         topBar = {
             if (searching) {
                 OutlinedTextField(
@@ -135,7 +143,7 @@ fun PeopleScreen(
             }
         },
     ) { padding ->
-        Column(Modifier.fillMaxHeight().padding(padding).readableMeasure()) {
+        Column(Modifier.fillMaxHeight().padding(padding)) {
             if (!state.isEmptyTree) {
                 PeopleFilterRow(
                     filter = state.filter,

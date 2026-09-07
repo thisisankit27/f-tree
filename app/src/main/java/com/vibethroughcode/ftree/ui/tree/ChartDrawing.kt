@@ -22,6 +22,7 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.sp
 import com.vibethroughcode.ftree.data.PartialDate
 import com.vibethroughcode.ftree.data.Person
+import com.vibethroughcode.ftree.graph.DescentLink
 import com.vibethroughcode.ftree.graph.TreeMetrics
 import com.vibethroughcode.ftree.ui.theme.FTreeText
 import kotlin.math.max
@@ -56,6 +57,57 @@ internal fun visibleRegion(pan: Offset, zoom: Float, unitPx: Float, viewport: In
 
 internal fun visibleRegion(pan: Offset, zoom: Float, unitPx: Float, viewport: Size): Rect =
     visibleRegion(pan, zoom, unitPx, viewport.width, viewport.height)
+
+/**
+ * One family's descent: a drop from the parents, a bar across the children, and a drop to each.
+ *
+ * The bar runs from the parents' stem to the far side of the children, rather than only between the
+ * first child and the last. That is not a flourish: the parents' midpoint is regularly *outside* the
+ * span of their own children — a couple whose eldest child has a wide subtree of their own gets
+ * pushed clear of the whole run — and a bar drawn only between the children then leaves the stem
+ * ending in mid-air. The chart silently stops claiming the parentage it was drawn to state, and a
+ * reader quite reasonably concludes those children have no recorded parents. It is one line of
+ * arithmetic to draw the connector that was always meant to be there.
+ *
+ * Written once because both charts draw it, and a connector that means one thing on the focused
+ * chart and another on the whole one is not notation.
+ */
+fun DrawScope.drawDescent(
+    link: DescentLink,
+    unitPx: Float,
+    color: Color,
+    strokeWidth: Float,
+    alpha: Float = 1f,
+) {
+    val originX = link.originX * unitPx
+    val busY = link.busY * unitPx
+    val xs = link.childXs.map { it * unitPx }
+    if (xs.isEmpty()) return
+
+    drawLine(
+        color = color,
+        start = Offset(originX, link.originY * unitPx),
+        end = Offset(originX, busY),
+        strokeWidth = strokeWidth,
+        alpha = alpha,
+    )
+    drawLine(
+        color = color,
+        start = Offset(link.barStart * unitPx, busY),
+        end = Offset(link.barEnd * unitPx, busY),
+        strokeWidth = strokeWidth,
+        alpha = alpha,
+    )
+    xs.forEach { x ->
+        drawLine(
+            color = color,
+            start = Offset(x, busY),
+            end = Offset(x, link.childTopY * unitPx),
+            strokeWidth = strokeWidth,
+            alpha = alpha,
+        )
+    }
+}
 
 /** How much of a card is drawn, which depends on how far out the chart is zoomed. */
 enum class CardDetail {

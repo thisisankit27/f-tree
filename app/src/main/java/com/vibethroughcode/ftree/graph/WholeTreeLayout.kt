@@ -23,7 +23,16 @@ data class WholeTreeNode(
 }
 
 /** The doubled rule between partners, as [SpouseLink] but carrying which pair it joins. */
-data class WholeSpouseLink(val fromX: Float, val toX: Float, val y: Float, val ended: Boolean)
+data class WholeSpouseLink(
+    val fromX: Float,
+    val toX: Float,
+    val y: Float,
+    val ended: Boolean,
+    val aId: String = "",
+    val bId: String = "",
+) {
+    fun touches(personId: String): Boolean = personId == aId || personId == bId
+}
 
 /**
  * A bracket over siblings whose shared parents are unknown.
@@ -31,7 +40,15 @@ data class WholeSpouseLink(val fromX: Float, val toX: Float, val y: Float, val e
  * Derived siblings hang from their family's descent bar; these have no bar to hang from, so they
  * get a notation of their own. Dashed, because what joins them is the part nobody wrote down.
  */
-data class SiblingBracket(val fromX: Float, val toX: Float, val y: Float)
+data class SiblingBracket(
+    val fromX: Float,
+    val toX: Float,
+    val y: Float,
+    val aId: String = "",
+    val bId: String = "",
+) {
+    fun touches(personId: String): Boolean = personId == aId || personId == bId
+}
 
 /** One connected family, framed and counted. */
 data class TreeGroup(

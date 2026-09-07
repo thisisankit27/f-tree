@@ -620,6 +620,8 @@ object WholeTreeLayoutEngine {
                 toX = right.x,
                 y = left.centerY,
                 ended = false,
+                aId = a,
+                bId = b,
             )
         }
 
@@ -647,6 +649,8 @@ object WholeTreeLayoutEngine {
                     busY = max(childTopY - TreeMetrics.LEVEL_GAP * 0.42f, originY + 10f),
                     childXs = childNodes.map { it.centerX },
                     childTopY = childTopY,
+                    parentIds = parentNodes.map { it.person.id },
+                    childIds = childNodes.map { it.person.id },
                 )
             }
 
@@ -657,7 +661,7 @@ object WholeTreeLayoutEngine {
             if (na.y != nb.y) return@forEach
             val left = if (na.x < nb.x) na else nb
             val right = if (na.x < nb.x) nb else na
-            brackets += SiblingBracket(left.centerX, right.centerX, left.y)
+            brackets += SiblingBracket(left.centerX, right.centerX, left.y, aId = a, bId = b)
         }
 
         return Links(spouses, descents, brackets)

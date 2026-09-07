@@ -296,6 +296,85 @@ class TreeLayoutEngineTest {
         }
     }
 
+    /**
+     * A man who married twice, with three children by each and grandchildren under all of them —
+     * the shape that put a stem in mid-air on a real family record.
+     */
+    private fun twoMarriages(): FamilySnapshot {
+        val builder = Builder()
+            .person("father", "1900").person("first", "1902").person("second", "1906")
+            .married("father", "first").married("father", "second")
+        var grandchild = 0
+        listOf(
+            "first" to listOf("a1" to "1925", "a2" to "1927", "a3" to "1929"),
+            "second" to listOf("b1" to "1931", "b2" to "1933", "b3" to "1935"),
+        ).forEach { (wife, children) ->
+            children.forEach { (id, born) ->
+                builder.person(id, born).parentOf("father", id).parentOf(wife, id)
+                repeat(4) {
+                    val child = "g${grandchild++}"
+                    builder.person(child, "1955").parentOf(id, child)
+                }
+            }
+        }
+        return builder.build()
+    }
+
+    @Test
+    fun `a descent bar reaches the parents it descends from`() {
+        val layout = TreeLayoutEngine.layout(twoMarriages(), "father", generationsDown = 2)
+
+        val marriages = layout.descentLinks.filter { "father" in it.parentIds }
+        assertEquals("one connector per marriage", 2, marriages.size)
+
+        marriages.forEach { link ->
+            // The case that matters: the couple's midpoint is outside the run of their own
+            // children, because a child's subtree pushed the run clear of them.
+            assertTrue(
+                "fixture no longer reproduces the stranded stem",
+                link.originX < link.childXs.min() || link.originX > link.childXs.max(),
+            )
+            assertTrue("bar does not reach the stem", link.originX in link.barStart..link.barEnd)
+            link.childXs.forEach {
+                assertTrue("bar does not reach a child", it in link.barStart..link.barEnd)
+            }
+        }
+    }
+
+    @Test
+    fun `every descent bar spans its stem and all of its children`() {
+        val layout = TreeLayoutEngine.layout(nuclearFamily(), "me")
+        assertTrue(layout.descentLinks.isNotEmpty())
+        layout.descentLinks.forEach { link ->
+            assertTrue(link.originX in link.barStart..link.barEnd)
+            link.childXs.forEach { assertTrue(it in link.barStart..link.barEnd) }
+        }
+    }
+
+    @Test
+    fun `a connector names the people at both of its ends`() {
+        val layout = TreeLayoutEngine.layout(nuclearFamily(), "me")
+        val mine = layout.descentLinks.single { "child" in it.childIds }
+
+        assertEquals(setOf("me", "wife"), mine.parentIds.toSet())
+        assertTrue(mine.touches("me"))
+        assertTrue(mine.touches("child"))
+        assertFalse("a connector must not claim somebody it does not join", mine.touches("sister"))
+    }
+
+    @Test
+    fun `a drop matches the child underneath it`() {
+        val layout = TreeLayoutEngine.layout(twoMarriages(), "father", generationsDown = 2)
+        layout.descentLinks.forEach { link ->
+            assertEquals(link.childXs.size, link.childIds.size)
+            link.childIds.forEachIndexed { index, id ->
+                // The ids are carried in the same order as the drops, so a drop and the card
+                // beneath it can be matched up rather than assumed to correspond.
+                assertEquals(layout.xOf(id), link.childXs[index], 0.01f)
+            }
+        }
+    }
+
     @Test
     fun `a wide family stays laid out in reasonable time`() {
         val builder = Builder()
