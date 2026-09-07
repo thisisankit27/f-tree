@@ -2,15 +2,6 @@ package com.vibethroughcode.ftree.ui.tree
 
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.unit.IntSize
-import androidx.compose.ui.unit.dp
-
-/**
- * How much of a chart a drag must leave on screen.
- *
- * Roughly a card and a half: enough to see what you are holding on to and to drag back by, without
- * making the edge of a large family feel fenced in.
- */
-internal val KEEP_ON_SCREEN = 96.dp
 
 /**
  * Keeps a chart from being dragged off its own page.
@@ -22,39 +13,37 @@ internal val KEEP_ON_SCREEN = 96.dp
  * says so, and "the family I have been keeping is gone" is the worst sentence this app could put in
  * somebody's head.
  *
- * So a strip of the chart is always held on screen. It is a clamp rather than a bounce because a
- * chart is a document being read, not a list being flung: it should stop where it stops, and the
- * edge should feel like the edge of the paper.
+ * The rule is that **the middle of the screen stays over the chart**. Holding the chart's outline
+ * on screen is not enough: a family tree is a sparse drawing inside a rectangle, so its bottom-right
+ * corner is usually empty paper, and a clamp that only kept the rectangle honest still allowed a
+ * blank screen — which is how this was first written, and what measuring the pixels caught.
  *
- * [keep] is how much of the chart must remain, in pixels. Where a chart is smaller than that in an
- * axis the whole of it is held instead, so a lone person cannot be pushed off either.
+ * Keeping the centre inside the drawing is a real guarantee instead. The outermost cards are what
+ * define the edges of it, so wherever the centre lands, one of them is within half a screen and
+ * therefore in view. It is also the rule a map uses, and it reads the same way: the paper can be
+ * pushed until its edge reaches the middle, and no further.
  */
 internal fun clampPan(
     pan: Offset,
     contentWidth: Float,
     contentHeight: Float,
     viewport: IntSize,
-    keep: Float,
 ): Offset {
     if (viewport.width == 0 || viewport.height == 0) return pan
     return Offset(
-        x = clampAxis(pan.x, contentWidth, viewport.width, keep),
-        y = clampAxis(pan.y, contentHeight, viewport.height, keep),
+        x = clampAxis(pan.x, contentWidth, viewport.width),
+        y = clampAxis(pan.y, contentHeight, viewport.height),
     )
 }
 
 /**
  * The range a single axis may be panned through.
  *
- * The chart occupies `[offset, offset + content]` in screen space. Requiring that span to overlap
- * `[0, viewport]` by at least [keep] gives both ends directly: the chart's trailing edge cannot come
- * in past [keep], and its leading edge cannot go out past the same distance from the far side.
+ * The chart occupies `[offset, offset + content]` in screen space, so the point under the middle of
+ * the screen is `viewport / 2 - offset` in the chart's own coordinates. Requiring that to stay
+ * within `[0, content]` gives both ends at once.
  */
-private fun clampAxis(offset: Float, content: Float, viewport: Int, keep: Float): Float {
-    val visible = minOf(keep, content)
-    val min = visible - content
-    val max = viewport - visible
-    // A chart far larger than the viewport gives min < max; a tiny one can invert the range, and
-    // then the only sensible answer is the one position that satisfies both ends.
-    return if (min <= max) offset.coerceIn(min, max) else (min + max) / 2f
+private fun clampAxis(offset: Float, content: Float, viewport: Int): Float {
+    val middle = viewport / 2f
+    return offset.coerceIn(middle - content, middle)
 }
