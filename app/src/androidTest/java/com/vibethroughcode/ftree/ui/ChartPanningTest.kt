@@ -1,10 +1,10 @@
 package com.vibethroughcode.ftree.ui
 
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.click
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
+import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
@@ -14,7 +14,6 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipe
 import androidx.compose.ui.unit.dp
-import androidx.test.espresso.Espresso
 import androidx.test.platform.app.InstrumentationRegistry
 import com.vibethroughcode.ftree.FTreeApplication
 import com.vibethroughcode.ftree.MainActivity
@@ -80,6 +79,21 @@ class ChartPanningTest {
         }
     }
 
+    /**
+     * Waits for the chart to be the one asked for, rather than for Compose to merely look idle.
+     *
+     * Re-centring goes out through the graph and comes back as a new layout, and the framing that
+     * follows is an effect of its own; `waitForIdle` returns before either. The chart says who it
+     * is centred on in its own description, so that is what to wait on.
+     */
+    private fun centredOn(name: String) {
+        rule.waitUntil(10_000) {
+            rule.onAllNodesWithContentDescription("centred on $name", substring = true)
+                .fetchSemanticsNodes().isNotEmpty()
+        }
+        rule.waitForIdle()
+    }
+
     @Test
     fun aSmallDragDoesNotThrowARecentredChartOffTheScreen() {
         // The chart is built showing Padma, whose family is her husband and nobody else.
@@ -88,9 +102,7 @@ class ChartPanningTest {
         rule.onNodeWithText("Padma").performScrollTo().performClick()
         rule.waitForIdle()
         rule.onNodeWithContentDescription("Show on the tree").performClick()
-        rule.waitUntil(10_000) {
-            rule.onAllNodesWithTag(FamilyChartTag).fetchSemanticsNodes().isNotEmpty()
-        }
+        centredOn("Padma")
 
         /*
          * Her husband is stacked directly under her, a couple's spacing away, and the pair are
@@ -102,20 +114,14 @@ class ChartPanningTest {
         }
         rule.waitForIdle()
         rule.onNodeWithText("Centre the tree here").performClick()
-        rule.waitForIdle()
+        centredOn(middleSibling)
 
-        // Re-centred, in place, on a chart thirty-one people tall. He is at the middle of it.
-        rule.onNodeWithTag(FamilyChartTag).performTouchInput { click(center) }
-        rule.waitForIdle()
-        rule.onNodeWithText("Open $middleSibling").assertIsDisplayed()
-
-        // Put the sheet away and make sure it is gone: left open, its text would still be on
-        // screen at the end and the assertion below would pass without the chart being asked
-        // anything at all.
-        Espresso.pressBack()
-        rule.waitUntil(5_000) {
-            rule.onAllNodesWithText("Open $middleSibling").fetchSemanticsNodes().isEmpty()
-        }
+        /*
+         * Re-centred, in place, on a chart thirty-one people tall, with him at the middle of it.
+         * Choosing the action closed the sheet, so nothing is left over the chart — worth saying,
+         * because an earlier version of this test dismissed the sheet by hand and passed without
+         * the chart being asked anything: the sheet it read at the end was the one still open.
+         */
 
         // A drag of twenty points is a third of a card. Whoever was under the middle of the screen
         // must still be under it.
