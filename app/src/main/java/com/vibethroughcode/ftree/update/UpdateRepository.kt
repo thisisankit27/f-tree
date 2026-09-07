@@ -56,9 +56,13 @@ class UpdateRepository(
 
         _state.value = UpdateState.Checking
         try {
-            val body = client.fetchLatestRelease()
+            val beta = preferences.betaChannel.value
+            val body = client.fetchLatestRelease(includePreReleases = beta)
             val current = currentVersion ?: AppVersion(listOf(0))
-            _state.value = when (val lookup = readRelease(body, current)) {
+            val lookup =
+                if (beta) readReleases(body, current, allowPreRelease = true)
+                else readRelease(body, current)
+            _state.value = when (lookup) {
                 is ReleaseLookup.Newer -> {
                     val skipped = preferences.skippedVersion
                     if (!manual && skipped == lookup.update.version.toString()) {

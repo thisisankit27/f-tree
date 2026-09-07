@@ -533,6 +533,25 @@ attaches to an existing release rather than replacing it.
 Note that the secrets are a *deployment* mechanism, not a backup — a secret can never be read back
 out. Keep the keystore file itself somewhere safe: losing it means no in-place updates, ever.
 
+### Beta releases
+
+A tag with a suffix — `v0.6.0-beta.1`, matching a `versionName` of `0.6.0-beta.1` — is published as
+a GitHub **pre-release**. That single flag is the whole mechanism separating the two channels:
+GitHub's `releases/latest` endpoint skips pre-releases, and the ordinary updater reads that endpoint,
+so somebody who has not asked for betas cannot be handed one by accident.
+
+The beta channel reads the full `releases` list instead, and takes the newest thing on it — which
+means a beta reader is moved on to the stable release as soon as it supersedes the beta they are on,
+without having to change any setting.
+
+**Promoting a beta to stable** is a fresh tag without the suffix: bump `versionName` to `0.6.0`,
+tag `v0.6.0`. Everybody gets it, including the beta readers, because `0.6.0 > 0.6.0-beta.1`.
+
+Opting in lives at the very bottom of Settings, under the licence notice, behind copy that
+discourages it and a dialog that has to be agreed to. It says the thing somebody would otherwise only
+find out afterwards: Android will not install an older version over a newer one, so switching the
+setting back does not move you off a beta — the next stable release does.
+
 Release builds are minified. **Always install and exercise a release build before publishing it** —
 R8 has broken this app once already, by renaming an enum that navigation resolves by name and that
 the database persists by name. `app/proguard-rules.pro` explains what must be kept and why.

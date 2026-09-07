@@ -24,6 +24,11 @@ class SettingsViewModel(
     val updatesEnabled: StateFlow<Boolean> = preferences.enabled
     val updateState: StateFlow<UpdateState> = updates.state
 
+    /** Whether the updater may offer an unfinished release. See [UpdatePreferences.betaChannel]. */
+    val betaChannel: StateFlow<Boolean> = preferences.betaChannel
+
+    fun setBetaChannel(value: Boolean) = preferences.setBetaChannel(value)
+
     val photosInChart: StateFlow<Boolean> = chart.photosInChart
 
     fun setPhotosInChart(enabled: Boolean) = chart.setPhotosInChart(enabled)

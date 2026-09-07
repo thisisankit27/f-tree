@@ -33,6 +33,13 @@ android {
             "UPDATE_RELEASE_URL",
             "\"https://api.github.com/repos/thisisankit27/f-tree/releases/latest\"",
         )
+        // Every release, newest first. `releases/latest` deliberately skips pre-releases, so the
+        // beta channel has to read the list instead.
+        buildConfigField(
+            "String",
+            "UPDATE_RELEASES_URL",
+            "\"https://api.github.com/repos/thisisankit27/f-tree/releases?per_page=20\"",
+        )
         buildConfigField(
             "String",
             "RELEASES_PAGE_URL",

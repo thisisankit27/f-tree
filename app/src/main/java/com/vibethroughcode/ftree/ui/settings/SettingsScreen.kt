@@ -21,6 +21,8 @@ import androidx.compose.material.icons.filled.CloudDownload
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.OpenInNew
 import androidx.compose.material.icons.filled.Upload
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material.icons.filled.WarningAmber
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.CenterAlignedTopAppBar
@@ -68,6 +70,8 @@ const val SettingsWordsEnglishTag = "settings-words-english"
 const val SettingsWordsHindiTag = "settings-words-hindi"
 const val SettingsExportTag = "settings-export"
 const val SettingsImportTag = "settings-import"
+const val SettingsBetaToggleTag = "settings-beta-toggle"
+const val SettingsBetaConfirmTag = "settings-beta-confirm"
 
 /**
  * Settings, and the only place in the app that can reach the network.
@@ -90,6 +94,8 @@ fun SettingsScreen(
     val state by viewModel.updateState.collectAsStateWithLifecycle()
     val photosInChart by viewModel.photosInChart.collectAsStateWithLifecycle()
     val kinshipLanguage by viewModel.kinshipLanguage.collectAsStateWithLifecycle()
+    val betaChannel by viewModel.betaChannel.collectAsStateWithLifecycle()
+    var confirmingBeta by remember { mutableStateOf(false) }
 
     Scaffold(
         modifier = modifier,
@@ -227,10 +233,86 @@ fun SettingsScreen(
             stringResource(R.string.about_fonts),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(top = 16.dp, bottom = 40.dp),
+            modifier = Modifier.padding(top = 16.dp),
+        )
+
+        /*
+         * Last on the page, and meant to be.
+         *
+         * A beta is an unfinished build of an app somebody keeps their family in. Putting it under
+         * the licence notice rather than beside "Check for updates" is the honest placement: it is
+         * for people who came looking for it, and nobody should meet it while turning ordinary
+         * updates on.
+         */
+        SectionRule(stringResource(R.string.settings_section_beta))
+        SettingsSwitch(
+            title = stringResource(R.string.settings_beta_toggle),
+            body = stringResource(
+                if (enabled) R.string.settings_beta_explainer
+                else R.string.settings_beta_explainer_updates_off
+            ),
+            checked = betaChannel,
+            enabled = enabled,
+            onCheckedChange = { wanted ->
+                // Turning it off is not a decision worth interrupting; turning it on is.
+                if (wanted) confirmingBeta = true else viewModel.setBetaChannel(false)
+            },
+            tag = SettingsBetaToggleTag,
+        )
+
+        Spacer(Modifier.height(40.dp))
+    }
+    }
+
+    if (confirmingBeta) {
+        BetaOptInDialog(
+            onDismiss = { confirmingBeta = false },
+            onConfirm = {
+                confirmingBeta = false
+                viewModel.setBetaChannel(true)
+            },
         )
     }
-    }
+}
+
+/**
+ * What somebody is agreeing to before the updater will offer them an unfinished build.
+ *
+ * It states the one consequence that is not obvious and cannot be undone by flicking the switch
+ * back: Android will not install an older version over a newer one, so a beta keeps you on betas
+ * until the stable release passes it. Everything else here is a risk somebody can weigh; that is a
+ * fact they would otherwise discover afterwards.
+ */
+@Composable
+private fun BetaOptInDialog(onDismiss: () -> Unit, onConfirm: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        icon = { Icon(Icons.Default.WarningAmber, contentDescription = null) },
+        title = { Text(stringResource(R.string.settings_beta_dialog_title)) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text(
+                    stringResource(R.string.settings_beta_dialog_body),
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+                Text(
+                    stringResource(R.string.settings_beta_dialog_export),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.error,
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onConfirm, modifier = Modifier.testTag(SettingsBetaConfirmTag)) {
+                Text(stringResource(R.string.settings_beta_dialog_confirm))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(R.string.settings_beta_dialog_cancel))
+            }
+        },
+    )
 }
 
 /**
@@ -247,12 +329,14 @@ private fun SettingsSwitch(
     checked: Boolean,
     onCheckedChange: (Boolean) -> Unit,
     tag: String,
+    enabled: Boolean = true,
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .toggleable(
                 value = checked,
+                enabled = enabled,
                 onValueChange = onCheckedChange,
                 role = Role.Switch,
             )

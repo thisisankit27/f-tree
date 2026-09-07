@@ -330,6 +330,20 @@
     <string name="settings_import_body">Merges another .ftree into yours. Nothing of yours is replaced, and a backup is written first.</string>
     <string name="settings_version">Version %1$s</string>
     <string name="settings_source">Source and releases</string>
+
+    <!--
+        The beta channel. Written to be read twice: once by somebody deciding, and once by somebody
+        who has already decided and wants to know what they agreed to.
+    -->
+    <string name="settings_section_beta">Beta releases</string>
+    <string name="settings_beta_toggle">Offer me beta releases</string>
+    <string name="settings_beta_explainer">Most people should leave this off. Betas are unfinished builds put out to be tested — they can be slow, wrong, or lose work, and a fix may take days. You will be offered them ahead of everyone else, which is the point and also the risk.</string>
+    <string name="settings_beta_explainer_updates_off">Turn on “Check for updates” above first. This only changes which release the updater offers you; on its own it does nothing.</string>
+    <string name="settings_beta_dialog_title">Take unfinished builds?</string>
+    <string name="settings_beta_dialog_body">A beta is a version that has not been through a full release. It may misbehave in ways the stable app does not, and turning this off afterwards will not move you back — Android will not install an older version over a newer one, so you will stay on betas until the next stable release passes the one you are on.</string>
+    <string name="settings_beta_dialog_export">Export your tree before you install one.</string>
+    <string name="settings_beta_dialog_confirm">Offer me betas</string>
+    <string name="settings_beta_dialog_cancel">Not now</string>
     <string name="settings_permissions_title">Permissions</string>
     <string name="settings_permissions_body">Two, both only for the updater above: internet access to ask GitHub about releases, and permission to install an update. Nothing else in the app touches the network.</string>
 

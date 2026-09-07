@@ -111,11 +111,50 @@ fun readRelease(
 ): ReleaseLookup {
     val payload = runCatching { json.decodeFromString<ReleasePayload>(body) }.getOrNull()
         ?: return ReleaseLookup.NoUsableRelease
+    return chooseFrom(listOf(payload), current, allowPreRelease)
+}
 
-    if (payload.draft) return ReleaseLookup.NoUsableRelease
-    if (payload.prerelease && !allowPreRelease) return ReleaseLookup.NoUsableRelease
+/**
+ * The same question asked of a *list* of releases.
+ *
+ * GitHub's `releases/latest` deliberately skips pre-releases, which is exactly right for the
+ * ordinary channel and useless for the other one. So the beta channel reads the full list and picks
+ * from it, which also means a beta reader is offered the newest thing on offer whether that happens
+ * to be a beta or the stable release that supersedes it.
+ */
+fun readReleases(
+    body: String,
+    current: AppVersion,
+    allowPreRelease: Boolean = false,
+): ReleaseLookup {
+    val payloads = runCatching { json.decodeFromString<List<ReleasePayload>>(body) }.getOrNull()
+        ?: return ReleaseLookup.NoUsableRelease
+    return chooseFrom(payloads, current, allowPreRelease)
+}
 
-    val version = AppVersion.parse(payload.tag) ?: return ReleaseLookup.NoUsableRelease
+/**
+ * Picks the newest release worth offering, and says why when there is none.
+ *
+ * Drafts never count: they are visible only to whoever is signed in as the author, and a draft is
+ * by definition not published. A pre-release counts only when the reader has asked for them.
+ *
+ * "Up to date" and "nothing usable" are told apart deliberately. The first is an answer; the second
+ * means the newest release has no APK attached to it, which is a state of the *repository* and not
+ * of the reader, and alarming somebody about it would be pointing at the wrong thing.
+ */
+private fun chooseFrom(
+    payloads: List<ReleasePayload>,
+    current: AppVersion,
+    allowPreRelease: Boolean,
+): ReleaseLookup {
+    val candidates = payloads
+        .filterNot { it.draft }
+        .filter { allowPreRelease || !it.prerelease }
+        .mapNotNull { payload -> AppVersion.parse(payload.tag)?.let { it to payload } }
+
+    if (candidates.isEmpty()) return ReleaseLookup.NoUsableRelease
+
+    val (version, payload) = candidates.maxByOrNull { it.first } ?: return ReleaseLookup.NoUsableRelease
     if (version <= current) return ReleaseLookup.UpToDate
 
     val apk = payload.assets.firstOrNull {
