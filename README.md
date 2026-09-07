@@ -373,6 +373,29 @@ importing will not overwrite anything they already have. Whether a given chat ap
 message beside the document is that app's decision — which is why the file is named after whose
 family it is. The name is the part that always arrives.
 
+### Sharing a relationship as a picture
+
+Sending a `.ftree` taught us something: **a chat app handed a document quietly drops the message
+that came with it.** The file arrives, the sentence explaining it does not. Handed an `image/png`,
+the same app shows the text beside the picture — Android's own share sheet does it too, which is how
+this was confirmed rather than assumed.
+
+So a relationship can also be sent as a card. Not a screenshot: a screenshot carries a status bar, a
+navigation bar and whatever font size the sender happens to use, none of which is the answer. The
+card is the app's own sentence and its own notation, laid out for the purpose, in two drawings of
+the same line — **Tree**, cards down a spine with each step named on the rule that makes it, and
+**List**, a register with a rail through the faces. The reader sees it before sending and picks.
+
+The preview *is* the card. The same composable is drawn on screen and recorded into the file through
+a `GraphicsLayer`, so there is no second rendering that could disagree with what was shown. Its
+density is pinned at three pixels to the point rather than read from the device, which is what makes
+the picture 1080 x 1350 from every phone; the preview scales that to fit after layout, so nothing is
+re-measured. The ground is painted opaque, because a PNG with transparent corners is at the mercy of
+whatever it lands on.
+
+A line of any length fits, because both ends are always shown and a middle that will not fit is
+counted rather than cut — "+4 more" is true where a silently shortened chain is not.
+
 ### Joining a shared branch to your own tree
 
 This is the other half of why it exists. Import the branch, then create one relationship between
