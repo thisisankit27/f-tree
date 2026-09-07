@@ -60,6 +60,9 @@ import com.vibethroughcode.ftree.ui.common.isShortWindow
 import com.vibethroughcode.ftree.ui.common.relativeRoleLabel
 import com.vibethroughcode.ftree.ui.theme.FTreeText
 import com.vibethroughcode.ftree.ui.theme.FTreeTheme
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.width
+import androidx.compose.ui.text.rememberTextMeasurer
 
 const val RelationSheetTag = "relation-sheet"
 const val RelationCloseTag = "relation-close"
@@ -282,9 +285,30 @@ private fun Headline(state: RelationUiState, onShare: () -> Unit, onClose: () ->
  */
 @Composable
 private fun Pair(state: RelationUiState, onPick: (RelationSlot) -> Unit, onSwap: () -> Unit) {
+    val between = stringResource(R.string.relation_between)
+    val and = stringResource(R.string.relation_and)
+
+    /*
+     * One column for both words, as wide as the longer of them.
+     *
+     * "Between" and "and" are not the same length, so setting each card's name straight after its
+     * own word put the two people at different distances from the edge — a stagger of a few points
+     * that reads as a mistake, because the two rows are plainly meant to be the same shape. The
+     * width is measured from the words themselves rather than set to a number, so it survives
+     * translation and the reader's text size, both of which change the answer.
+     */
+    val measurer = rememberTextMeasurer()
+    val labelWidth = with(LocalDensity.current) {
+        maxOf(
+            measurer.measure(between, FTreeText.recordSmall).size.width,
+            measurer.measure(and, FTreeText.recordSmall).size.width,
+        ).toDp()
+    }
+
     val from: @Composable (Modifier) -> Unit = { modifier ->
         Slot(
-            label = stringResource(R.string.relation_between),
+            label = between,
+            labelWidth = labelWidth,
             person = state.from,
             tag = RelationSlotFromTag,
             modifier = modifier,
@@ -293,7 +317,8 @@ private fun Pair(state: RelationUiState, onPick: (RelationSlot) -> Unit, onSwap:
     }
     val to: @Composable (Modifier) -> Unit = { modifier ->
         Slot(
-            label = stringResource(R.string.relation_and),
+            label = and,
+            labelWidth = labelWidth,
             person = state.to,
             tag = RelationSlotToTag,
             modifier = modifier,
@@ -337,11 +362,16 @@ private fun Pair(state: RelationUiState, onPick: (RelationSlot) -> Unit, onSwap:
     }
 }
 
+/** The face beside a name, and the space kept for it before there is one. */
+private val AVATAR = 28.dp
+
 /** One of the two people, or an invitation to choose one. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun Slot(
     label: String,
+    /** Shared with the other slot, so both names start at the same place. */
+    labelWidth: Dp,
     person: Person?,
     tag: String,
     onClick: () -> Unit,
@@ -362,9 +392,19 @@ private fun Slot(
                 text = label,
                 style = FTreeText.recordSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(end = 12.dp),
+                modifier = Modifier.width(labelWidth),
             )
-            person?.let { PersonAvatar(it, diameter = 28.dp, decorative = true) }
+            Spacer(Modifier.width(12.dp))
+            /*
+             * The face's place is held whether or not there is a face in it. Drawing it only once
+             * somebody is chosen moved the name sideways at the moment of choosing, and left a
+             * filled slot and an empty one disagreeing about where a name begins — which is the
+             * same misalignment again, from the other direction.
+             */
+            Box(Modifier.size(AVATAR), contentAlignment = Alignment.Center) {
+                person?.let { PersonAvatar(it, diameter = AVATAR, decorative = true) }
+            }
+            Spacer(Modifier.width(10.dp))
             Text(
                 text = person?.displayName() ?: stringResource(R.string.relation_choose),
                 style = MaterialTheme.typography.titleSmall,
@@ -374,7 +414,6 @@ private fun Slot(
                 else FontStyle.Normal,
                 color = if (person == null) MaterialTheme.colorScheme.onSurfaceVariant
                 else MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.padding(start = if (person == null) 0.dp else 10.dp),
             )
         }
     }
