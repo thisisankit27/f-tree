@@ -71,4 +71,81 @@ class ChartViewportTest {
         val pan = Offset(-99999f, -99999f)
         assertEquals(pan, clampPan(pan, 4000f, 6000f, IntSize.Zero))
     }
+
+    /*
+     * A sideways chart is mostly empty paper: the earliest generation holds two people and the
+     * latest holds sixty. These are the cases where the outline and the drawing disagree.
+     */
+
+    /** A short generation beside a long one, the shape that made this matter. */
+    private val short = ChartColumn(left = 0f, right = 160f, top = 400f, bottom = 700f)
+    private val long = ChartColumn(left = 264f, right = 424f, top = 0f, bottom = 3000f)
+
+    @Test
+    fun `following a generation down stops at the end of what is drawn there`() {
+        // Only the short generation is on screen, and the drag runs far past its last card.
+        val narrow = IntSize(200, 2000)
+        val panned = clampPan(
+            pan = Offset(0f, -99999f),
+            contentWidth = 4000f, contentHeight = 6000f,
+            viewport = narrow,
+            columns = listOf(short, long),
+            scale = 1f,
+        )
+        val centre = 1000f - panned.y
+        assertEquals("the middle must rest on the last card, not below it", 700f, centre, 0.01f)
+    }
+
+    @Test
+    fun `a short generation still scrolls as far as the long one beside it`() {
+        // Both on screen: the eye follows the neighbour down, so the clamp lets it.
+        val panned = clampPan(
+            pan = Offset(0f, -99999f),
+            contentWidth = 4000f, contentHeight = 6000f,
+            viewport = viewport,
+            columns = listOf(short, long),
+            scale = 1f,
+        )
+        assertEquals(3000f, midY - panned.y, 0.01f)
+    }
+
+    @Test
+    fun `the middle never leaves the cards, whichever way it is dragged`() {
+        val columns = listOf(short, long)
+        listOf(
+            Offset(99999f, 99999f), Offset(-99999f, -99999f),
+            Offset(99999f, -99999f), Offset(-99999f, 99999f),
+        ).forEach { wild ->
+            val panned = clampPan(wild, 4000f, 6000f, viewport, columns, 1f)
+            val centre = centreOver(panned)
+            val onScreen = columns.filter {
+                it.right >= -panned.x && it.left <= -panned.x + viewport.width
+            }.ifEmpty { columns }
+            assertTrue(
+                "centre $centre is off the drawing",
+                centre.x >= columns.minOf { it.left } - 0.01f &&
+                    centre.x <= columns.maxOf { it.right } + 0.01f &&
+                    centre.y >= onScreen.minOf { it.top } - 0.01f &&
+                    centre.y <= onScreen.maxOf { it.bottom } + 0.01f,
+            )
+        }
+    }
+
+    @Test
+    fun `zoom is taken into account, so the rule holds at every scale`() {
+        val panned = clampPan(
+            pan = Offset(0f, -99999f),
+            contentWidth = 4000f, contentHeight = 6000f,
+            viewport = viewport,
+            columns = listOf(short, long),
+            scale = 0.5f,
+        )
+        // The cards are half as far apart on screen, so the limit halves with them.
+        assertEquals(1500f, midY - panned.y, 0.01f)
+    }
+
+    @Test
+    fun `with no columns given it falls back to the chart's outline`() {
+        assertEquals(clamp(-99999f, -99999f), clampPan(Offset(-99999f, -99999f), 4000f, 6000f, viewport))
+    }
 }

@@ -18,6 +18,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.input.pointer.pointerInput
@@ -141,6 +142,27 @@ fun FamilyChart(
         snapshotFlow { wantedPhotos.value }.distinctUntilChanged().collect(cache::request)
     }
 
+    /**
+     * How big the drawing is, kept current.
+     *
+     * Read by the gesture below, which is built once and would otherwise go on clamping against
+     * whatever family happened to be on screen when it was made.
+     */
+    val paper by rememberUpdatedState(Size(layout.width, layout.height))
+
+    /** Where the cards actually are, a generation at a time. Recomputed only when the chart is. */
+    val columns = remember(layout) {
+        layout.nodes.groupBy { it.x }.map { (x, ns) ->
+            ChartColumn(
+                left = x,
+                right = x + ns.maxOf { it.width },
+                top = ns.minOf { it.y },
+                bottom = ns.maxOf { it.y + it.height },
+            )
+        }
+    }
+    val paperColumns by rememberUpdatedState(columns)
+
     val tapped by rememberUpdatedState(onSelect)
 
     Canvas(
@@ -156,6 +178,18 @@ fun FamilyChart(
             .testTag(FamilyChartTag)
             .semantics { contentDescription = chartDescription }
             .onSizeChanged { viewport = it }
+            /*
+             * Keyed on nothing, so it is built once and never again — which is exactly why the
+             * size it clamps against is read from [paper] rather than from `layout`. A gesture
+             * block closing over the layout keeps the *first* one it ever saw: re-centre the chart
+             * on somebody else and the pan is still being held inside the extent of a family that
+             * is no longer on screen. The first drag then snaps the chart into that stale window
+             * and most of the real one becomes unreachable.
+             *
+             * This is the same trap as the tap handler below, which reads the latest callback for
+             * the same reason. A `pointerInput` key covers what restarts the gesture, never what
+             * the gesture reads.
+             */
             .pointerInput(Unit) {
                 detectTransformGestures { centroid, panChange, zoomChange, _ ->
                     val next = (zoom * zoomChange).coerceIn(MIN_ZOOM, MAX_ZOOM)
@@ -165,9 +199,11 @@ fun FamilyChart(
                     zoom = next
                     pan = clampPan(
                         pan = (pan - centroid) * factor + centroid + panChange,
-                        contentWidth = layout.width * unitPx * next,
-                        contentHeight = layout.height * unitPx * next,
+                        contentWidth = paper.width * unitPx * next,
+                        contentHeight = paper.height * unitPx * next,
                         viewport = viewport,
+                        columns = paperColumns,
+                        scale = unitPx * next,
                     )
                 }
             }
