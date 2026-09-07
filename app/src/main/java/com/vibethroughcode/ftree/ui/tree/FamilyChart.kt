@@ -13,6 +13,7 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -139,6 +140,8 @@ fun FamilyChart(
         snapshotFlow { wantedPhotos.value }.distinctUntilChanged().collect(cache::request)
     }
 
+    val tapped by rememberUpdatedState(onSelect)
+
     Canvas(
         modifier = modifier
             .fillMaxSize()
@@ -164,7 +167,11 @@ fun FamilyChart(
                 detectTapGestures { tap ->
                     val x = (tap.x - pan.x) / zoom / unitPx
                     val y = (tap.y - pan.y) / zoom / unitPx
-                    layout.nodeAt(x, y)?.let { onSelect(it.person) }
+                    // Through the latest callback, not the one this gesture block was built with.
+                    // It is only restarted when the layout changes, so a tap handler that closes
+                    // over screen state — what a tap should do while a relation is being asked —
+                    // would otherwise go on doing what it meant several states ago.
+                    layout.nodeAt(x, y)?.let { tapped(it.person) }
                 }
             },
     ) {

@@ -73,9 +73,10 @@ object FTreeViewModels {
             )
         }
         initializer {
+            // Scoped to the chart, which is where a relation is now both asked and answered.
             val handle: SavedStateHandle = createSavedStateHandle()
-            val route = handle.toRoute<RelationRoute>()
-            RelationViewModel(repository(), handle, route.fromId, route.toId)
+            val route = handle.toRoute<TreeRoute>()
+            RelationViewModel(repository(), handle, route.relateFrom, null)
         }
         initializer {
             val route = createSavedStateHandle().toRoute<AddRelativeRoute>()

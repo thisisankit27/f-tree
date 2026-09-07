@@ -13,6 +13,7 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.CornerRadius
@@ -107,8 +108,27 @@ fun WholeFamilyChart(
     LaunchedEffect(layout, viewport, frameSignal) {
         if (viewport == IntSize.Zero || layout.isEmpty) return@LaunchedEffect
         with(density) {
-            val chartWidth = layout.width.dp.toPx()
-            val chartHeight = layout.height.dp.toPx()
+            /*
+             * A traced line is framed on the line, not on the record.
+             *
+             * The layout's own width and height are the room the whole chart was laid out in,
+             * which for a handful of people on one line is mostly empty: framing on it puts four
+             * cards in a corner and calls it centred. The cards themselves are the answer, so
+             * their box is what gets fitted.
+             */
+            val margin = if (tracing) TRACE_MARGIN else 0f
+            val left = if (tracing) layout.nodes.minOf { it.x } - margin else 0f
+            val top = if (tracing) layout.nodes.minOf { it.y } - margin else 0f
+            val chartWidth = when {
+                tracing -> layout.nodes.maxOf { it.x + TreeMetrics.NODE_WIDTH } + margin - left
+                else -> layout.width
+            }.dp.toPx()
+            val chartHeight = when {
+                tracing -> layout.nodes.maxOf { it.y + TreeMetrics.NODE_HEIGHT } + margin - top
+                else -> layout.height
+            }.dp.toPx()
+            val originX = left.dp.toPx()
+            val originY = top.dp.toPx()
             val byWidth = viewport.width / chartWidth
             val byHeight = viewport.height / chartHeight
             val toFit = minOf(byWidth, byHeight, MAX_FIT)
@@ -116,8 +136,8 @@ fun WholeFamilyChart(
             if (toFit >= LEGIBLE) {
                 zoom = toFit
                 pan = Offset(
-                    (viewport.width - chartWidth * toFit) / 2f,
-                    (viewport.height - chartHeight * toFit) / 2f,
+                    (viewport.width - chartWidth * toFit) / 2f - originX * toFit,
+                    (viewport.height - chartHeight * toFit) / 2f - originY * toFit,
                 )
             } else {
                 /*
@@ -130,12 +150,14 @@ fun WholeFamilyChart(
                 zoom = minOf(byHeight, MAX_FIT).coerceAtLeast(LEGIBLE)
                 val first = layout.groups.firstOrNull { !it.unconnected } ?: layout.groups.first()
                 val inset = 16.dp.toPx()
+                val startX = if (tracing) originX else first.x.dp.toPx()
+                val startY = if (tracing) originY else first.y.dp.toPx()
                 pan = Offset(
-                    inset - first.x.dp.toPx() * zoom,
+                    inset - startX * zoom,
                     if (chartHeight * zoom <= viewport.height) {
-                        (viewport.height - chartHeight * zoom) / 2f
+                        (viewport.height - chartHeight * zoom) / 2f - startY * zoom
                     } else {
-                        inset - first.y.dp.toPx() * zoom
+                        inset - startY * zoom
                     },
                 )
             }
@@ -171,6 +193,8 @@ fun WholeFamilyChart(
         snapshotFlow { wantedPhotos.value }.distinctUntilChanged().collect(cache::request)
     }
 
+    val tapped by rememberUpdatedState(onSelect)
+
     Canvas(
         modifier = modifier
             .fillMaxSize()
@@ -194,7 +218,11 @@ fun WholeFamilyChart(
                 detectTapGestures { tap ->
                     val x = (tap.x - pan.x) / zoom / unitPx
                     val y = (tap.y - pan.y) / zoom / unitPx
-                    layout.nodeAt(x, y)?.let { onSelect(it.person) }
+                    // Through the latest callback, not the one this gesture block was built with.
+                    // It is only restarted when the layout changes, so a tap handler that closes
+                    // over screen state — what a tap should do while a relation is being asked —
+                    // would otherwise go on doing what it meant several states ago.
+                    layout.nodeAt(x, y)?.let { tapped(it.person) }
                 }
             },
     ) {
@@ -389,6 +417,9 @@ private const val SHOW_NAMES = 0.4f
 private const val SHOW_YEARS = 0.66f
 private const val SHOW_LABELS = 0.34f
 /** The scale at which a card is still readable, used to decide whether fitting is worth it. */
+/** Air left around a traced line, in layout units, so the cards do not touch the edges. */
+private const val TRACE_MARGIN = 12f
+
 private const val LEGIBLE = 0.62f
 private const val MAX_FIT = 1.5f
 private const val MIN_ZOOM = 0.08f

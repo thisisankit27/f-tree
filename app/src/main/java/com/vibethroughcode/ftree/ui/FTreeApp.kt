@@ -55,7 +55,6 @@ import com.vibethroughcode.ftree.ui.common.isShortWindow
 import com.vibethroughcode.ftree.ui.people.PeopleScreen
 import com.vibethroughcode.ftree.ui.person.PersonDetailScreen
 import com.vibethroughcode.ftree.ui.person.PersonEditScreen
-import com.vibethroughcode.ftree.ui.relation.RelationScreen
 import com.vibethroughcode.ftree.ui.relative.AddRelativeScreen
 import com.vibethroughcode.ftree.ui.settings.SettingsScreen
 import com.vibethroughcode.ftree.ui.settings.SettingsViewModel
@@ -231,34 +230,13 @@ fun FTreeApp(
                 ) {
                     composable<TreeRoute> { entry ->
                         TreeScreen(
-                            trace = entry.toRoute<TreeRoute>().trace,
-                            startWhole = entry.toRoute<TreeRoute>().whole,
+                            relateFrom = entry.toRoute<TreeRoute>().relateFrom,
                             onOpenPerson = { navController.navigate(PersonRoute(it)) },
                             onAddPerson = { navController.navigate(EditPersonRoute()) },
                             onAddRelative = { anchorId, kind ->
                                 navController.navigate(AddRelativeRoute(anchorId, kind))
                             },
-                            onRelate = { navController.navigate(RelationRoute(fromId = it)) },
                             onShare = transferViewModel::shareBranch,
-                            // Dropping the trace means going back to the plain chart, which is where
-                            // clearing a highlight should leave you — not one screen further back.
-                            onClearTrace = {
-                                navController.navigate(TreeRoute(whole = true)) {
-                                    popUpTo<TreeRoute> { inclusive = true }
-                                }
-                            },
-                        )
-                    }
-
-                    composable<RelationRoute> {
-                        RelationScreen(
-                            onBack = { navController.popBackStack() },
-                            onOpenPerson = { navController.navigate(PersonRoute(it)) },
-                            onShowOnChart = { trace ->
-                                navController.navigate(TreeRoute(trace = trace)) {
-                                    popUpTo<TreeRoute> { inclusive = true }
-                                }
-                            },
                         )
                     }
 
@@ -293,7 +271,9 @@ fun FTreeApp(
                                 }
                             },
                             onRelate = { personId ->
-                                navController.navigate(RelationRoute(fromId = personId))
+                                navController.navigate(TreeRoute(relateFrom = personId)) {
+                                    popUpTo<TreeRoute> { inclusive = true }
+                                }
                             },
                             onShare = transferViewModel::shareBranch,
                         )
