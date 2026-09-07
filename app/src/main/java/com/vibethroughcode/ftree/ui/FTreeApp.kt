@@ -1,6 +1,7 @@
 package com.vibethroughcode.ftree.ui
 
 import android.content.Intent
+import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Row
@@ -64,7 +65,14 @@ import com.vibethroughcode.ftree.ui.common.peopleCount
 import com.vibethroughcode.ftree.ui.transfer.TransferViewModel
 import com.vibethroughcode.ftree.ui.transfer.defaultExportName
 import com.vibethroughcode.ftree.ui.tree.TreeScreen
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlin.reflect.KClass
+
+/** Nothing was handed to the app: the ordinary case, and a single instance rather than a new one
+ * per composition, which would restart the collection on every recomposition. */
+private val nothingOpened: StateFlow<Uri?> = MutableStateFlow<Uri?>(null).asStateFlow()
 
 const val NavTreeTag = "nav-tree"
 const val NavPeopleTag = "nav-people"
@@ -95,9 +103,17 @@ private val destinations = listOf(
  * Import and export live here rather than on any one screen: a transfer is an operation on the
  * whole tree, its result belongs in an app-level snackbar, and the import review has to survive
  * whichever screen started it.
+ *
+ * [opened] is a file another app handed over — someone tapping a `.ftree` in their downloads, or
+ * choosing this app from a chat app's share sheet. It goes through exactly the same review as a
+ * file picked from inside the app, because arriving from outside says nothing about whether it
+ * should be trusted, and the reader still has to see what it would do before it does it.
  */
 @Composable
-fun FTreeApp() {
+fun FTreeApp(
+    opened: StateFlow<Uri?> = nothingOpened,
+    onOpened: () -> Unit = {},
+) {
     val navController = rememberNavController()
     val context = LocalContext.current
     // Named once here and read by every screen that says a relationship out loud.
@@ -142,6 +158,19 @@ fun FTreeApp() {
         val send = sendBranchIntent(branch.uri, shareMessage, shareTitle)
         runCatching { context.startActivity(Intent.createChooser(send, shareTitle)) }
         transferViewModel.clearShare()
+    }
+
+    /*
+     * A file opened from outside, shown as a proposal rather than applied.
+     *
+     * Cleared as soon as it is handed over, so that a rotation — or coming back to the app later —
+     * does not read the same file again over the top of whatever is happening now.
+     */
+    val openedFile by opened.collectAsStateWithLifecycle()
+    LaunchedEffect(openedFile) {
+        val file = openedFile ?: return@LaunchedEffect
+        transferViewModel.prepareImport(file)
+        onOpened()
     }
 
     val backStackEntry by navController.currentBackStackEntryAsState()

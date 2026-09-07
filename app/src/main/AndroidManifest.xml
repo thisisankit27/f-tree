@@ -22,14 +22,65 @@
         android:label="@string/app_name"
         android:supportsRtl="true"
         android:theme="@style/Theme.FTree">
+        <!--
+            One task, whichever way the app is entered.
+
+            singleTask because opening a shared `.ftree` from a chat app should bring the reader to
+            their own family tree with everything where they left it, not open a second copy of the
+            app nested inside the chat app's task with a back button that leads somewhere strange.
+            The file arrives at onNewIntent when the app is already running.
+        -->
         <activity
             android:name=".MainActivity"
             android:exported="true"
             android:label="@string/app_name"
+            android:launchMode="singleTask"
             android:theme="@style/Theme.FTree">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+
+            <!--
+                Opening a family tree somebody sent.
+
+                Matched on type rather than on the `.ftree` name, because a content URI usually has
+                no name in its path to match: a chat app stores what it received under a number and
+                reports whatever type it recorded, which for an extension nothing has heard of means
+                octet-stream. Matching those types is the only thing that puts this app in the list
+                somebody is looking at when they tap a file a relative sent them.
+
+                The cost is being offered for other files of no particular type, and it is paid
+                openly: the file is read and refused with a sentence if it is not a family tree,
+                rather than the app quietly not appearing when it should.
+            -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="content" />
+                <data android:mimeType="application/octet-stream" />
+                <data android:mimeType="application/zip" />
+                <data android:mimeType="application/x-zip-compressed" />
+                <data android:mimeType="application/ftree" />
+            </intent-filter>
+
+            <!--
+                Deliberately no `file:` filter, tempting though the `.ftree` name is to match on.
+                A path in somebody's Downloads is not readable by this app on any current Android
+                without a storage permission it has no other reason to hold, so claiming those files
+                would mean appearing in the list and then failing — which is worse than not being
+                there. Every file manager and chat app that matters hands over a content URI.
+            -->
+
+            <!-- Sending a file to this app from a chat app's share sheet. -->
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="application/octet-stream" />
+                <data android:mimeType="application/zip" />
+                <data android:mimeType="application/x-zip-compressed" />
+                <data android:mimeType="application/ftree" />
             </intent-filter>
         </activity>
 
