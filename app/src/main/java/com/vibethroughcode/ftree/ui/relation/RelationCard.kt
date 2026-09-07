@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -21,7 +22,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.style.TextAlign
@@ -39,9 +39,6 @@ import com.vibethroughcode.ftree.ui.common.relativeRoleLabel
 import com.vibethroughcode.ftree.ui.theme.FTreeText
 import com.vibethroughcode.ftree.ui.theme.FTreeTheme
 
-/** Which drawing of the line between two people the card carries. */
-enum class CardStyle { TREE, LIST }
-
 /**
  * The card's size in its own units. Rendered at three pixels to the point, so the image is always
  * 1080 x 1350 whatever the phone it was made on — the shape a chat app expects, and the same file
@@ -50,18 +47,19 @@ enum class CardStyle { TREE, LIST }
 val CARD_WIDTH = 360.dp
 val CARD_HEIGHT = 450.dp
 
-/** How many people the body can show before it starts summarising. */
-private const val TREE_SEATS = 4
-private const val LIST_SEATS = 5
+/** The smallest a row can be and still carry a name over the step that makes it. */
+private val MIN_ROW = 40.dp
 
-/**
- * Every card on the tree is the same width.
- *
- * Boxes sized to their names would step in and out down the page and the connectors would meet them
- * off-centre; one width gives the drawing a spine, which is what makes it read as descent rather
- * than as a list that has been boxed.
- */
-private val TREE_CARD_WIDTH = 208.dp
+/** And the largest, so a two-person answer sits together rather than drifting apart. */
+private val MAX_ROW = 64.dp
+
+private val ROW_GAP = 2.dp
+
+/** The fewest rows that can still tell the truth: both ends, and the note between them. */
+private const val MIN_SEATS = 3
+
+/** Past this many characters the sentence is set smaller, so it cannot eat the drawing. */
+private const val LONG_SENTENCE = 58
 
 /**
  * A relationship, as something you can send.
@@ -73,14 +71,13 @@ private val TREE_CARD_WIDTH = 208.dp
  * to be, and none of that is the answer.
  *
  * Nothing is invented for the picture. It is the same sentence [answerSentence] writes on the
- * screen, in the same vocabulary the reader has chosen, using the app's own notation for a card and
- * a connector — so what arrives in somebody's chat is recognisably the thing they were shown.
+ * screen, in the same vocabulary the reader has chosen, using the app's own notation for a face and
+ * a connecting line — so what arrives in somebody's chat is recognisably the thing they were shown.
  */
 @Composable
 fun RelationCard(
     state: RelationUiState,
     relation: Relation.Found,
-    style: CardStyle,
     modifier: Modifier = Modifier,
 ) {
     val accents = FTreeTheme.accents
@@ -100,231 +97,169 @@ fun RelationCard(
             .background(MaterialTheme.colorScheme.surfaceContainerHigh)
             .padding(14.dp),
     ) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .clip(RoundedCornerShape(18.dp))
-            .background(MaterialTheme.colorScheme.background)
-            .border(1.dp, accents.rule, RoundedCornerShape(18.dp))
-            .padding(horizontal = 24.dp, vertical = 22.dp),
-    ) {
-        Text(
-            text = stringResource(R.string.app_name).uppercase(),
-            style = FTreeText.sectionLabel,
-            color = accents.unknown,
-        )
-
-        Spacer(Modifier.height(16.dp))
-
-        Text(
-            text = answer?.sentence
-                ?: stringResource(
-                    R.string.card_connected,
-                    from.displayName(),
-                    state.to?.displayName().orEmpty(),
-                ),
-            style = MaterialTheme.typography.headlineSmall.copy(fontSize = 22.sp, lineHeight = 29.sp),
-            color = MaterialTheme.colorScheme.onSurface,
-            maxLines = 4,
-            overflow = TextOverflow.Ellipsis,
-        )
-
-        Spacer(Modifier.height(10.dp))
-
-        Text(
-            text = stringResource(R.string.card_steps, relation.steps),
-            style = FTreeText.recordSmall,
-            color = accents.unknown,
-        )
-
-        Spacer(Modifier.height(16.dp))
-        HorizontalDivider(color = accents.rule)
-
-        Box(
-            modifier = Modifier.fillMaxWidth().weight(1f),
-            contentAlignment = Alignment.Center,
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .clip(RoundedCornerShape(18.dp))
+                .background(MaterialTheme.colorScheme.background)
+                .border(1.dp, accents.rule, RoundedCornerShape(18.dp))
+                .padding(horizontal = 24.dp, vertical = 20.dp),
         ) {
-            val people = listOf(from) + state.chain.map { it.person }
-            val roles = listOf<String?>(null) + state.chain.map { link ->
-                stringResource(
-                    relativeRoleLabel(
-                        link.kind.asRelativeKind(),
-                        link.person.gender,
-                        LocalKinshipLanguage.current,
-                    )
-                )
-            }
-            when (style) {
-                CardStyle.TREE -> TreeBody(people, roles)
-                CardStyle.LIST -> ListBody(people, roles)
-            }
-        }
-
-        HorizontalDivider(color = accents.rule)
-        Spacer(Modifier.height(10.dp))
-        Text(
-            text = stringResource(R.string.card_footer),
-            style = FTreeText.recordSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-    }
-    }
-}
-
-/**
- * The line drawn as a descent: cards down the middle, joined by the app's own connector, with each
- * step named on the rule that makes it.
- *
- * This is the shape somebody recognises as a family tree, which is why it is the one the card
- * offers first.
- */
-@Composable
-private fun TreeBody(people: List<Person>, roles: List<String?>) {
-    val accents = FTreeTheme.accents
-    val shown = seat(people, roles, TREE_SEATS)
-
-    Column(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        shown.forEachIndexed { index, seat ->
-            if (index > 0) {
-                Connector(label = seat.role, hidden = seat.person == null)
-            }
-            when (val person = seat.person) {
-                null -> Text(
-                    text = stringResource(R.string.card_more, seat.skipped),
-                    style = FTreeText.recordSmall,
-                    color = accents.unknown,
-                )
-
-                else -> Row(
-                    modifier = Modifier
-                        .width(TREE_CARD_WIDTH)
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(MaterialTheme.colorScheme.surfaceContainerLow)
-                        .border(1.dp, accents.rule, RoundedCornerShape(12.dp))
-                        .padding(horizontal = 12.dp, vertical = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
-                ) {
-                    PersonAvatar(person, diameter = 26.dp, decorative = true)
-                    Name(person, style = MaterialTheme.typography.titleSmall)
-                }
-            }
-        }
-    }
-}
-
-/**
- * The rule between two cards, with the step written beside it.
- *
- * The line is centred on the card above and below it and the label hangs off it, rather than the
- * two sharing a row — otherwise the width of the word decides where the spine goes, and a long one
- * bends the whole drawing.
- */
-@Composable
-private fun Connector(label: String?, hidden: Boolean) {
-    val accents = FTreeTheme.accents
-    Box(
-        modifier = Modifier.width(TREE_CARD_WIDTH).height(26.dp),
-        contentAlignment = Alignment.Center,
-    ) {
-        Box(
-            Modifier
-                .width(1.dp)
-                .height(26.dp)
-                .background(if (hidden) Color.Transparent else accents.rule)
-        )
-        label?.let {
             Text(
-                text = it,
+                text = stringResource(R.string.app_name).uppercase(),
+                style = FTreeText.sectionLabel,
+                color = accents.unknown,
+            )
+
+            Spacer(Modifier.height(14.dp))
+
+            /*
+             * The sentence is the headline, but it is not allowed to be the whole card. A short
+             * answer is set large because it can be; a long one — a Hindi term with its gloss, two
+             * long names — steps down a size rather than pushing the people it is about off the
+             * bottom.
+             */
+            val sentence = answer?.sentence ?: stringResource(
+                R.string.card_connected,
+                from.displayName(),
+                state.to?.displayName().orEmpty(),
+            )
+            val long = sentence.length > LONG_SENTENCE
+            Text(
+                text = sentence,
+                style = MaterialTheme.typography.headlineSmall.copy(
+                    fontSize = if (long) 19.sp else 23.sp,
+                    lineHeight = if (long) 25.sp else 30.sp,
+                ),
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 4,
+                overflow = TextOverflow.Ellipsis,
+            )
+
+            Spacer(Modifier.height(8.dp))
+
+            Text(
+                text = stringResource(R.string.card_steps, relation.steps),
                 style = FTreeText.recordSmall,
                 color = accents.unknown,
-                modifier = Modifier.align(Alignment.Center).padding(start = 96.dp),
+            )
+
+            Spacer(Modifier.height(14.dp))
+            HorizontalDivider(color = accents.rule)
+
+            Box(modifier = Modifier.fillMaxWidth().weight(1f)) {
+                val people = listOf(from) + state.chain.map { it.person }
+                val roles = listOf<String?>(null) + state.chain.map { link ->
+                    stringResource(
+                        relativeRoleLabel(
+                            link.kind.asRelativeKind(),
+                            link.person.gender,
+                            LocalKinshipLanguage.current,
+                        )
+                    )
+                }
+                ListBody(people, roles)
+            }
+
+            HorizontalDivider(color = accents.rule)
+            Spacer(Modifier.height(8.dp))
+            Text(
+                text = stringResource(R.string.card_footer),
+                style = FTreeText.recordSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
     }
 }
 
 /**
- * The same line as a register: one person to a row, each saying what they are to the one above.
+ * The line as a register: one person to a row, each saying what they are to the one above.
  *
- * Plainer than the tree and better for a longer line, where boxes and connectors become a ladder
- * nobody reads.
+ * How many rows there are is decided by the room left over, not by a constant. The card is a fixed
+ * size and the sentence above it is not, so the space available here is only known once that
+ * sentence has been set; assuming a number of rows is how the last person ends up squeezed into the
+ * footer. Instead: as many people as fit at a height a name can be read at, and the rest counted.
  */
 @Composable
 private fun ListBody(people: List<Person>, roles: List<String?>) {
     val accents = FTreeTheme.accents
-    val shown = seat(people, roles, LIST_SEATS)
+    BoxWithConstraints(Modifier.fillMaxSize()) {
+        val seats = ((maxHeight + ROW_GAP) / (MIN_ROW + ROW_GAP)).toInt().coerceAtLeast(MIN_SEATS)
+        val shown = seat(people, roles, seats)
+        val row = ((maxHeight - ROW_GAP * (shown.size - 1)) / shown.size).coerceIn(MIN_ROW, MAX_ROW)
+        val face = (row - 14.dp).coerceIn(24.dp, 32.dp)
 
-    Column(
-        modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(2.dp),
-    ) {
-        shown.forEachIndexed { index, seat ->
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                /*
-                 * A rail through the faces, joining one row to the next.
-                 *
-                 * Without it this is a list of people who happen to be near each other. The line is
-                 * what says they are a route, which is the whole difference between this card and a
-                 * screenshot of a contacts app.
-                 */
-                Box(
-                    modifier = Modifier.size(32.dp, 46.dp),
-                    contentAlignment = Alignment.Center,
+        Column(
+            modifier = Modifier.fillMaxSize(),
+            verticalArrangement = Arrangement.spacedBy(ROW_GAP, Alignment.CenterVertically),
+        ) {
+            shown.forEachIndexed { index, seat ->
+                Row(
+                    modifier = Modifier.fillMaxWidth().height(row),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
-                    if (index > 0) {
-                        Box(
-                            Modifier
-                                .width(1.dp)
-                                .height(23.dp)
-                                .align(Alignment.TopCenter)
-                                .background(accents.rule)
-                        )
-                    }
-                    if (index < shown.lastIndex) {
-                        Box(
-                            Modifier
-                                .width(1.dp)
-                                .height(23.dp)
-                                .align(Alignment.BottomCenter)
-                                .background(accents.rule)
-                        )
-                    }
-                    when (val person = seat.person) {
-                        null -> Box(
-                            Modifier
-                                .size(7.dp)
-                                .clip(RoundedCornerShape(4.dp))
-                                .background(accents.unknown)
-                        )
+                    /*
+                     * A rail through the faces, joining one row to the next.
+                     *
+                     * Without it this is a list of people who happen to be near each other. The line
+                     * is what says they are a route, which is the whole difference between this card
+                     * and a screenshot of a contacts app. The gutter keeps one width whatever size
+                     * the faces take, so the names stay in a column.
+                     */
+                    Box(
+                        modifier = Modifier.size(32.dp, row),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        if (index > 0) {
+                            Box(
+                                Modifier
+                                    .width(1.dp)
+                                    .height(row / 2)
+                                    .align(Alignment.TopCenter)
+                                    .background(accents.rule)
+                            )
+                        }
+                        if (index < shown.lastIndex) {
+                            Box(
+                                Modifier
+                                    .width(1.dp)
+                                    .height(row / 2)
+                                    .align(Alignment.BottomCenter)
+                                    .background(accents.rule)
+                            )
+                        }
+                        when (val person = seat.person) {
+                            null -> Box(
+                                Modifier
+                                    .size(7.dp)
+                                    .clip(RoundedCornerShape(4.dp))
+                                    .background(accents.unknown)
+                            )
 
-                        else -> PersonAvatar(person, diameter = 32.dp, decorative = true)
+                            else -> PersonAvatar(person, diameter = face, decorative = true)
+                        }
                     }
-                }
 
-                Column(Modifier.weight(1f)) {
-                    when (val person = seat.person) {
-                        null -> Text(
-                            text = stringResource(R.string.card_more, seat.skipped),
-                            style = FTreeText.recordSmall,
-                            color = accents.unknown,
-                        )
+                    Column(Modifier.weight(1f)) {
+                        when (val person = seat.person) {
+                            null -> Text(
+                                text = stringResource(R.string.card_more, seat.skipped),
+                                style = FTreeText.recordSmall,
+                                color = accents.unknown,
+                            )
 
-                        else -> {
-                            Name(person, style = MaterialTheme.typography.titleSmall)
-                            seat.role?.let {
-                                Text(
-                                    text = it,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
+                            else -> {
+                                Name(person, style = MaterialTheme.typography.titleSmall)
+                                seat.role?.let {
+                                    Text(
+                                        text = it,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                    )
+                                }
                             }
                         }
                     }
@@ -352,7 +287,7 @@ private fun Name(person: Person, style: androidx.compose.ui.text.TextStyle) {
 private data class Seat(val person: Person?, val role: String?, val skipped: Int = 0)
 
 /**
- * Fits a line of any length into a fixed card.
+ * Fits a line of any length into the rows there is room for.
  *
  * A card that grew with the family would be a different picture every time and a poor one for a
  * long line. So both ends are always shown — they are the two people the question was about — and

@@ -167,8 +167,6 @@
     <string name="card_footer">ftree.vibethroughcode.com</string>
     <string name="card_share">Share this relationship</string>
     <string name="card_title">Share</string>
-    <string name="card_style_tree">Tree</string>
-    <string name="card_style_list">List</string>
     <string name="card_caption_label">Sent with the picture</string>
     <string name="card_send">Send</string>
     <string name="card_failed">Couldn\'t make that picture.</string>
