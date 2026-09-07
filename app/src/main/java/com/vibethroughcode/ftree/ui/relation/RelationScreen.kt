@@ -1,5 +1,7 @@
 package com.vibethroughcode.ftree.ui.relation
 
+import android.content.Intent
+import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -19,6 +21,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.AccountTree
 import androidx.compose.material.icons.filled.PersonSearch
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.SwapVert
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -28,6 +31,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -36,12 +40,15 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.asAndroidBitmap
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -50,10 +57,12 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.vibethroughcode.ftree.FTreeApplication
 import com.vibethroughcode.ftree.R
 import com.vibethroughcode.ftree.data.Person
 import com.vibethroughcode.ftree.graph.KinshipTerm
 import com.vibethroughcode.ftree.graph.Relation
+import com.vibethroughcode.ftree.transfer.sendCardIntent
 import com.vibethroughcode.ftree.ui.FTreeViewModels
 import com.vibethroughcode.ftree.ui.common.PersonAvatar
 import com.vibethroughcode.ftree.ui.common.PersonRow
@@ -66,6 +75,7 @@ import com.vibethroughcode.ftree.ui.common.LocalKinshipLanguage
 import com.vibethroughcode.ftree.ui.common.relativeRoleLabel
 import com.vibethroughcode.ftree.ui.common.asRelativeKind
 import com.vibethroughcode.ftree.ui.theme.FTreeText
+import kotlinx.coroutines.launch
 import com.vibethroughcode.ftree.ui.theme.FTreeTheme
 
 const val RelationSlotFromTag = "relation-slot-from"
@@ -76,6 +86,7 @@ const val RelationChainTag = "relation-chain"
 const val RelationPickListTag = "relation-pick-list"
 const val RelationPickSearchTag = "relation-pick-search"
 const val RelationShowOnChartTag = "relation-show-on-chart"
+const val RelationShareCardTag = "relation-share-card"
 
 /**
  * How two people are related.
@@ -99,6 +110,7 @@ fun RelationScreen(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val query by viewModel.currentQuery.collectAsStateWithLifecycle()
     var picking by rememberSaveable { mutableStateOf<RelationSlot?>(null) }
+    var sharing by rememberSaveable { mutableStateOf(false) }
 
     Scaffold(
         modifier = modifier,
@@ -149,10 +161,54 @@ fun RelationScreen(
                     onSwap = viewModel::swap,
                     onOpenPerson = onOpenPerson,
                     onShowOnChart = { onShowOnChart(state.trace) },
+                    onShare = { sharing = true },
                 )
             }
         }
     }
+
+    val found = state.relation as? Relation.Found
+    if (sharing && found != null) {
+        ShareCard(state = state, relation = found, onDismiss = { sharing = false })
+    }
+}
+
+/**
+ * Making the picture and handing it over.
+ *
+ * Kept here rather than in a view model because it is one screen's business and the whole of it is
+ * Android: a bitmap, a file, an intent. The chooser opens on the file being written, so nothing is
+ * left in the cache that was never sent anywhere.
+ */
+@Composable
+private fun ShareCard(
+    state: RelationUiState,
+    relation: Relation.Found,
+    onDismiss: () -> Unit,
+) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val app = context.applicationContext as FTreeApplication
+    val failed = stringResource(R.string.card_failed)
+
+    ShareRelationDialog(
+        state = state,
+        relation = relation,
+        onDismiss = onDismiss,
+        onSend = { picture ->
+            scope.launch {
+                runCatching {
+                    val uri = app.container.cardShare.write(picture.image.asAndroidBitmap(), picture.name)
+                    context.startActivity(
+                        Intent.createChooser(sendCardIntent(uri, picture.caption), null)
+                    )
+                }.onFailure {
+                    Toast.makeText(context, failed, Toast.LENGTH_LONG).show()
+                }
+                onDismiss()
+            }
+        },
+    )
 }
 
 @Composable
@@ -162,6 +218,7 @@ private fun Answer(
     onSwap: () -> Unit,
     onOpenPerson: (String) -> Unit,
     onShowOnChart: () -> Unit,
+    onShare: () -> Unit,
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxHeight().readableMeasure(),
@@ -235,18 +292,34 @@ private fun Answer(
                 )
             }
             item {
-                Button(
-                    onClick = onShowOnChart,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 20.dp, vertical = 16.dp)
-                        .testTag(RelationShowOnChartTag),
+                Column(
+                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
-                    Icon(Icons.Default.AccountTree, contentDescription = null)
-                    Text(
-                        text = stringResource(R.string.relation_show_on_chart),
-                        modifier = Modifier.padding(start = 12.dp),
-                    )
+                    Button(
+                        onClick = onShowOnChart,
+                        modifier = Modifier.fillMaxWidth().testTag(RelationShowOnChartTag),
+                    ) {
+                        Icon(Icons.Default.AccountTree, contentDescription = null)
+                        Text(
+                            text = stringResource(R.string.relation_show_on_chart),
+                            modifier = Modifier.padding(start = 12.dp),
+                        )
+                    }
+                    // Only offered where there is an answer to send. A picture of two people the
+                    // record does not join is not a thing anybody wants in a family group.
+                    if (state.relation is Relation.Found) {
+                        OutlinedButton(
+                            onClick = onShare,
+                            modifier = Modifier.fillMaxWidth().testTag(RelationShareCardTag),
+                        ) {
+                            Icon(Icons.Default.Share, contentDescription = null)
+                            Text(
+                                text = stringResource(R.string.card_share),
+                                modifier = Modifier.padding(start = 12.dp),
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -483,7 +556,7 @@ private fun PersonPicker(
 }
 
 /** The answer, and whether a birth year would sharpen it. */
-private data class Answer(val sentence: String, val needsBirthYears: Boolean = false)
+internal data class Answer(val sentence: String, val needsBirthYears: Boolean = false)
 
 /**
  * How the relationship reads as a sentence, or nothing when the record cannot say.
@@ -494,7 +567,7 @@ private data class Answer(val sentence: String, val needsBirthYears: Boolean = f
  * Ankit's first cousin once removed" — same fact, said the way a person would say it.
  */
 @Composable
-private fun answerSentence(state: RelationUiState, relation: Relation.Found): Answer? {
+internal fun answerSentence(state: RelationUiState, relation: Relation.Found): Answer? {
     val to = state.to ?: return null
     val from = state.from ?: return null
     val term = relation.term ?: return null
