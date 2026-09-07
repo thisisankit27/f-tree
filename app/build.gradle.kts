@@ -21,8 +21,8 @@ android {
         applicationId = "com.vibethroughcode.ftree"
         minSdk = 26
         targetSdk = 36
-        versionCode = 15
-        versionName = "0.6.0-beta.5"
+        versionCode = 16
+        versionName = "0.6.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
