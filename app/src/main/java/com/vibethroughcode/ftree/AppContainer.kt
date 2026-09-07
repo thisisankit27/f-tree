@@ -6,6 +6,7 @@ import com.vibethroughcode.ftree.data.FTreeDatabase
 import com.vibethroughcode.ftree.data.FamilyRepository
 import com.vibethroughcode.ftree.data.KinshipPreferences
 import com.vibethroughcode.ftree.data.PhotoStore
+import com.vibethroughcode.ftree.transfer.BranchShare
 import com.vibethroughcode.ftree.transfer.TreeExporter
 import com.vibethroughcode.ftree.transfer.TreeIdentity
 import com.vibethroughcode.ftree.transfer.TreeImporter
@@ -29,6 +30,7 @@ class AppContainer(context: Context) {
     val photoStore: PhotoStore by lazy { PhotoStore(context.applicationContext) }
     val treeIdentity: TreeIdentity by lazy { TreeIdentity(context.applicationContext) }
     val exporter: TreeExporter by lazy { TreeExporter(familyRepository, photoStore, treeIdentity) }
+    val branchShare: BranchShare by lazy { BranchShare(context, familyRepository, exporter) }
     val importer: TreeImporter by lazy {
         TreeImporter(
             database = database,

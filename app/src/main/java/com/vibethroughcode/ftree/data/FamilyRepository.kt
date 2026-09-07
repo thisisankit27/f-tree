@@ -69,6 +69,13 @@ class FamilyRepository(
     suspend fun descendantIdsOf(personId: String): Set<String> =
         FamilyGraph.descendantsOf(personId) { relationships.childIdsOf(it) }
 
+    /** One person's household and the households under it — see [FamilyGraph.branchFrom]. */
+    suspend fun branchIdsOf(personId: String): Set<String> = FamilyGraph.branchFrom(
+        personId = personId,
+        childrenOf = { relationships.childIdsOf(it) },
+        spousesOf = { relationships.spouseIdsOfAll(listOf(it)) },
+    )
+
     suspend fun addPerson(person: Person): Person {
         people.insert(person)
         return person

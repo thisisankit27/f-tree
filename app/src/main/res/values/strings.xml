@@ -158,6 +158,18 @@
     <string name="export_done">Exported %1$s and %2$s.</string>
     <string name="export_done_photos">Exported %1$s, %2$s and %3$s.</string>
     <string name="export_failed">Couldn\'t write that file. Try somewhere else.</string>
+
+    <!-- Sharing one person's branch -->
+    <string name="share_branch">Share this family</string>
+    <string name="share_chooser_title">Send %1$s\'s family</string>
+    <string name="share_failed">Couldn\'t prepare that family to send.</string>
+    <!--
+        The message that travels with the file. It has to work for somebody who has never heard of
+        this app and is looking at an attachment in a chat: what it is, how many people are in it,
+        where to get the app, and that importing it will not overwrite anything they already have.
+    -->
+    <string name="share_message">Hey — I\'ve shared %1$s\'s family tree with you: %2$s.\n\nf-tree is a free family tree app that keeps everything on your phone. Get it at %3$s, then open Settings → Import a tree and choose this file. It merges into your own tree; nothing of yours is replaced.</string>
+    <string name="share_message_unnamed">Hey — I\'ve shared part of my family tree with you: %1$s.\n\nf-tree is a free family tree app that keeps everything on your phone. Get it at %2$s, then open Settings → Import a tree and choose this file. It merges into your own tree; nothing of yours is replaced.</string>
     <string name="export_empty">There is nobody in your tree to export yet.</string>
     <string name="import_tree">Import a tree</string>
     <string name="import_title">Import this tree?</string>

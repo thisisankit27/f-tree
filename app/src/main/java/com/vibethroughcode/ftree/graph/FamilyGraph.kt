@@ -29,6 +29,29 @@ object FamilyGraph {
     ): Set<String> = reachable(personId, childrenOf)
 
     /**
+     * One person, everyone below them, and whoever each of them married.
+     *
+     * This is what "share Sandeep's family" means: his household and the households under it. It
+     * deliberately goes *down* only. Sending somebody a branch should not quietly hand over the
+     * sharer's parents, siblings, cousins and in-laws, and a recipient starting their own tree from
+     * a relative's file wants the people below that relative, not the whole archive they came from.
+     *
+     * Partners come along at every level, because a couple is how a family is read and a child
+     * arriving without the parent they married is a hole in the story. Their *parents* do not: they
+     * are the doorway back into another whole family, which is exactly what this is not for.
+     */
+    suspend fun branchFrom(
+        personId: String,
+        childrenOf: suspend (String) -> List<String>,
+        spousesOf: suspend (String) -> List<String>,
+    ): Set<String> {
+        val bloodline = descendantsOf(personId, childrenOf) + personId
+        val everyone = LinkedHashSet(bloodline)
+        bloodline.forEach { everyone.addAll(spousesOf(it)) }
+        return everyone
+    }
+
+    /**
      * True when making [parentId] a parent of [childId] would make someone their own ancestor.
      *
      * Genealogically this is nonsense, and structurally it would let a tree walk upwards forever,

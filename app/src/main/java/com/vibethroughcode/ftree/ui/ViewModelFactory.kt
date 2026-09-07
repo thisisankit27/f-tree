@@ -54,6 +54,7 @@ object FTreeViewModels {
             TransferViewModel(
                 exporter = app.container.exporter,
                 importer = app.container.importer,
+                branchShare = app.container.branchShare,
                 contentResolver = app.contentResolver,
                 repository = app.container.familyRepository,
             )

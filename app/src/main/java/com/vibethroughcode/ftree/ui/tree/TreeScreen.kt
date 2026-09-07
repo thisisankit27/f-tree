@@ -21,6 +21,7 @@ import androidx.compose.material.icons.filled.CenterFocusStrong
 import androidx.compose.material.icons.filled.CompareArrows
 import androidx.compose.material.icons.filled.FitScreen
 import androidx.compose.material.icons.filled.PersonAddAlt
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.UnfoldMore
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.CenterAlignedTopAppBar
@@ -77,6 +78,7 @@ const val TreeModeFocusedTag = "tree-mode-focused"
 const val TreeModeWholeTag = "tree-mode-whole"
 const val TreeRelateTag = "tree-relate"
 const val TreeRelateFromTag = "tree-relate-from"
+const val TreeShareTag = "tree-share"
 const val TreeClearTraceTag = "tree-clear-trace"
 const val TreeFrameTag = "tree-frame"
 
@@ -125,6 +127,7 @@ fun TreeScreen(
     onAddPerson: () -> Unit,
     onAddRelative: (String, RelativeKind) -> Unit,
     onRelate: (String?) -> Unit,
+    onShare: (String) -> Unit,
     onClearTrace: () -> Unit,
     modifier: Modifier = Modifier,
     /** The people on a relation to draw: both ends and everyone between. Empty is the usual case. */
@@ -333,6 +336,10 @@ fun TreeScreen(
                     selected = null
                     onRelate(person.id)
                 },
+                onShare = {
+                    selected = null
+                    onShare(person.id)
+                },
                 onAddRelative = { kind ->
                     selected = null
                     onAddRelative(person.id, kind)
@@ -505,6 +512,7 @@ private fun PersonActions(
     onOpen: () -> Unit,
     onFocus: () -> Unit,
     onRelate: () -> Unit,
+    onShare: () -> Unit,
     onAddRelative: (RelativeKind) -> Unit,
 ) {
     Column(
@@ -532,6 +540,12 @@ private fun PersonActions(
             label = stringResource(R.string.relation_open_from_person),
             tag = TreeRelateFromTag,
             onClick = onRelate,
+        )
+        SheetAction(
+            icon = { Icon(Icons.Default.Share, contentDescription = null) },
+            label = stringResource(R.string.share_branch),
+            tag = TreeShareTag,
+            onClick = onShare,
         )
         // Naming the four kinds outright is one tap either way, and avoids the sheet quietly
         // choosing "parent" on the user's behalf.

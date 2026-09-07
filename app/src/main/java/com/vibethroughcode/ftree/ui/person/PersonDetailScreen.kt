@@ -21,6 +21,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CompareArrows
 import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material.icons.filled.AccountTree
@@ -69,6 +70,7 @@ const val PersonNameTag = "person-name"
 const val PersonDeleteTag = "person-delete"
 const val PersonMenuTag = "person-menu"
 const val PersonRelateTag = "person-relate"
+const val PersonShareTag = "person-share"
 const val PersonEditTag = "person-edit"
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -80,6 +82,7 @@ fun PersonDetailScreen(
     onAddRelative: (String, RelativeKind) -> Unit,
     onShowOnTree: (String) -> Unit,
     onRelate: (String) -> Unit,
+    onShare: (String) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: PersonDetailViewModel = viewModel(factory = FTreeViewModels.Factory),
 ) {
@@ -142,6 +145,20 @@ fun PersonDetailScreen(
                             },
                             onClick = { menuOpen = false; onRelate(viewModel.personId) },
                             modifier = Modifier.testTag(PersonRelateTag),
+                        )
+                        /*
+                         * Sending one person's family, rather than the whole archive.
+                         *
+                         * Above delete because it is the one somebody actually comes here to do,
+                         * and because the two should not be neighbours a mis-tap apart.
+                         */
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.share_branch)) },
+                            leadingIcon = {
+                                Icon(Icons.Default.Share, contentDescription = null)
+                            },
+                            onClick = { menuOpen = false; onShare(viewModel.personId) },
+                            modifier = Modifier.testTag(PersonShareTag),
                         )
                         DropdownMenuItem(
                             text = { Text(stringResource(R.string.delete_person)) },

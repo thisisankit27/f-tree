@@ -82,6 +82,8 @@ fun TransferMessages(
             else base + " " + stringResource(R.string.import_conflicts, result.conflicts.size)
         }
 
+        TransferOutcome.ShareFailed -> stringResource(R.string.share_failed)
+
         is TransferOutcome.ImportFailed -> stringResource(
             when (current.problem) {
                 ImportProblem.NOT_AN_ARCHIVE -> R.string.import_failed_not_archive

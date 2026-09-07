@@ -1,5 +1,6 @@
 package com.vibethroughcode.ftree.ui
 
+import android.content.Intent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Row
@@ -22,6 +23,7 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
@@ -42,9 +44,11 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
+import com.vibethroughcode.ftree.BuildConfig
 import com.vibethroughcode.ftree.FTreeApplication
 import com.vibethroughcode.ftree.R
 import com.vibethroughcode.ftree.transfer.TreeDocument
+import com.vibethroughcode.ftree.transfer.sendBranchIntent
 import com.vibethroughcode.ftree.ui.common.LocalKinshipLanguage
 import com.vibethroughcode.ftree.ui.common.isShortWindow
 import com.vibethroughcode.ftree.ui.people.PeopleScreen
@@ -56,6 +60,7 @@ import com.vibethroughcode.ftree.ui.settings.SettingsScreen
 import com.vibethroughcode.ftree.ui.settings.SettingsViewModel
 import com.vibethroughcode.ftree.ui.transfer.ImportReviewScreen
 import com.vibethroughcode.ftree.ui.transfer.TransferMessages
+import com.vibethroughcode.ftree.ui.common.peopleCount
 import com.vibethroughcode.ftree.ui.transfer.TransferViewModel
 import com.vibethroughcode.ftree.ui.transfer.defaultExportName
 import com.vibethroughcode.ftree.ui.tree.TreeScreen
@@ -94,6 +99,7 @@ private val destinations = listOf(
 @Composable
 fun FTreeApp() {
     val navController = rememberNavController()
+    val context = LocalContext.current
     // Named once here and read by every screen that says a relationship out loud.
     val kinshipLanguage by (LocalContext.current.applicationContext as FTreeApplication)
         .container.kinshipPreferences.language.collectAsStateWithLifecycle()
@@ -112,6 +118,31 @@ fun FTreeApp() {
     val importPicker = rememberLauncherForActivityResult(
         ActivityResultContracts.OpenDocument()
     ) { uri -> uri?.let(transferViewModel::prepareImport) }
+
+    /*
+     * Handing one person's family to another app.
+     *
+     * The chooser cannot open until the file exists, so the view model writes it first and this
+     * watches for it. Everything user-facing is assembled here rather than in the view model: the
+     * message is a string resource that has to follow the reader's configuration, and an Intent is
+     * not something a view model should know how to build.
+     */
+    val shared by transferViewModel.share.collectAsStateWithLifecycle()
+    val siteUrl = BuildConfig.SITE_URL
+    val sharedName = shared?.personName
+    val sharedCount = shared?.people?.let { peopleCount(it) }
+    val shareMessage = when {
+        sharedCount == null -> null
+        sharedName == null -> stringResource(R.string.share_message_unnamed, sharedCount, siteUrl)
+        else -> stringResource(R.string.share_message, sharedName, sharedCount, siteUrl)
+    }
+    val shareTitle = sharedName?.let { stringResource(R.string.share_chooser_title, it) }
+    LaunchedEffect(shared) {
+        val branch = shared ?: return@LaunchedEffect
+        val send = sendBranchIntent(branch.uri, shareMessage, shareTitle)
+        runCatching { context.startActivity(Intent.createChooser(send, shareTitle)) }
+        transferViewModel.clearShare()
+    }
 
     val backStackEntry by navController.currentBackStackEntryAsState()
     val destination = backStackEntry?.destination
@@ -179,6 +210,7 @@ fun FTreeApp() {
                                 navController.navigate(AddRelativeRoute(anchorId, kind))
                             },
                             onRelate = { navController.navigate(RelationRoute(fromId = it)) },
+                            onShare = transferViewModel::shareBranch,
                             // Dropping the trace means going back to the plain chart, which is where
                             // clearing a highlight should leave you — not one screen further back.
                             onClearTrace = {
@@ -234,6 +266,7 @@ fun FTreeApp() {
                             onRelate = { personId ->
                                 navController.navigate(RelationRoute(fromId = personId))
                             },
+                            onShare = transferViewModel::shareBranch,
                         )
                     }
 
