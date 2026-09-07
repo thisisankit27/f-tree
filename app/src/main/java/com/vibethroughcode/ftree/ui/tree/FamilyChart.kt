@@ -185,24 +185,7 @@ fun FamilyChart(
         translate(currentPan.x, currentPan.y) {
             scale(currentZoom, currentZoom, Offset.Zero) {
                 layout.descentLinks.forEach { link ->
-                    val originX = link.originX * unitPx
-                    val busY = link.busY * unitPx
-                    val xs = link.childXs.map { it * unitPx }
-
-                    drawLine(
-                        accents.rule,
-                        Offset(originX, link.originY * unitPx),
-                        Offset(originX, busY),
-                        rulePx,
-                    )
-                    if (xs.size > 1) {
-                        drawLine(accents.rule, Offset(xs.first(), busY), Offset(xs.last(), busY), rulePx)
-                    } else {
-                        drawLine(accents.rule, Offset(originX, busY), Offset(xs.first(), busY), rulePx)
-                    }
-                    xs.forEach { x ->
-                        drawLine(accents.rule, Offset(x, busY), Offset(x, link.childTopY * unitPx), rulePx)
-                    }
+                    drawDescent(link, unitPx, accents.rule, rulePx)
                 }
 
                 // Marriage is the doubled rule, as on a drawn pedigree.

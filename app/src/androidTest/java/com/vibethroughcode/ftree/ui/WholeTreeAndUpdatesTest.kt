@@ -10,6 +10,8 @@ import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.click
+import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
@@ -25,6 +27,7 @@ import com.vibethroughcode.ftree.ui.tree.TreeModeFocusedTag
 import com.vibethroughcode.ftree.ui.tree.TreeModeWholeTag
 import com.vibethroughcode.ftree.ui.tree.WholeFamilyChartTag
 import kotlinx.coroutines.runBlocking
+import org.junit.Assert.assertTrue
 import org.junit.Assert.assertFalse
 import org.junit.Before
 import org.junit.Rule
@@ -86,6 +89,39 @@ class WholeTreeAndUpdatesTest {
         // The summary is the plainest statement of it, and it is ordinary text rather than canvas.
         rule.onNodeWithText("3 people", substring = true).assertIsDisplayed()
         rule.onNodeWithText("with no relatives recorded", substring = true).assertIsDisplayed()
+    }
+
+    /**
+     * The complaint this answers: a tap both lit up somebody's relatives *and* opened a sheet over
+     * the top of them, so the highlight had to be dismissed before it could be looked at.
+     *
+     * The taps are at the centre of the canvas with a single person seeded, which is where the
+     * chart frames them — so if a tap ever stops landing on the card, the second one cannot open
+     * anything either and the test fails rather than passing vacuously.
+     */
+    @Test
+    fun aTapOnTheWholeChartSelectsBeforeItOffersToDoAnything() {
+        val repository = app.container.familyRepository
+        runBlocking { repository.addPerson(Person(name = "Ankit Kumar", birthDate = "1990")) }
+        rule.waitUntil(5_000) {
+            rule.onAllNodesWithTag(FamilyChartTag).fetchSemanticsNodes().isNotEmpty()
+        }
+
+        rule.onNodeWithTag(TreeModeWholeTag).performClick()
+        rule.waitUntil(5_000) {
+            rule.onAllNodesWithTag(WholeFamilyChartTag).fetchSemanticsNodes().isNotEmpty()
+        }
+
+        rule.onNodeWithTag(WholeFamilyChartTag).performTouchInput { click(center) }
+        rule.waitForIdle()
+        assertTrue(
+            "the first tap must leave the chart uncovered",
+            rule.onAllNodesWithText("Open Ankit Kumar").fetchSemanticsNodes().isEmpty(),
+        )
+
+        rule.onNodeWithTag(WholeFamilyChartTag).performTouchInput { click(center) }
+        rule.waitForIdle()
+        rule.onNodeWithText("Open Ankit Kumar").assertIsDisplayed()
     }
 
     @Test

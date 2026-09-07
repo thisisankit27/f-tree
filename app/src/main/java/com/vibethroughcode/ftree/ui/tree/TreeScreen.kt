@@ -423,14 +423,25 @@ fun TreeScreen(
                          * empty side of it. This is why the sheet is not a modal one: the thing
                          * you choose from has to stay live underneath.
                          */
+                        /*
+                         * One tap, one result.
+                         *
+                         * A tap used to select somebody *and* open a sheet over the top of the
+                         * selection, so the highlight it had just produced was behind a scrim and
+                         * had to be dismissed to be looked at — the chart answering a question by
+                         * covering the answer. Now the first tap only selects: the neighbours and
+                         * the lines joining them light up, the rest recede, and nothing is drawn
+                         * over the chart. Tapping the same person again asks for the actions,
+                         * which by then is a deliberate second thing to want.
+                         */
                         onSelect = {
-                            if (relating) {
-                                relationViewModel.name(it.id)
-                            } else {
-                                wholeTreeViewModel.select(it)
-                                selected = it
+                            when {
+                                relating -> relationViewModel.name(it.id)
+                                wholeSelection?.id == it.id -> selected = it
+                                else -> wholeTreeViewModel.select(it)
                             }
                         },
+                        onDeselect = { if (!relating) wholeTreeViewModel.select(null) },
                     )
                 }
             }

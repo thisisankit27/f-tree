@@ -97,8 +97,10 @@ fun SettingsScreen(
     val betaChannel by viewModel.betaChannel.collectAsStateWithLifecycle()
     var confirmingBeta by remember { mutableStateOf(false) }
 
+    // One measure for the screen, so the title above the settings sits over the settings rather
+    // than over the middle of the glass. See `readableMeasure`.
     Scaffold(
-        modifier = modifier,
+        modifier = modifier.readableMeasure(),
         topBar = {
             CenterAlignedTopAppBar(title = { Text(stringResource(R.string.settings_title)) })
         },
@@ -107,7 +109,6 @@ fun SettingsScreen(
         modifier = Modifier
             .fillMaxHeight()
             .padding(padding)
-            .readableMeasure()
             .verticalScroll(rememberScrollState())
             .padding(horizontal = 24.dp),
     ) {

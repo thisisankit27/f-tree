@@ -65,6 +65,8 @@ fun WholeFamilyChart(
     layout: WholeTreeLayout,
     onSelect: (Person) -> Unit,
     modifier: Modifier = Modifier,
+    /** A tap on the paper between the cards, which is how a selection is put down again. */
+    onDeselect: () -> Unit = {},
     selectedId: String? = null,
     highlighted: Set<String> = emptySet(),
     /** True when [layout] holds one traced relation rather than the whole record. */
@@ -194,6 +196,7 @@ fun WholeFamilyChart(
     }
 
     val tapped by rememberUpdatedState(onSelect)
+    val tappedNobody by rememberUpdatedState(onDeselect)
 
     Canvas(
         modifier = modifier
@@ -222,7 +225,9 @@ fun WholeFamilyChart(
                     // It is only restarted when the layout changes, so a tap handler that closes
                     // over screen state — what a tap should do while a relation is being asked —
                     // would otherwise go on doing what it meant several states ago.
-                    layout.nodeAt(x, y)?.let { tapped(it.person) }
+                    // Tapping the paper puts the selection down. Without it the only way out of a
+                    // dimmed chart is to select somebody else, which is not putting it down.
+                    layout.nodeAt(x, y)?.let { tapped(it.person) } ?: tappedNobody()
                 }
             },
     ) {
@@ -240,6 +245,14 @@ fun WholeFamilyChart(
          */
         val showLabels = currentZoom >= SHOW_LABELS && !tracing
         val dimming = highlighted.isNotEmpty()
+        /*
+         * Whose lines to light: the selected person's own, not the whole highlighted set.
+         *
+         * The set is the selection *and* everybody a step from it, which is the right answer for
+         * cards and the wrong one for lines — lighting every connector belonging to every neighbour
+         * would re-draw most of the lattice that dimming just took away.
+         */
+        val lit = selectedId?.takeIf { dimming }
 
         val visible = visibleRegion(currentPan, currentZoom, unitPx, size)
 
@@ -317,21 +330,26 @@ fun WholeFamilyChart(
                     }
                 }
 
+                /*
+                 * The connectors take part in the selection, rather than watching it happen.
+                 *
+                 * Fading the cards alone was the worst of both: a hundred and forty people dimmed
+                 * and the entire lattice joining them left at full strength, so the one thing still
+                 * competing for the eye was the thing the reader was trying to see past. The lines
+                 * that run to the selected person are what *explain* the highlight — these are her
+                 * parents, this is the marriage, those are the children — so they are drawn heavier
+                 * and in the selection's own colour, and every other line recedes with the cards.
+                 */
                 layout.descentLinks.forEach { link ->
                     if (link.busY < visible.top || link.originY > visible.bottom) return@forEach
-                    val originX = link.originX * unitPx
-                    val busY = link.busY * unitPx
-                    val xs = link.childXs.map { it * unitPx }
-
-                    drawLine(accents.rule, Offset(originX, link.originY * unitPx), Offset(originX, busY), rulePx)
-                    if (xs.size > 1) {
-                        drawLine(accents.rule, Offset(xs.first(), busY), Offset(xs.last(), busY), rulePx)
-                    } else {
-                        drawLine(accents.rule, Offset(originX, busY), Offset(xs.first(), busY), rulePx)
-                    }
-                    xs.forEach { x ->
-                        drawLine(accents.rule, Offset(x, busY), Offset(x, link.childTopY * unitPx), rulePx)
-                    }
+                    val on = lit != null && link.touches(lit)
+                    drawDescent(
+                        link = link,
+                        unitPx = unitPx,
+                        color = if (on) colors.primary else accents.rule,
+                        strokeWidth = if (on) rulePx * 2f else rulePx,
+                        alpha = if (!dimming || on) 1f else FADED,
+                    )
                 }
 
                 // Siblings whose shared parents are unknown: bracketed above, dashed, because what
@@ -339,6 +357,7 @@ fun WholeFamilyChart(
                 layout.siblingBrackets.forEach { bracket ->
                     val lift = TreeMetrics.LEVEL_GAP * 0.22f
                     val top = (bracket.y - lift) * unitPx
+                    val on = lit != null && bracket.touches(lit)
                     val path = Path().apply {
                         moveTo(bracket.fromX * unitPx, bracket.y * unitPx)
                         lineTo(bracket.fromX * unitPx, top)
@@ -347,9 +366,10 @@ fun WholeFamilyChart(
                     }
                     drawPath(
                         path = path,
-                        color = accents.rule,
+                        color = if (on) colors.primary else accents.rule,
+                        alpha = if (!dimming || on) 1f else FADED,
                         style = Stroke(
-                            width = rulePx,
+                            width = if (on) rulePx * 2f else rulePx,
                             pathEffect = PathEffect.dashPathEffect(floatArrayOf(rulePx * 4, rulePx * 3)),
                         ),
                     )
@@ -358,12 +378,17 @@ fun WholeFamilyChart(
                 layout.spouseLinks.forEach { link ->
                     if (link.y < visible.top || link.y > visible.bottom) return@forEach
                     val y = link.y * unitPx
+                    val on = lit != null && link.touches(lit)
                     listOf(-spouseGapPx, spouseGapPx).forEach { dy ->
                         drawLine(
+                            // The doubled rule keeps its own colour when lit: widened and at full
+                            // strength it is already the loudest thing on the row, and a marriage
+                            // recoloured to match a selection stops reading as a marriage.
                             color = accents.spouseLink,
                             start = Offset(link.fromX * unitPx, y + dy),
                             end = Offset(link.toX * unitPx, y + dy),
-                            strokeWidth = rulePx,
+                            strokeWidth = if (on) rulePx * 1.6f else rulePx,
+                            alpha = if (!dimming || on) 1f else FADED,
                         )
                     }
                 }
@@ -402,7 +427,7 @@ fun WholeFamilyChart(
                         cornerPx = cornerPx,
                         rulePx = rulePx,
                         emphasised = isSelected,
-                        alpha = if (near) 1f else 0.3f,
+                        alpha = if (near) 1f else FADED,
                         photo = if (detail == CardDetail.SHAPE) null
                         else photos?.image(node.person.photoId),
                     )
@@ -417,6 +442,9 @@ private const val SHOW_NAMES = 0.4f
 private const val SHOW_YEARS = 0.66f
 private const val SHOW_LABELS = 0.34f
 /** The scale at which a card is still readable, used to decide whether fitting is worth it. */
+/** What a card or a connector fades to when it is not part of the selection. */
+private const val FADED = 0.28f
+
 /** Air left around a traced line, in layout units, so the cards do not touch the edges. */
 private const val TRACE_MARGIN = 12f
 

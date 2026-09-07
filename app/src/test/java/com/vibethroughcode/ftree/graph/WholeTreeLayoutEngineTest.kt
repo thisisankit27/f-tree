@@ -2,6 +2,7 @@ package com.vibethroughcode.ftree.graph
 
 import com.vibethroughcode.ftree.data.Person
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -372,6 +373,52 @@ class WholeTreeLayoutEngineTest {
                 "$child is not below $parent",
                 layout.node(child)!!.level > layout.node(parent)!!.level,
             )
+        }
+    }
+
+    @Test
+    fun `every descent bar spans its stem and all of its children`() {
+        val layout = WholeTreeLayoutEngine.layout(archive())
+        assertTrue(layout.descentLinks.isNotEmpty())
+        layout.descentLinks.forEach { link ->
+            assertTrue(
+                "the bar must reach the parents it descends from",
+                link.originX in link.barStart..link.barEnd,
+            )
+            link.childXs.forEach {
+                assertTrue("the bar must reach every child", it in link.barStart..link.barEnd)
+            }
+        }
+    }
+
+    @Test
+    fun `connectors name the people they join`() {
+        val layout = WholeTreeLayoutEngine.layout(archive())
+
+        val descent = layout.descentLinks.single { "kid" in it.childIds }
+        assertEquals(setOf("me", "spouse"), descent.parentIds.toSet())
+        assertTrue(descent.touches("me"))
+        assertTrue(descent.touches("kid"))
+        assertFalse(descent.touches("aunt"))
+
+        val marriage = layout.spouseLinks.single { it.touches("kid".let { _ -> "spouse" }) }
+        assertTrue(marriage.touches("me"))
+        assertFalse(marriage.touches("dad"))
+
+        // Every connector can say whose it is: a line that cannot is a line that has to stay lit
+        // when a selection fades everything around it.
+        assertTrue(layout.descentLinks.all { it.parentIds.isNotEmpty() && it.childIds.isNotEmpty() })
+        assertTrue(layout.spouseLinks.all { it.aId.isNotEmpty() && it.bId.isNotEmpty() })
+    }
+
+    @Test
+    fun `a drop matches the child underneath it`() {
+        val layout = WholeTreeLayoutEngine.layout(archive())
+        layout.descentLinks.forEach { link ->
+            assertEquals(link.childXs.size, link.childIds.size)
+            link.childIds.forEachIndexed { index, id ->
+                assertEquals(layout.node(id)!!.centerX, link.childXs[index], 0.01f)
+            }
         }
     }
 }

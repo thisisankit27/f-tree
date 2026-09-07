@@ -31,6 +31,12 @@ data class SpouseLink(val fromX: Float, val toX: Float, val y: Float)
  * Grouped by *parent set* rather than by individual parent, so a couple's children hang from one
  * connector while a half-sibling hangs from their own — which is what makes a second marriage
  * legible instead of a tangle of crossing lines.
+ *
+ * It carries the people it joins as well as the coordinates, because a connector that cannot say
+ * whose it is cannot take part in anything the chart does with a selection. Without them the only
+ * honest thing a highlight could do was fade the cards and leave every line at full strength —
+ * which is to dim the hundred and forty people you can already tell apart and keep the lattice you
+ * cannot.
  */
 data class DescentLink(
     val originX: Float,
@@ -38,7 +44,24 @@ data class DescentLink(
     val busY: Float,
     val childXs: List<Float>,
     val childTopY: Float,
-)
+    val parentIds: List<String> = emptyList(),
+    /** In the same order as [childXs], so a drop and a child can be matched up. */
+    val childIds: List<String> = emptyList(),
+) {
+    /** Whether this connector runs to or from [personId] — a parent on it, or one of the children. */
+    fun touches(personId: String): Boolean = personId in parentIds || personId in childIds
+
+    /**
+     * The horizontal bar's extent: from the parents' stem across to the far side of the children.
+     *
+     * Expressed here rather than worked out at drawing time so that "the bar reaches everything it
+     * has to join" is a property of the connector that a test can hold it to, instead of a detail
+     * of one canvas that happened to be right. Drawing the bar between the children alone is what
+     * left a stem hanging in mid-air whenever the parents sat outside their own children's span.
+     */
+    val barStart: Float get() = minOf(originX, childXs.minOrNull() ?: originX)
+    val barEnd: Float get() = maxOf(originX, childXs.maxOrNull() ?: originX)
+}
 
 data class TreeLayout(
     val nodes: List<TreeNode> = emptyList(),

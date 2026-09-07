@@ -373,10 +373,11 @@ object TreeLayoutEngine {
         if (parentXs.isEmpty()) return@mapNotNull null
         val originX = parentXs.map { it + nodeWidth / 2f }.average().toFloat()
 
-        val childXs = children
-            .mapNotNull { id -> unitOf[id]?.xOf(id)?.plus(nodeWidth / 2f) }
-            .sorted()
-        if (childXs.isEmpty()) return@mapNotNull null
+        // Kept together as pairs through the sort, so a drop and the child under it stay matched.
+        val placed = children
+            .mapNotNull { id -> unitOf[id]?.xOf(id)?.plus(nodeWidth / 2f)?.let { id to it } }
+            .sortedBy { it.second }
+        if (placed.isEmpty()) return@mapNotNull null
 
         val parentBottom = yOf(parentLevel) + nodeHeight
         val childTop = yOf(childLevel)
@@ -384,8 +385,10 @@ object TreeLayoutEngine {
             originX = originX,
             originY = parentBottom,
             busY = parentBottom + (childTop - parentBottom) / 2f,
-            childXs = childXs,
+            childXs = placed.map { it.second },
             childTopY = childTop,
+            parentIds = parents.toList(),
+            childIds = placed.map { it.first },
         )
     }
 }
