@@ -110,6 +110,12 @@
   }
 
   /* --------------------------------------------------------- download count */
+  /*
+   * Kept, but nothing on the page carries #counter at the moment. The total was in the hero
+   * and, while it is honestly counted, a small number is the first thing a stranger reads
+   * about a sideloaded APK. GitHub keeps counting per release asset regardless of what this
+   * page shows, so restoring the counter is a matter of putting the markup back.
+   */
 
   function showCounter(data) {
     var box = document.getElementById('counter');
@@ -239,6 +245,42 @@
     rewire();
   }
 
+  /* --------------------------------------------------------------- the demo */
+  /*
+   * The demo video ships with native `controls` so that it is playable with this script
+   * switched off. Where the script does run we take them away and put one play button in
+   * front of the poster instead, because the native bar is a black slab that sits over the
+   * bottom of a bone-coloured poster and hides the rows it exists to show. The controls come
+   * back as soon as the video is actually playing, which is when somebody wants a scrubber.
+   */
+
+  function wireDemo() {
+    var stage = document.getElementById('demo-stage');
+    var video = document.getElementById('demo');
+    if (!stage || !video) return;
+
+    video.controls = false;
+
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'demo-play';
+    btn.setAttribute('aria-label', 'Play the demo — 17 seconds, no sound');
+    btn.innerHTML =
+      '<span class="disc" aria-hidden="true">' +
+      '<svg width="24" height="24" viewBox="0 0 24 24" fill="#fff"><path d="M8 5.5v13l11-6.5z"/></svg>' +
+      '</span>';
+
+    btn.addEventListener('click', function () {
+      video.controls = true;
+      btn.remove();
+      var started = video.play();
+      // Older Safari returns nothing here; a rejection only means the poster stays put.
+      if (started && started.catch) started.catch(function () { video.controls = true; });
+    });
+
+    stage.appendChild(btn);
+  }
+
   /* ------------------------------------------------------------------ thanks */
 
   function wireThanks(data) {
@@ -286,6 +328,7 @@
   var onThanks = !!document.getElementById('apk-link');
 
   wireNamingSlot();
+  wireDemo();
 
   loadRelease().then(function (data) {
     if (!data) throw new Error('no releases published');
