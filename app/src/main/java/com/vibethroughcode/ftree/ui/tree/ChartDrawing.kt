@@ -24,6 +24,7 @@ import com.vibethroughcode.ftree.data.PartialDate
 import com.vibethroughcode.ftree.data.Person
 import com.vibethroughcode.ftree.graph.DescentLink
 import com.vibethroughcode.ftree.graph.TreeMetrics
+import com.vibethroughcode.ftree.graph.WholeDescentLink
 import com.vibethroughcode.ftree.ui.theme.FTreeText
 import kotlin.math.max
 import kotlin.math.min
@@ -103,6 +104,51 @@ fun DrawScope.drawDescent(
             color = color,
             start = Offset(x, busY),
             end = Offset(x, link.childTopY * unitPx),
+            strokeWidth = strokeWidth,
+            alpha = alpha,
+        )
+    }
+}
+
+/**
+ * The same descent, drawn sideways: out to the right of the parents, a bar down the children, and a
+ * stub into each.
+ *
+ * The whole-tree chart runs left to right, so its connectors are this one turned through a right
+ * angle. Written beside [drawDescent] rather than derived from it: they are the same idea in the
+ * same notation, and keeping them next to each other is how they stay that way.
+ */
+fun DrawScope.drawDescentSideways(
+    link: WholeDescentLink,
+    unitPx: Float,
+    color: Color,
+    strokeWidth: Float,
+    alpha: Float = 1f,
+) {
+    val originY = link.originY * unitPx
+    val busX = link.busX * unitPx
+    val ys = link.childYs.map { it * unitPx }
+    if (ys.isEmpty()) return
+
+    drawLine(
+        color = color,
+        start = Offset(link.originX * unitPx, originY),
+        end = Offset(busX, originY),
+        strokeWidth = strokeWidth,
+        alpha = alpha,
+    )
+    drawLine(
+        color = color,
+        start = Offset(busX, link.barStart * unitPx),
+        end = Offset(busX, link.barEnd * unitPx),
+        strokeWidth = strokeWidth,
+        alpha = alpha,
+    )
+    ys.forEach { y ->
+        drawLine(
+            color = color,
+            start = Offset(busX, y),
+            end = Offset(link.childLeftX * unitPx, y),
             strokeWidth = strokeWidth,
             alpha = alpha,
         )

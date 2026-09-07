@@ -16,6 +16,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
@@ -143,24 +144,45 @@ fun WholeFamilyChart(
                 )
             } else {
                 /*
-                 * Too wide to fit and stay legible.
+                 * Too tall to fit and stay legible.
                  *
-                 * Generations are the axis that carries the meaning, so all of them on screen with
-                 * the width running off the side beats a whole chart too small to read. Panning
-                 * sideways through a generation is how a family tree is read on paper anyway.
+                 * Generations are the axis that carries the meaning, and here they run across, so
+                 * all of them on screen with the people running off the bottom beats a whole chart
+                 * too small to read. What is left over is then a scroll down a generation, which is
+                 * the gesture a phone is for — and is the whole reason the chart was turned on its
+                 * side. Before the rotation this branch fitted the other axis and left the reader
+                 * panning sideways through sixty-four people.
                  */
-                zoom = minOf(byHeight, MAX_FIT).coerceAtLeast(LEGIBLE)
-                val first = layout.groups.firstOrNull { !it.unconnected } ?: layout.groups.first()
+                zoom = minOf(byWidth, MAX_FIT).coerceAtLeast(LEGIBLE)
                 val inset = 16.dp.toPx()
-                val startX = if (tracing) originX else first.x.dp.toPx()
-                val startY = if (tracing) originY else first.y.dp.toPx()
+
+                /*
+                 * Opened on the family's origin rather than on the corner of its frame.
+                 *
+                 * A frame's top-left corner is not where anybody is. The earliest generation holds
+                 * two or three people and the latest holds sixty, and every column is centred
+                 * against its own descendants, so the oldest couple sit halfway down a chart whose
+                 * first screenful is otherwise blank. Opening there showed a reader an empty page
+                 * with a few faint generation rules on it. So: the earliest generation against the
+                 * left edge, and that generation's own middle against the middle of the screen.
+                 */
+                val startX = if (tracing) originX else layout.nodes.minOf { it.x }.dp.toPx()
+                val middleY = if (tracing) {
+                    originY + chartHeight / 2f
+                } else {
+                    val firstColumn = layout.nodes.minOf { it.x }
+                    val root = layout.nodes.filter { it.x <= firstColumn + 0.5f }
+                    val top = root.minOf { it.y }
+                    val bottom = root.maxOf { it.y } + TreeMetrics.NODE_HEIGHT
+                    ((top + bottom) / 2f).dp.toPx()
+                }
                 pan = Offset(
-                    inset - startX * zoom,
-                    if (chartHeight * zoom <= viewport.height) {
-                        (viewport.height - chartHeight * zoom) / 2f - startY * zoom
+                    if (chartWidth * zoom <= viewport.width) {
+                        (viewport.width - chartWidth * zoom) / 2f - originX * zoom
                     } else {
-                        inset - startY * zoom
+                        inset - startX * zoom
                     },
+                    viewport.height / 2f - middleY * zoom,
                 )
             }
         }
@@ -201,6 +223,13 @@ fun WholeFamilyChart(
     Canvas(
         modifier = modifier
             .fillMaxSize()
+            /*
+             * A canvas does not clip its own drawing, so a chart panned past its top edge paints
+             * over the header above it. Latent until the chart started opening centred on
+             * something rather than tucked against a corner, at which point a generation of
+             * cards appeared behind the title.
+             */
+            .clipToBounds()
             .testTag(WholeFamilyChartTag)
             .semantics { contentDescription = description }
             .onSizeChanged { viewport = it }
@@ -259,14 +288,15 @@ fun WholeFamilyChart(
         translate(currentPan.x, currentPan.y) {
             scale(currentZoom, currentZoom, Offset.Zero) {
 
-                // Generation rules, faint, so the strata read even when the names cannot.
+                // Generation rules, faint, so the strata read even when the names cannot. Down
+                // the middle of each generation's column, since a generation is a column here.
                 layout.bands.forEach { band ->
-                    val y = (band.y + TreeMetrics.NODE_HEIGHT / 2f) * unitPx
-                    if (band.y < visible.top || band.y > visible.bottom) return@forEach
+                    val x = (band.x + TreeMetrics.NODE_WIDTH / 2f) * unitPx
+                    if (band.x < visible.left || band.x > visible.right) return@forEach
                     drawLine(
                         color = accents.rule.copy(alpha = 0.22f),
-                        start = Offset(band.x * unitPx, y),
-                        end = Offset((band.x + band.width) * unitPx, y),
+                        start = Offset(x, band.y * unitPx),
+                        end = Offset(x, (band.y + band.height) * unitPx),
                         strokeWidth = rulePx * 0.7f,
                     )
                 }
@@ -341,9 +371,9 @@ fun WholeFamilyChart(
                  * and in the selection's own colour, and every other line recedes with the cards.
                  */
                 layout.descentLinks.forEach { link ->
-                    if (link.busY < visible.top || link.originY > visible.bottom) return@forEach
+                    if (link.busX < visible.left || link.originX > visible.right) return@forEach
                     val on = lit != null && link.touches(lit)
-                    drawDescent(
+                    drawDescentSideways(
                         link = link,
                         unitPx = unitPx,
                         color = if (on) colors.primary else accents.rule,
@@ -355,14 +385,14 @@ fun WholeFamilyChart(
                 // Siblings whose shared parents are unknown: bracketed above, dashed, because what
                 // joins them is exactly the part nobody wrote down.
                 layout.siblingBrackets.forEach { bracket ->
-                    val lift = TreeMetrics.LEVEL_GAP * 0.22f
-                    val top = (bracket.y - lift) * unitPx
+                    val lift = TreeMetrics.GENERATION_GAP * 0.22f
+                    val back = (bracket.x - lift) * unitPx
                     val on = lit != null && bracket.touches(lit)
                     val path = Path().apply {
-                        moveTo(bracket.fromX * unitPx, bracket.y * unitPx)
-                        lineTo(bracket.fromX * unitPx, top)
-                        lineTo(bracket.toX * unitPx, top)
-                        lineTo(bracket.toX * unitPx, bracket.y * unitPx)
+                        moveTo(bracket.x * unitPx, bracket.fromY * unitPx)
+                        lineTo(back, bracket.fromY * unitPx)
+                        lineTo(back, bracket.toY * unitPx)
+                        lineTo(bracket.x * unitPx, bracket.toY * unitPx)
                     }
                     drawPath(
                         path = path,
@@ -376,17 +406,17 @@ fun WholeFamilyChart(
                 }
 
                 layout.spouseLinks.forEach { link ->
-                    if (link.y < visible.top || link.y > visible.bottom) return@forEach
-                    val y = link.y * unitPx
+                    if (link.x < visible.left || link.x > visible.right) return@forEach
+                    val x = link.x * unitPx
                     val on = lit != null && link.touches(lit)
-                    listOf(-spouseGapPx, spouseGapPx).forEach { dy ->
+                    listOf(-spouseGapPx, spouseGapPx).forEach { dx ->
                         drawLine(
                             // The doubled rule keeps its own colour when lit: widened and at full
-                            // strength it is already the loudest thing on the row, and a marriage
-                            // recoloured to match a selection stops reading as a marriage.
+                            // strength it is already the loudest thing in the column, and a
+                            // marriage recoloured to match a selection stops reading as a marriage.
                             color = accents.spouseLink,
-                            start = Offset(link.fromX * unitPx, y + dy),
-                            end = Offset(link.toX * unitPx, y + dy),
+                            start = Offset(x + dx, link.fromY * unitPx),
+                            end = Offset(x + dx, link.toY * unitPx),
                             strokeWidth = if (on) rulePx * 1.6f else rulePx,
                             alpha = if (!dimming || on) 1f else FADED,
                         )

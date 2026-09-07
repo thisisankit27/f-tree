@@ -16,6 +16,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.graphics.drawscope.translate
@@ -145,6 +146,13 @@ fun FamilyChart(
     Canvas(
         modifier = modifier
             .fillMaxSize()
+            /*
+             * A canvas does not clip its own drawing, so a chart panned past its top edge paints
+             * over the header above it. Latent until the chart started opening centred on
+             * something rather than tucked against a corner, at which point a generation of
+             * cards appeared behind the title.
+             */
+            .clipToBounds()
             .testTag(FamilyChartTag)
             .semantics { contentDescription = chartDescription }
             .onSizeChanged { viewport = it }
