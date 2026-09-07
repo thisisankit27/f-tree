@@ -45,6 +45,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
@@ -60,6 +61,7 @@ import com.vibethroughcode.ftree.data.RelativeKind
 import com.vibethroughcode.ftree.graph.CompactBand
 import com.vibethroughcode.ftree.graph.CompactFamily
 import com.vibethroughcode.ftree.graph.CompactMember
+import com.vibethroughcode.ftree.graph.TreeMetrics
 import com.vibethroughcode.ftree.ui.common.PersonAvatar
 import com.vibethroughcode.ftree.ui.common.addRelativeLabel
 import com.vibethroughcode.ftree.ui.common.displayName
@@ -474,6 +476,13 @@ private fun PersonCard(
     val accents = FTreeTheme.accents
     val years = person.lifespanLabel(stringResource(R.string.person_late))
     val spoken = spokenName(person)
+    /*
+     * A card is a fixed width, so at a large text size the words have nowhere to go: at 1.6x a
+     * lifespan came out as "1905-197", which is not a clipped label but a wrong date. The card grows
+     * with the reader's setting on the same curve the chart's cards use, so the two agree about how
+     * much room a larger word needs.
+     */
+    val grown = TreeMetrics.cardScaleFor(LocalDensity.current.fontScale)
 
     val frame = Modifier
         .clip(RoundedCornerShape(16.dp))
@@ -509,13 +518,16 @@ private fun PersonCard(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = align,
                 maxLines = 1,
+                // Ellipsis rather than the default clip: a year cut short still reads as a year,
+                // and "1905-197" is a date this family never had.
+                overflow = TextOverflow.Ellipsis,
             )
         }
     }
 
     if (short) {
         Row(
-            modifier = frame.width(180.dp).fillMaxHeight().padding(horizontal = 10.dp, vertical = 8.dp),
+            modifier = frame.width(180.dp * grown).fillMaxHeight().padding(horizontal = 10.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
@@ -528,7 +540,7 @@ private fun PersonCard(
     } else {
         Column(
             modifier = frame
-                .width(104.dp)
+                .width(104.dp * grown)
                 .fillMaxHeight()
                 .padding(horizontal = 8.dp, vertical = 10.dp),
             horizontalAlignment = Alignment.CenterHorizontally,

@@ -212,9 +212,12 @@ private fun Answer(
 
         if (state.chain.isNotEmpty() && state.from != null) {
             item {
-                Column(Modifier.padding(top = 8.dp)) {
-                    SectionRule(stringResource(R.string.relation_chain_title))
-                }
+                // Inset to the measure everything else on this screen keeps. The rule ran to the
+                // screen edge while the cards above it stood twenty dp in, which read as a seam.
+                SectionRule(
+                    label = stringResource(R.string.relation_chain_title),
+                    modifier = Modifier.padding(top = 8.dp, start = 20.dp, end = 20.dp),
+                )
             }
             item {
                 PersonRow(
