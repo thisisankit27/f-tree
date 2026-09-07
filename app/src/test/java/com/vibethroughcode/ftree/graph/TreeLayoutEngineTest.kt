@@ -31,6 +31,7 @@ class TreeLayoutEngineTest {
 
     private fun TreeLayout.levelOf(id: String) = node(id)?.level
     private fun TreeLayout.xOf(id: String) = node(id)!!.centerX
+    private fun TreeLayout.yOf(id: String) = node(id)!!.centerY
 
     private fun nuclearFamily() = Builder()
         .person("father", "1962").person("mother", "1965")
@@ -60,7 +61,7 @@ class TreeLayoutEngineTest {
     }
 
     @Test
-    fun `generations sit on their own rows above and below the focus`() {
+    fun `generations sit in their own columns before and after the focus`() {
         val layout = TreeLayoutEngine.layout(nuclearFamily(), "me")
 
         assertEquals(-1, layout.levelOf("father"))
@@ -72,31 +73,32 @@ class TreeLayoutEngineTest {
     }
 
     @Test
-    fun `a row shares one y and rows are ordered top to bottom`() {
+    fun `a generation shares one x and generations run left to right`() {
         val layout = TreeLayoutEngine.layout(nuclearFamily(), "me")
 
-        assertEquals(layout.node("father")!!.y, layout.node("mother")!!.y, 0.01f)
-        assertTrue(layout.node("father")!!.y < layout.node("me")!!.y)
-        assertTrue(layout.node("me")!!.y < layout.node("child")!!.y)
+        assertEquals(layout.node("father")!!.x, layout.node("mother")!!.x, 0.01f)
+        assertTrue(layout.node("father")!!.x < layout.node("me")!!.x)
+        assertTrue(layout.node("me")!!.x < layout.node("child")!!.x)
     }
 
     @Test
-    fun `partners are placed side by side`() {
+    fun `partners are placed one above the other, at couple spacing`() {
         val layout = TreeLayoutEngine.layout(nuclearFamily(), "me")
 
-        val gap = abs(layout.xOf("me") - layout.xOf("wife"))
-        assertEquals(TreeMetrics.NODE_WIDTH + TreeMetrics.COUPLE_GAP, gap, 0.01f)
+        assertEquals("a couple shares a generation", layout.xOf("me"), layout.xOf("wife"), 0.01f)
+        val gap = abs(layout.yOf("me") - layout.yOf("wife"))
+        assertEquals(TreeMetrics.NODE_HEIGHT + TreeMetrics.COUPLE_GAP, gap, 0.01f)
     }
 
     @Test
-    fun `no two people on the same row overlap`() {
+    fun `no two people in the same generation overlap`() {
         val layout = TreeLayoutEngine.layout(nuclearFamily(), "me")
 
-        layout.nodes.groupBy { it.level }.forEach { (_, row) ->
-            row.sortedBy { it.x }.zipWithNext { left, right ->
+        layout.nodes.groupBy { it.level }.forEach { (_, column) ->
+            column.sortedBy { it.y }.zipWithNext { upper, lower ->
                 assertTrue(
-                    "${left.person.id} overlaps ${right.person.id}",
-                    right.x >= left.x + TreeMetrics.NODE_WIDTH - 0.01f,
+                    "${upper.person.id} overlaps ${lower.person.id}",
+                    lower.y >= upper.y + TreeMetrics.NODE_HEIGHT - 0.01f,
                 )
             }
         }
@@ -107,12 +109,12 @@ class TreeLayoutEngineTest {
         val layout = TreeLayoutEngine.layout(nuclearFamily(), "me")
 
         // father+mother -> me, sister is one family; me+wife -> child is another.
-        val toSiblings = layout.descentLinks.first { it.childXs.size == 2 }
-        assertEquals(2, toSiblings.childXs.size)
-        // The drop starts between the two parents.
-        val between = layout.xOf("father") to layout.xOf("mother")
-        assertTrue(toSiblings.originX > minOf(between.first, between.second))
-        assertTrue(toSiblings.originX < maxOf(between.first, between.second))
+        val toSiblings = layout.descentLinks.first { it.childYs.size == 2 }
+        assertEquals(2, toSiblings.childYs.size)
+        // The stem leaves from between the two parents.
+        val between = layout.yOf("father") to layout.yOf("mother")
+        assertTrue(toSiblings.originY > minOf(between.first, between.second))
+        assertTrue(toSiblings.originY < maxOf(between.first, between.second))
     }
 
     @Test
@@ -128,9 +130,9 @@ class TreeLayoutEngineTest {
         val layout = TreeLayoutEngine.layout(snapshot, "father")
 
         // Two separate descents, not one bar spanning both children.
-        val descents = layout.descentLinks.filter { it.childTopY > it.originY }
+        val descents = layout.descentLinks.filter { it.childLeftX > it.originX }
         assertEquals(2, descents.size)
-        assertTrue(descents.all { it.childXs.size == 1 })
+        assertTrue(descents.all { it.childYs.size == 1 })
     }
 
     @Test
@@ -142,9 +144,9 @@ class TreeLayoutEngineTest {
 
         val layout = TreeLayoutEngine.layout(snapshot, "me")
 
-        val me = layout.xOf("me")
-        val a = layout.xOf("first")
-        val b = layout.xOf("second")
+        val me = layout.yOf("me")
+        val a = layout.yOf("first")
+        val b = layout.yOf("second")
         assertTrue("expected $me between $a and $b", me > minOf(a, b) && me < maxOf(a, b))
     }
 
@@ -157,8 +159,8 @@ class TreeLayoutEngineTest {
 
         val layout = TreeLayoutEngine.layout(snapshot, "me")
 
-        assertTrue(layout.xOf("eldest") < layout.xOf("me"))
-        assertTrue(layout.xOf("me") < layout.xOf("youngest"))
+        assertTrue(layout.yOf("eldest") < layout.yOf("me"))
+        assertTrue(layout.yOf("me") < layout.yOf("youngest"))
     }
 
     @Test
@@ -189,7 +191,7 @@ class TreeLayoutEngineTest {
     }
 
     @Test
-    fun `siblings joined only by an explicit edge still share the row`() {
+    fun `siblings joined only by an explicit edge still share the generation`() {
         val snapshot = Builder()
             .person("me", "1990").person("brother", "1992")
             .siblingOf("me", "brother")
@@ -289,9 +291,9 @@ class TreeLayoutEngineTest {
         assertTrue(large.node("me")!!.width > normal.node("me")!!.width)
         assertTrue(large.height > normal.height)
         // And nothing overlaps at the larger size either.
-        large.nodes.groupBy { it.level }.forEach { (_, row) ->
-            row.sortedBy { it.x }.zipWithNext { left, right ->
-                assertTrue(right.x >= left.x + left.width - 0.01f)
+        large.nodes.groupBy { it.level }.forEach { (_, column) ->
+            column.sortedBy { it.y }.zipWithNext { upper, lower ->
+                assertTrue(lower.y >= upper.y + upper.height - 0.01f)
             }
         }
     }
@@ -332,10 +334,10 @@ class TreeLayoutEngineTest {
             // children, because a child's subtree pushed the run clear of them.
             assertTrue(
                 "fixture no longer reproduces the stranded stem",
-                link.originX < link.childXs.min() || link.originX > link.childXs.max(),
+                link.originY < link.childYs.min() || link.originY > link.childYs.max(),
             )
-            assertTrue("bar does not reach the stem", link.originX in link.barStart..link.barEnd)
-            link.childXs.forEach {
+            assertTrue("bar does not reach the stem", link.originY in link.barStart..link.barEnd)
+            link.childYs.forEach {
                 assertTrue("bar does not reach a child", it in link.barStart..link.barEnd)
             }
         }
@@ -346,8 +348,8 @@ class TreeLayoutEngineTest {
         val layout = TreeLayoutEngine.layout(nuclearFamily(), "me")
         assertTrue(layout.descentLinks.isNotEmpty())
         layout.descentLinks.forEach { link ->
-            assertTrue(link.originX in link.barStart..link.barEnd)
-            link.childXs.forEach { assertTrue(it in link.barStart..link.barEnd) }
+            assertTrue(link.originY in link.barStart..link.barEnd)
+            link.childYs.forEach { assertTrue(it in link.barStart..link.barEnd) }
         }
     }
 
@@ -363,14 +365,14 @@ class TreeLayoutEngineTest {
     }
 
     @Test
-    fun `a drop matches the child underneath it`() {
+    fun `a stub matches the child beside it`() {
         val layout = TreeLayoutEngine.layout(twoMarriages(), "father", generationsDown = 2)
         layout.descentLinks.forEach { link ->
-            assertEquals(link.childXs.size, link.childIds.size)
+            assertEquals(link.childYs.size, link.childIds.size)
             link.childIds.forEachIndexed { index, id ->
-                // The ids are carried in the same order as the drops, so a drop and the card
-                // beneath it can be matched up rather than assumed to correspond.
-                assertEquals(layout.xOf(id), link.childXs[index], 0.01f)
+                // The ids are carried in the same order as the stubs, so a stub and the card
+                // beside it can be matched up rather than assumed to correspond.
+                assertEquals(layout.yOf(id), link.childYs[index], 0.01f)
             }
         }
     }
@@ -402,10 +404,10 @@ class TreeLayoutEngineTest {
         assertEquals(1 + 4 + 16 + 64 + 256, layout.nodes.size)
         assertTrue("layout took ${millis}ms", millis < 1_000)
 
-        // Still no overlaps at 256 nodes on the bottom row.
-        layout.nodes.groupBy { it.level }.forEach { (_, row) ->
-            row.sortedBy { it.x }.zipWithNext { left, right ->
-                assertTrue(right.x >= left.x + TreeMetrics.NODE_WIDTH - 0.01f)
+        // Still no overlaps at 256 nodes in the last generation.
+        layout.nodes.groupBy { it.level }.forEach { (_, column) ->
+            column.sortedBy { it.y }.zipWithNext { upper, lower ->
+                assertTrue(lower.y >= upper.y + TreeMetrics.NODE_HEIGHT - 0.01f)
             }
         }
     }

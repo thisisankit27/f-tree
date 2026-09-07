@@ -19,11 +19,10 @@ import com.vibethroughcode.ftree.data.Person
  * about five columns by sixty-four people: you scroll down through a generation, which is what a
  * phone is for, and step sideways only a handful of times to cross the whole family.
  *
- * The cost is that every connector is rotated too, so this file carries its own — a marriage is a
- * doubled rule down the side of a couple rather than across it, and a descent runs out to the right
- * before it spreads. They are separate types rather than the ego chart's reused with the axes
- * quietly swapped, because a coordinate whose meaning depends on which chart is reading it is a bug
- * that compiles.
+ * Every connector is rotated with it — a marriage is a doubled rule down the side of a couple
+ * rather than across it, and a descent runs out to the right before it spreads. [SpouseLink] and
+ * [DescentLink] are shared with the ego-centric chart, which reads the same way: one notation, one
+ * pair of types, and no coordinate whose meaning depends on which chart is looking at it.
  */
 data class WholeTreeNode(
     val person: Person,
@@ -37,49 +36,6 @@ data class WholeTreeNode(
     val centerY: Float get() = y + TreeMetrics.NODE_HEIGHT / 2f
     val right: Float get() = x + TreeMetrics.NODE_WIDTH
     val bottom: Float get() = y + TreeMetrics.NODE_HEIGHT
-}
-
-/**
- * The doubled rule between partners, drawn down the side of the couple.
- *
- * Vertical, because the couple is stacked: one above the other in their generation's column.
- */
-data class WholeSpouseLink(
-    val x: Float,
-    val fromY: Float,
-    val toY: Float,
-    val ended: Boolean,
-    val aId: String = "",
-    val bId: String = "",
-) {
-    fun touches(personId: String): Boolean = personId == aId || personId == bId
-}
-
-/**
- * One family's descent, running sideways: out to the right of the parents, a bar down the children,
- * and a stub into each.
- *
- * [DescentLink] turned through a right angle, and the same rule holds — the bar spans the parents'
- * stem as well as every child, so a couple sitting outside the run of their own children still has
- * a connector that reaches them rather than one ending in mid-air.
- */
-data class WholeDescentLink(
-    /** Where the stem leaves the parents: their right edge, at their middle. */
-    val originX: Float,
-    val originY: Float,
-    /** The column the bar stands in, between the parents and the children. */
-    val busX: Float,
-    val childYs: List<Float>,
-    /** The left edge of the children's column, where each stub arrives. */
-    val childLeftX: Float,
-    val parentIds: List<String> = emptyList(),
-    /** In the same order as [childYs], so a stub and a child can be matched up. */
-    val childIds: List<String> = emptyList(),
-) {
-    fun touches(personId: String): Boolean = personId in parentIds || personId in childIds
-
-    val barStart: Float get() = minOf(originY, childYs.minOrNull() ?: originY)
-    val barEnd: Float get() = maxOf(originY, childYs.maxOrNull() ?: originY)
 }
 
 /**
@@ -116,8 +72,8 @@ data class GenerationBand(val level: Int, val x: Float, val y: Float, val height
 
 data class WholeTreeLayout(
     val nodes: List<WholeTreeNode> = emptyList(),
-    val spouseLinks: List<WholeSpouseLink> = emptyList(),
-    val descentLinks: List<WholeDescentLink> = emptyList(),
+    val spouseLinks: List<SpouseLink> = emptyList(),
+    val descentLinks: List<DescentLink> = emptyList(),
     val siblingBrackets: List<SiblingBracket> = emptyList(),
     val groups: List<TreeGroup> = emptyList(),
     val bands: List<GenerationBand> = emptyList(),
