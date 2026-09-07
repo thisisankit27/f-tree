@@ -1,13 +1,17 @@
 package com.vibethroughcode.ftree.ui.person
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -310,12 +314,7 @@ private fun RelativeSection(
     )
 
     if (relatives.isEmpty()) {
-        Text(
-            text = stringResource(addRelativeLabel(kind)),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(start = 20.dp, bottom = 4.dp),
-        )
+        EmptySection(kind = kind, onAdd = onAdd)
     } else {
         relatives.forEach { relative ->
             PersonRow(
@@ -330,4 +329,47 @@ private fun RelativeSection(
     }
 }
 
+/**
+ * The row where a relative would be, if one had been recorded.
+ *
+ * It used to be a line of grey helper text reading "Add a parent" — which is what a reader taps,
+ * because it is the thing shaped like a sentence about parents. It did nothing. The only working
+ * control was the small plus at the far end of the rule, which is easy to miss and, on the screen a
+ * new person lands on the moment they have added themselves, is the whole of the next step.
+ *
+ * So the words are the button now. It sits at the height and indent of the rows it stands in for,
+ * with the plus where the face would be, which keeps the section reading as a list that happens to
+ * be empty rather than as a heading with a note under it.
+ */
+@Composable
+private fun EmptySection(kind: RelativeKind, onAdd: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onAdd)
+            .defaultMinSize(minHeight = 56.dp)
+            .padding(horizontal = 20.dp, vertical = 8.dp)
+            .testTag(emptySectionTag(kind)),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
+    ) {
+        Box(Modifier.size(40.dp), contentAlignment = Alignment.Center) {
+            Icon(
+                imageVector = Icons.Default.Add,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(22.dp),
+            )
+        }
+        Text(
+            text = stringResource(addRelativeLabel(kind)),
+            style = MaterialTheme.typography.titleSmall,
+            color = MaterialTheme.colorScheme.primary,
+        )
+    }
+}
+
 fun addSectionTag(kind: RelativeKind): String = "add-relative-" + kind.name.lowercase()
+
+/** The whole-row way into an empty section, as opposed to the plus on its rule. */
+fun emptySectionTag(kind: RelativeKind): String = "empty-section-" + kind.name.lowercase()

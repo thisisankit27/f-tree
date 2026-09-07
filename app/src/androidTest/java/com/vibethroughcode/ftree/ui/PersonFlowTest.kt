@@ -25,6 +25,8 @@ import com.vibethroughcode.ftree.ui.person.EditSaveTag
 import com.vibethroughcode.ftree.ui.person.PersonDeleteTag
 import com.vibethroughcode.ftree.ui.person.PersonMenuTag
 import com.vibethroughcode.ftree.ui.person.PersonEditTag
+import com.vibethroughcode.ftree.ui.person.emptySectionTag
+import com.vibethroughcode.ftree.data.RelativeKind
 import com.vibethroughcode.ftree.ui.NavPeopleTag
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -201,5 +203,22 @@ class PersonFlowTest {
         // and carries no semantics of its own. The navigation state survives recreation, so the
         // list is still the screen in front of us.
         rule.onNodeWithText("Ankit Kumar").assertIsDisplayed()
+    }
+
+    /**
+     * The words under an empty heading are what a reader taps, because they are the thing shaped
+     * like a sentence about parents. For a while they were inert and only the plus on the rule
+     * worked, which put the next step out of reach on the screen a new person lands on first.
+     */
+    @Test
+    fun theWordsUnderAnEmptyHeadingAreTheButton() {
+        addFirstPerson(name = "Ankit Kumar")
+
+        rule.onNodeWithTag(emptySectionTag(RelativeKind.PARENT)).performScrollTo().performClick()
+
+        rule.waitUntil(5_000) {
+            rule.onAllNodesWithText("Add a parent for Ankit Kumar", substring = true)
+                .fetchSemanticsNodes().isNotEmpty()
+        }
     }
 }
