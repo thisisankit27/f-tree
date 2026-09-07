@@ -27,7 +27,13 @@ Ask how any two people are related and it names the relationship, in English or 
 
 <br>
 
-### [⬇️ Download the APK](https://github.com/thisisankit27/f-tree/releases/latest) · [🌐 Website](https://ftree.vibethroughcode.com/) · [🧪 Try it in your browser](https://ftree.vibethroughcode.com/playground/) · [📖 Docs](docs/)
+<a href="https://github.com/thisisankit27/f-tree/releases/latest"><img src="https://img.shields.io/badge/Download%20the%20APK-2a5138?style=for-the-badge&logo=android&logoColor=white" alt="Download the APK" height="34"></a>
+&nbsp;
+<a href="https://ftree.vibethroughcode.com/playground/"><img src="https://img.shields.io/badge/Try%20it%20in%20your%20browser-8a6420?style=for-the-badge&logo=googlechrome&logoColor=white" alt="Try it in your browser" height="34"></a>
+&nbsp;
+<a href="https://ftree.vibethroughcode.com/"><img src="https://img.shields.io/badge/Website-414942?style=for-the-badge&logo=safari&logoColor=white" alt="Website" height="34"></a>
+&nbsp;
+<a href="docs/README.md"><img src="https://img.shields.io/badge/Docs-414942?style=for-the-badge&logo=bookstack&logoColor=white" alt="Docs" height="34"></a>
 
 <br>
 
@@ -74,7 +80,7 @@ f-tree is built around those gaps instead of around a form you have to fill in c
 
 ## Install
 
-**[⬇️ Download the latest APK](https://github.com/thisisankit27/f-tree/releases/latest)** — Android 8.0 (Oreo) or newer, about 2 MB.
+**[Download the latest APK](https://github.com/thisisankit27/f-tree/releases/latest)** — Android 8.0 (Oreo) or newer, about 2 MB.
 
 It is not on the Play Store, so Android will ask you to allow installing from your browser or file
 manager once. The [website](https://ftree.vibethroughcode.com/) walks through it with the exact
@@ -254,9 +260,20 @@ Licence 1.1. Their licence texts ship inside the app and are surfaced on its Abo
 <div align="center">
 
 **If f-tree is useful to you — or if the idea of a family tree with room for the people nobody can
-name is one you want to exist — a ⭐ helps other families find it.**
+name is one you want to exist — a star helps other families find it.**
 
-[⭐ Star this repo](https://github.com/thisisankit27/f-tree) · [⬇️ Download](https://github.com/thisisankit27/f-tree/releases/latest) · [🌐 ftree.vibethroughcode.com](https://ftree.vibethroughcode.com/) · [💬 Discussions](https://github.com/thisisankit27/f-tree/discussions)
+<br>
+
+<a href="https://github.com/thisisankit27/f-tree"><img src="https://img.shields.io/badge/Star%20this%20repo-8a6420?style=for-the-badge&logo=github&logoColor=white" alt="Star this repo" height="34"></a>
+&nbsp;
+<a href="https://github.com/thisisankit27/f-tree/releases/latest"><img src="https://img.shields.io/badge/Download%20the%20APK-2a5138?style=for-the-badge&logo=android&logoColor=white" alt="Download the APK" height="34"></a>
+&nbsp;
+<a href="https://ftree.vibethroughcode.com/"><img src="https://img.shields.io/badge/Website-414942?style=for-the-badge&logo=safari&logoColor=white" alt="Website" height="34"></a>
+&nbsp;
+<a href="https://github.com/thisisankit27/f-tree/discussions"><img src="https://img.shields.io/badge/Discussions-414942?style=for-the-badge&logo=github&logoColor=white" alt="Discussions" height="34"></a>
+
+<br>
+<br>
 
 <sub>Built by <a href="https://github.com/thisisankit27">Ankit Srivastava</a> · <a href="https://ftree.vibethroughcode.com/">ftree.vibethroughcode.com</a></sub>
 
