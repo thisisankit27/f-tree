@@ -8,6 +8,31 @@ betas leading up to a stable release are folded into that release's entry here.
 
 ---
 
+## [0.8.0](https://github.com/thisisankit27/f-tree/releases/tag/v0.8.0) — 2026-09-09
+
+**See the photograph you saved, and get the whole screen back on a phone held sideways.**
+
+- **Tap somebody's photograph to see it.** It opens whole rather than as a circle — the circle is a
+  display decision and the file was never round, so for a photo that arrived in somebody else's tree
+  this is the first time anyone sees what the circle was cutting off. There is deliberately no
+  pinch-zoom: photos are stored at 512px on the long edge to keep a large family and its `.ftree`
+  small, and offering the gesture would promise detail the file does not hold.
+- **A wide window is used rather than left half empty.** People, Settings and a person's relatives
+  now break into as many columns as the width deserves — one on an upright phone, two on a phone
+  held sideways, three on a tablet — instead of one column of reading matter beside a band of
+  nothing. A landscape phone shows six names where it showed three; a tablet shows twenty-one. The
+  rule is that no column runs past a comfortable line length and none of the width is left over,
+  which is the answer a typesetter gives to a page too wide for one column.
+
+Everything from 0.8.0-beta.1 and beta.2, promoted unchanged.
+
+## [0.7.1](https://github.com/thisisankit27/f-tree/releases/tag/v0.7.1) — 2026-09-07
+
+- **The app icon is the mark from the website.** The launcher showed something different from the
+  site's logo; they are now one mark.
+- The README is a front door rather than a set of build notes, and the site's calls to action look
+  like buttons.
+
 ## [0.7.0](https://github.com/thisisankit27/f-tree/releases/tag/v0.7.0) — 2026-09-07
 
 **Ask how two people are related from the chart that answers it, and turn the whole thing sideways.**
