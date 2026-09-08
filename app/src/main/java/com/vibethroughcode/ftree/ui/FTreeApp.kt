@@ -50,7 +50,6 @@ import com.vibethroughcode.ftree.FTreeApplication
 import com.vibethroughcode.ftree.R
 import com.vibethroughcode.ftree.transfer.TreeDocument
 import com.vibethroughcode.ftree.transfer.sendBranchIntent
-import com.vibethroughcode.ftree.ui.common.LocalHasNavigationRail
 import com.vibethroughcode.ftree.ui.common.LocalKinshipLanguage
 import com.vibethroughcode.ftree.ui.common.isShortWindow
 import com.vibethroughcode.ftree.ui.people.PeopleScreen
@@ -187,17 +186,7 @@ fun FTreeApp(
      */
     val useRail = onTopLevel && isShortWindow()
 
-    /*
-     * The rail is announced rather than re-derived.
-     *
-     * Every screen beside it lays its own reading column against it, and a screen working that out
-     * from the window size would be guessing at a decision made here — and would guess wrongly the
-     * moment the rail appears or disappears for a reason other than the height.
-     */
-    CompositionLocalProvider(
-        LocalKinshipLanguage provides kinshipLanguage,
-        LocalHasNavigationRail provides useRail,
-    ) {
+    CompositionLocalProvider(LocalKinshipLanguage provides kinshipLanguage) {
         Scaffold(
             snackbarHost = { SnackbarHost(snackbarHostState) },
             bottomBar = {
