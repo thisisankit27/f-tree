@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -59,7 +60,8 @@ import com.vibethroughcode.ftree.ui.common.SectionRule
 import com.vibethroughcode.ftree.ui.common.PersonRow
 import com.vibethroughcode.ftree.ui.common.addRelativeLabel
 import com.vibethroughcode.ftree.ui.common.displayName
-import com.vibethroughcode.ftree.ui.common.readableMeasure
+import com.vibethroughcode.ftree.ui.common.READABLE_MEASURE
+import com.vibethroughcode.ftree.ui.common.ReadingColumns
 import com.vibethroughcode.ftree.ui.common.LocalKinshipLanguage
 import com.vibethroughcode.ftree.ui.common.relativeRoleLabel
 import com.vibethroughcode.ftree.ui.common.sectionTitle
@@ -187,31 +189,45 @@ fun PersonDetailScreen(
             modifier = Modifier
                 .fillMaxHeight()
                 .padding(padding)
-                .readableMeasure()
                 .verticalScroll(rememberScrollState()),
         ) {
-            PersonHeader(person, Modifier.padding(horizontal = 20.dp))
+            // Who the page is about, across the top of it: one person, so one column, however
+            // wide the glass. The sections below are four separate lists and can stand abreast.
+            PersonHeader(
+                person,
+                Modifier.widthIn(max = READABLE_MEASURE).padding(horizontal = 20.dp),
+            )
 
-            RelativeKind.entries.forEach { kind ->
-                RelativeSection(
-                    kind = kind,
-                    relatives = state.of(kind),
-                    onOpen = onOpenPerson,
-                    onAdd = { onAddRelative(viewModel.personId, kind) },
-                    onRemove = { other -> pendingRemoval = other },
-                )
-            }
+            // No gutter: each section already holds its rows twenty points off its own edges, so
+            // two of them side by side keep forty points between the names, which is enough.
+            ReadingColumns(gutter = 0.dp) {
+                RelativeKind.entries.forEach { kind ->
+                    Column {
+                        RelativeSection(
+                            kind = kind,
+                            relatives = state.of(kind),
+                            onOpen = onOpenPerson,
+                            onAdd = { onAddRelative(viewModel.personId, kind) },
+                            onRemove = { other -> pendingRemoval = other },
+                        )
+                    }
+                }
 
-            if (!person.notes.isNullOrBlank()) {
-                SectionRule(
-                    label = stringResource(R.string.person_notes),
-                    modifier = Modifier.padding(horizontal = 20.dp),
-                )
-                Text(
-                    text = person.notes!!,
-                    style = MaterialTheme.typography.bodyMedium,
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 4.dp),
-                )
+                if (!person.notes.isNullOrBlank()) {
+                    Column {
+                        SectionRule(
+                            label = stringResource(R.string.person_notes),
+                            modifier = Modifier.padding(horizontal = 20.dp),
+                        )
+                        Text(
+                            text = person.notes!!,
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 20.dp, vertical = 4.dp),
+                        )
+                    }
+                }
             }
 
             Spacer(Modifier.height(40.dp))

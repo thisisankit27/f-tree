@@ -1,6 +1,6 @@
 package com.vibethroughcode.ftree.ui.people
 
-import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.material3.FilterChip
 import androidx.compose.foundation.layout.Arrangement
@@ -10,8 +10,10 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -49,7 +51,7 @@ import com.vibethroughcode.ftree.R
 import com.vibethroughcode.ftree.ui.FTreeViewModels
 import com.vibethroughcode.ftree.ui.common.EmptyState
 import com.vibethroughcode.ftree.ui.common.PersonRow
-import com.vibethroughcode.ftree.ui.common.readableMeasure
+import com.vibethroughcode.ftree.ui.common.readableColumns
 import com.vibethroughcode.ftree.ui.common.peopleCount
 import com.vibethroughcode.ftree.ui.common.TreeGlyph
 import com.vibethroughcode.ftree.ui.theme.FTreeText
@@ -79,15 +81,15 @@ fun PeopleScreen(
     }
 
     /*
-     * The measure is put on the whole screen rather than on the list inside it.
+     * The screen takes the whole pane; the reading measure is kept by the columns inside it.
      *
-     * The top bar, the search icon and the "add a person" button are laid out by the scaffold, so
-     * insetting only the body left them out in the margin: a search icon against the far bezel
-     * above a list that stopped a hundred points short of it, and nothing on the screen sharing an
-     * edge with anything else.
+     * Holding the screen itself to one column's width was the earlier answer, and on anything
+     * wider than a phone it left a band of nothing down one side with the top bar and the "add a
+     * person" button stranded in it. A list of names does not need a wider line — it needs more
+     * lines, and a landscape phone has room for two of them side by side.
      */
     Scaffold(
-        modifier = modifier.readableMeasure(),
+        modifier = modifier,
         topBar = {
             if (searching) {
                 OutlinedTextField(
@@ -150,7 +152,7 @@ fun PeopleScreen(
                     onFilterChange = viewModel::onFilterChange,
                 )
             }
-            Box(Modifier.fillMaxSize()) {
+            BoxWithConstraints(Modifier.fillMaxSize()) {
             when {
                 state.isEmptyTree -> EmptyState(
                     title = stringResource(R.string.empty_title),
@@ -176,7 +178,8 @@ fun PeopleScreen(
                     modifier = Modifier.align(Alignment.TopCenter).padding(32.dp),
                 )
 
-                else -> LazyColumn(
+                else -> LazyVerticalGrid(
+                    columns = GridCells.Fixed(readableColumns(maxWidth)),
                     modifier = Modifier.fillMaxSize().testTag(PeopleListTag),
                     // Room for the extended FAB to sit over without covering the last row.
                     contentPadding = PaddingValues(bottom = 96.dp),
@@ -184,7 +187,9 @@ fun PeopleScreen(
                     items(state.people, key = { it.id }) { person ->
                         PersonRow(person = person, onClick = { onOpenPerson(person.id) })
                     }
-                    item {
+                    // The count is about the whole list, so it sits under all of it rather than
+                    // under one column of it.
+                    item(span = { GridItemSpan(maxLineSpan) }) {
                         Text(
                             text = countLine(state),
                             style = FTreeText.recordSmall,

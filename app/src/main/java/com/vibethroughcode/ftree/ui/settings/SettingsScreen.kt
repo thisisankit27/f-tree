@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.verticalScroll
@@ -57,7 +58,8 @@ import com.vibethroughcode.ftree.BuildConfig
 import com.vibethroughcode.ftree.R
 import com.vibethroughcode.ftree.data.KinshipLanguage
 import com.vibethroughcode.ftree.ui.common.SectionRule
-import com.vibethroughcode.ftree.ui.common.readableMeasure
+import com.vibethroughcode.ftree.ui.common.READABLE_MEASURE
+import com.vibethroughcode.ftree.ui.common.ReadingColumns
 import com.vibethroughcode.ftree.ui.theme.FTreeText
 import com.vibethroughcode.ftree.ui.theme.FTreeTheme
 import com.vibethroughcode.ftree.update.AvailableUpdate
@@ -97,14 +99,18 @@ fun SettingsScreen(
     val betaChannel by viewModel.betaChannel.collectAsStateWithLifecycle()
     var confirmingBeta by remember { mutableStateOf(false) }
 
-    // One measure for the screen, so the title above the settings sits over the settings rather
-    // than over the middle of the glass. See `readableMeasure`.
     Scaffold(
-        modifier = modifier.readableMeasure(),
+        modifier = modifier,
         topBar = {
             CenterAlignedTopAppBar(title = { Text(stringResource(R.string.settings_title)) })
         },
     ) { padding ->
+    /*
+     * Settings are not one long thing; they are six short ones, and on a window wide enough for
+     * two they stand beside each other rather than leave half of it empty and make the reader
+     * scroll past the emptiness. The scroll stays outside the columns, so however many there are
+     * the page is still one thing that scrolls.
+     */
     Column(
         modifier = Modifier
             .fillMaxHeight()
@@ -112,154 +118,170 @@ fun SettingsScreen(
             .verticalScroll(rememberScrollState())
             .padding(horizontal = 24.dp),
     ) {
-        SectionRule(stringResource(R.string.settings_section_words))
+        ReadingColumns {
+            Column {
+                SectionRule(stringResource(R.string.settings_section_words))
 
-        Text(
-            stringResource(R.string.settings_words_body),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(top = 4.dp, bottom = 12.dp),
-        )
-        SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
-            SegmentedButton(
-                selected = kinshipLanguage == KinshipLanguage.ENGLISH,
-                onClick = { viewModel.setKinshipLanguage(KinshipLanguage.ENGLISH) },
-                shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2),
-                modifier = Modifier.testTag(SettingsWordsEnglishTag),
-            ) { Text(stringResource(R.string.settings_words_english)) }
-
-            SegmentedButton(
-                selected = kinshipLanguage == KinshipLanguage.HINDI,
-                onClick = { viewModel.setKinshipLanguage(KinshipLanguage.HINDI) },
-                shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2),
-                modifier = Modifier.testTag(SettingsWordsHindiTag),
-            ) { Text(stringResource(R.string.settings_words_hindi)) }
-        }
-
-        SectionRule(stringResource(R.string.settings_section_chart))
-
-        SettingsSwitch(
-            title = stringResource(R.string.settings_photos_toggle),
-            body = stringResource(R.string.settings_photos_explainer),
-            checked = photosInChart,
-            onCheckedChange = viewModel::setPhotosInChart,
-            tag = SettingsPhotosToggleTag,
-        )
-
-        SectionRule(stringResource(R.string.settings_section_updates))
-
-        SettingsSwitch(
-            title = stringResource(R.string.settings_updates_toggle),
-            body = stringResource(R.string.settings_updates_explainer),
-            checked = enabled,
-            onCheckedChange = viewModel::setUpdatesEnabled,
-            tag = SettingsUpdatesToggleTag,
-        )
-
-        AnimatedVisibility(visible = enabled) {
-            UpdatePanel(
-                state = state,
-                onCheck = viewModel::check,
-                onDownload = viewModel::download,
-                onCancel = viewModel::cancel,
-                onInstall = { file ->
-                    if (viewModel.canInstall()) {
-                        viewModel.install(file)
-                    } else {
-                        context.startActivity(viewModel.permissionIntent())
-                    }
-                },
-                onSkip = viewModel::skip,
-                onDismiss = viewModel::dismissFailure,
-            )
-        }
-
-        SectionRule(stringResource(R.string.settings_section_data))
-
-        SettingsAction(
-            icon = { Icon(Icons.Default.Upload, contentDescription = null) },
-            title = stringResource(R.string.settings_export),
-            body = stringResource(R.string.settings_export_body),
-            onClick = onExport,
-            modifier = Modifier.testTag(SettingsExportTag),
-        )
-        SettingsAction(
-            icon = { Icon(Icons.Default.Download, contentDescription = null) },
-            title = stringResource(R.string.settings_import),
-            body = stringResource(R.string.settings_import_body),
-            onClick = onImport,
-            modifier = Modifier.testTag(SettingsImportTag),
-        )
-
-        SectionRule(stringResource(R.string.settings_section_about))
-
-        Text(
-            stringResource(R.string.about_body),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        Text(
-            stringResource(R.string.settings_version, BuildConfig.VERSION_NAME),
-            style = FTreeText.record,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(top = 12.dp),
-        )
-
-        TextButton(
-            onClick = {
-                context.startActivity(
-                    Intent(Intent.ACTION_VIEW, Uri.parse(BuildConfig.RELEASES_PAGE_URL))
+                Text(
+                    stringResource(R.string.settings_words_body),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 4.dp, bottom = 12.dp),
                 )
-            },
-            modifier = Modifier.padding(top = 4.dp),
-        ) {
-            Text(stringResource(R.string.settings_source))
-            Spacer(Modifier.size(6.dp))
-            Icon(Icons.Default.OpenInNew, contentDescription = null, modifier = Modifier.size(16.dp))
-        }
+                SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
+                    SegmentedButton(
+                        selected = kinshipLanguage == KinshipLanguage.ENGLISH,
+                        onClick = { viewModel.setKinshipLanguage(KinshipLanguage.ENGLISH) },
+                        shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2),
+                        modifier = Modifier.testTag(SettingsWordsEnglishTag),
+                    ) { Text(stringResource(R.string.settings_words_english)) }
 
-        Text(
-            stringResource(R.string.settings_permissions_title).uppercase(),
-            style = FTreeText.sectionLabel,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(top = 16.dp),
-        )
-        Text(
-            stringResource(R.string.settings_permissions_body),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(top = 4.dp),
-        )
-        Text(
-            stringResource(R.string.about_fonts),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(top = 16.dp),
-        )
+                    SegmentedButton(
+                        selected = kinshipLanguage == KinshipLanguage.HINDI,
+                        onClick = { viewModel.setKinshipLanguage(KinshipLanguage.HINDI) },
+                        shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2),
+                        modifier = Modifier.testTag(SettingsWordsHindiTag),
+                    ) { Text(stringResource(R.string.settings_words_hindi)) }
+                }
+            }
+
+            Column {
+                SectionRule(stringResource(R.string.settings_section_chart))
+
+                SettingsSwitch(
+                    title = stringResource(R.string.settings_photos_toggle),
+                    body = stringResource(R.string.settings_photos_explainer),
+                    checked = photosInChart,
+                    onCheckedChange = viewModel::setPhotosInChart,
+                    tag = SettingsPhotosToggleTag,
+                )
+            }
+
+            Column {
+                SectionRule(stringResource(R.string.settings_section_updates))
+
+                SettingsSwitch(
+                    title = stringResource(R.string.settings_updates_toggle),
+                    body = stringResource(R.string.settings_updates_explainer),
+                    checked = enabled,
+                    onCheckedChange = viewModel::setUpdatesEnabled,
+                    tag = SettingsUpdatesToggleTag,
+                )
+
+                AnimatedVisibility(visible = enabled) {
+                    UpdatePanel(
+                        state = state,
+                        onCheck = viewModel::check,
+                        onDownload = viewModel::download,
+                        onCancel = viewModel::cancel,
+                        onInstall = { file ->
+                            if (viewModel.canInstall()) {
+                                viewModel.install(file)
+                            } else {
+                                context.startActivity(viewModel.permissionIntent())
+                            }
+                        },
+                        onSkip = viewModel::skip,
+                        onDismiss = viewModel::dismissFailure,
+                    )
+                }
+            }
+
+            Column {
+                SectionRule(stringResource(R.string.settings_section_data))
+
+                SettingsAction(
+                    icon = { Icon(Icons.Default.Upload, contentDescription = null) },
+                    title = stringResource(R.string.settings_export),
+                    body = stringResource(R.string.settings_export_body),
+                    onClick = onExport,
+                    modifier = Modifier.testTag(SettingsExportTag),
+                )
+                SettingsAction(
+                    icon = { Icon(Icons.Default.Download, contentDescription = null) },
+                    title = stringResource(R.string.settings_import),
+                    body = stringResource(R.string.settings_import_body),
+                    onClick = onImport,
+                    modifier = Modifier.testTag(SettingsImportTag),
+                )
+            }
+
+            Column {
+                SectionRule(stringResource(R.string.settings_section_about))
+
+                Text(
+                    stringResource(R.string.about_body),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Text(
+                    stringResource(R.string.settings_version, BuildConfig.VERSION_NAME),
+                    style = FTreeText.record,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 12.dp),
+                )
+
+                TextButton(
+                    onClick = {
+                        context.startActivity(
+                            Intent(Intent.ACTION_VIEW, Uri.parse(BuildConfig.RELEASES_PAGE_URL))
+                        )
+                    },
+                    modifier = Modifier.padding(top = 4.dp),
+                ) {
+                    Text(stringResource(R.string.settings_source))
+                    Spacer(Modifier.size(6.dp))
+                    Icon(Icons.Default.OpenInNew, contentDescription = null, modifier = Modifier.size(16.dp))
+                }
+
+                Text(
+                    stringResource(R.string.settings_permissions_title).uppercase(),
+                    style = FTreeText.sectionLabel,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 16.dp),
+                )
+                Text(
+                    stringResource(R.string.settings_permissions_body),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 4.dp),
+                )
+                Text(
+                    stringResource(R.string.about_fonts),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 16.dp),
+                )
+            }
+        }
 
         /*
-         * Last on the page, and meant to be.
+         * Last on the page, and meant to be — which is why it is not one of the columns.
          *
          * A beta is an unfinished build of an app somebody keeps their family in. Putting it under
          * the licence notice rather than beside "Check for updates" is the honest placement: it is
          * for people who came looking for it, and nobody should meet it while turning ordinary
-         * updates on.
+         * updates on. Inside the columns it would go wherever there was room, and on a wide window
+         * that could be directly beside the updates switch, so it sits below them all instead and
+         * keeps its own measure.
          */
-        SectionRule(stringResource(R.string.settings_section_beta))
-        SettingsSwitch(
-            title = stringResource(R.string.settings_beta_toggle),
-            body = stringResource(
-                if (enabled) R.string.settings_beta_explainer
-                else R.string.settings_beta_explainer_updates_off
-            ),
-            checked = betaChannel,
-            enabled = enabled,
-            onCheckedChange = { wanted ->
-                // Turning it off is not a decision worth interrupting; turning it on is.
-                if (wanted) confirmingBeta = true else viewModel.setBetaChannel(false)
-            },
-            tag = SettingsBetaToggleTag,
-        )
+        Column(Modifier.widthIn(max = READABLE_MEASURE)) {
+            SectionRule(stringResource(R.string.settings_section_beta))
+            SettingsSwitch(
+                title = stringResource(R.string.settings_beta_toggle),
+                body = stringResource(
+                    if (enabled) R.string.settings_beta_explainer
+                    else R.string.settings_beta_explainer_updates_off
+                ),
+                checked = betaChannel,
+                enabled = enabled,
+                onCheckedChange = { wanted ->
+                    // Turning it off is not a decision worth interrupting; turning it on is.
+                    if (wanted) confirmingBeta = true else viewModel.setBetaChannel(false)
+                },
+                tag = SettingsBetaToggleTag,
+            )
+        }
 
         Spacer(Modifier.height(40.dp))
     }
