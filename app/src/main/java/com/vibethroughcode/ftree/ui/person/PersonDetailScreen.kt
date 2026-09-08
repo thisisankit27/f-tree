@@ -65,6 +65,9 @@ import com.vibethroughcode.ftree.ui.common.relativeRoleLabel
 import com.vibethroughcode.ftree.ui.common.sectionTitle
 import com.vibethroughcode.ftree.ui.theme.FTreeText
 import com.vibethroughcode.ftree.ui.theme.FTreeTheme
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.draw.clip
 
 const val PersonNameTag = "person-name"
 const val PersonDeleteTag = "person-delete"
@@ -72,6 +75,7 @@ const val PersonMenuTag = "person-menu"
 const val PersonRelateTag = "person-relate"
 const val PersonShareTag = "person-share"
 const val PersonEditTag = "person-edit"
+const val PersonAvatarTag = "person-avatar"
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -253,12 +257,31 @@ fun PersonDetailScreen(
 @Composable
 private fun PersonHeader(person: Person, modifier: Modifier = Modifier) {
     val accents = FTreeTheme.accents
+    var showingPhoto by rememberSaveable { mutableStateOf(false) }
+
     Row(
         modifier = modifier.fillMaxWidth().padding(top = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(20.dp),
     ) {
-        PersonAvatar(person, diameter = 72.dp)
+        /*
+         * A photograph opens; an initial does not.
+         *
+         * Only a face is worth a second look, and making the lettered circle tappable would offer
+         * a gesture that leads to a blank screen. The ripple is the whole affordance: nothing here
+         * announces itself as a button, because a photograph on a person's page is the one thing a
+         * reader already expects to be able to tap.
+         */
+        val hasPhoto = person.photoId != null
+        val viewLabel = stringResource(R.string.photo_view)
+        PersonAvatar(
+            person = person,
+            diameter = 72.dp,
+            modifier = if (!hasPhoto) Modifier else Modifier
+                .clip(CircleShape)
+                .clickable(onClickLabel = viewLabel) { showingPhoto = true }
+                .testTag(PersonAvatarTag),
+        )
         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Text(
                 text = person.displayName(),
@@ -269,6 +292,10 @@ private fun PersonHeader(person: Person, modifier: Modifier = Modifier) {
             )
             LifeLine(person)
         }
+    }
+
+    if (showingPhoto) {
+        PersonPhotoDialog(person = person, onDismiss = { showingPhoto = false })
     }
 }
 

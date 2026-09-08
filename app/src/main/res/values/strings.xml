@@ -145,6 +145,8 @@
     <string name="photo_add">Add a photo</string>
     <string name="photo_change">Change photo</string>
     <string name="photo_remove">Remove photo</string>
+    <string name="photo_view">View photo</string>
+    <string name="photo_close">Close photo</string>
     <string name="photo_crop_title">Frame the photo</string>
     <string name="photo_crop_hint">Drag to move, pinch to zoom. A photo is always shown as a circle.</string>
     <string name="photo_crop_use">Use photo</string>
