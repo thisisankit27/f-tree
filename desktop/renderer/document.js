@@ -63,11 +63,26 @@ function tidyPerson(fields) {
 export class Tree {
   /**
    * @param {object} document a document in the exchange shape, as `archive.js` returns
+   * @param {{ownTreeId?: string}} options this installation's id, for a tree that came from
+   *   nowhere. See `desktop/identity.js` for why an empty origin is not an acceptable default.
    */
-  constructor(document = {}) {
+  constructor(document = {}, { ownTreeId = '' } = {}) {
     this.state = {
       exportedAt: document.exportedAt ?? '',
-      sourceTreeId: document.sourceTreeId ?? '',
+      /*
+       * Whose tree this is, in the sense the importer means.
+       *
+       * A tree that arrived from a phone keeps that phone's id, and that is not an oversight: the
+       * importer recognises a file whose `sourceTreeId` matches its own and then matches people by
+       * id alone, with no name comparison. Rewriting it here would throw that away and send a
+       * desktop-edited tree back as a stranger.
+       *
+       * A tree that came from nowhere -- started on this machine -- takes this installation's own
+       * id instead. The empty string is the one value that must never be written: every desktop
+       * would be claiming it, and importing one such tree into another would merge people who
+       * merely share a position, not an identity.
+       */
+      sourceTreeId: document.sourceTreeId || ownTreeId || '',
       people: clone(document.people ?? []),
       relationships: clone(document.relationships ?? []),
     };
