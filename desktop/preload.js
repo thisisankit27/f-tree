@@ -20,6 +20,21 @@ contextBridge.exposeInMainWorld('ftreeDesktop', {
   lastTree: () => ipcRenderer.invoke('tree:last'),
   forgetTree: () => ipcRenderer.invoke('tree:forget'),
 
+  /**
+   * Saves a tree the page has already serialised and verified.
+   *
+   * Bytes, never a document: the page owns the format -- the writer, the reader it checks itself
+   * with, and the tree. Sending a document for the other side to encode would put a second
+   * encoder in the app and leave the verification checking something other than what gets
+   * written. The main process writes to a temporary file, fsyncs it, keeps the previous contents
+   * as `.bak` and renames atomically over the target.
+   */
+  saveTree: (bytes, path) => ipcRenderer.invoke('tree:save', { bytes, path }),
+  saveTreeAs: (bytes, suggest) => ipcRenderer.invoke('tree:saveAs', { bytes, suggest }),
+
+  /** Lets the window refuse to close on unsaved work, and marks the title bar as edited. */
+  setDirty: (dirty) => ipcRenderer.send('tree:dirty', dirty),
+
   /** The menu and the OS both open files; the page hears about it the same way either way. */
   onOpenTree: (handler) => ipcRenderer.on('tree:opened', (_e, tree) => handler(tree)),
   onMenuCommand: (handler) => ipcRenderer.on('menu:command', (_e, command) => handler(command)),
