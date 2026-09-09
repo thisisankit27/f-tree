@@ -456,12 +456,18 @@ async function localFontCss() {
 }
 
 /*
- * Nothing reaches the network.
+ * The page gets its own session, and that session reaches nothing.
  *
- * Not a promise in a privacy policy - the requests are refused by the session, so the claim holds
- * whatever the page's markup happens to ask for now or later. Only `file:` and `devtools:` are
- * allowed through.
+ * This has to be the *window's* session rather than the default one. `net.request` in the main
+ * process also runs through `session.defaultSession`, so refusing everything there refused the
+ * updater's own call to GitHub - it blocked itself, and reported
+ * `net::ERR_BLOCKED_BY_CLIENT` as if something on the machine had done it.
+ *
+ * Splitting them says exactly what was always meant: the page can reach nothing, and the only
+ * requests the app makes are the update checks somebody switched on.
  */
+const VIEWER_PARTITION = 'persist:viewer';
+
 function refuseTheNetwork(ses) {
   ses.webRequest.onBeforeRequest({ urls: ['http://*/*', 'https://*/*', 'ws://*/*', 'wss://*/*'] },
     (details, callback) => {
@@ -484,6 +490,7 @@ async function createWindow() {
     icon: ICON_FOR_WINDOW,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
+      partition: VIEWER_PARTITION,
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: false,
@@ -492,7 +499,7 @@ async function createWindow() {
 
   win.once('ready-to-show', () => win.show());
 
-  refuseTheNetwork(session.defaultSession);
+  refuseTheNetwork(session.fromPartition(VIEWER_PARTITION));
   await win.loadFile(VIEWER);
   try {
     await win.webContents.insertCSS(await localFontCss());
@@ -543,10 +550,25 @@ ipcMain.handle('tree:last', async () => {
 async function runSmoke(win, file) {
   const failures = [];
   const iconExists = await fs.access(ICON_FOR_WINDOW).then(() => true, () => false);
+
   const check = (label, ok, detail = '') => {
     if (!ok) failures.push(label);
     console.log(`${ok ? '  ok  ' : ' FAIL '} ${label}${detail ? `  ${detail}` : ''}`);
   };
+
+  /*
+   * A missing fixture must not look like a broken app.
+   *
+   * It did once: the file the test points at had been cleared away, `openInto` failed, and four
+   * assertions reported that the tree would not open - which reads exactly like a regression in
+   * the app and is nothing of the kind.
+   */
+  if (!(await fs.access(file).then(() => true, () => false))) {
+    console.log(` FAIL  the file to open exists  ${file}`);
+    console.log('\n1 FAILED.');
+    app.exit(1);
+    return;
+  }
 
   await openInto(win, file);
   // The page reads the file, lays it out and paints; give it room on a slow runner.
@@ -558,6 +580,8 @@ async function runSmoke(win, file) {
     state: document.getElementById('viewer')?.dataset.state ?? null,
     fileName: document.getElementById('file-name')?.textContent ?? null,
     orientation: document.body.dataset.orientation ?? null,
+    openerError: document.getElementById('opener-error')?.textContent ?? null,
+    hint: document.getElementById('hint')?.textContent ?? null,
     literata: document.fonts.check('16px Literata'),
     mono: document.fonts.check('13px "JetBrains Mono"'),
     people: document.querySelectorAll('#index-list li, #index-list button, #index-list tr').length,
@@ -566,7 +590,8 @@ async function runSmoke(win, file) {
 
   check('the preload bridge is reachable from the page', seen.bridge === true);
   check('the page knows it is running in the shell', seen.shell === 'desktop', String(seen.shell));
-  check('the tree opened', seen.state === 'loaded', String(seen.state));
+  check('the tree opened', seen.state === 'loaded',
+    `${seen.state}${seen.openerError ? ' — ' + seen.openerError : ''}${seen.hint ? ' — ' + seen.hint : ''}`);
   check('the file name is shown', Boolean(seen.fileName), String(seen.fileName));
   // The whole reason the desktop app is not just the website in a window.
   check('generations run in columns, as they do in the app', seen.orientation === 'columns',
@@ -587,6 +612,26 @@ async function runSmoke(win, file) {
     String(fresh.betaReleases));
   check('the window carries the app mark', Boolean(win.getRepresentedFilename) && iconExists,
     ICON_FOR_WINDOW);
+
+  /*
+   * The updater must not be blocked by the page's own guard.
+   *
+   * This is the regression that shipped: the refusal was installed on the default session, which
+   * `net.request` also uses, so asking GitHub for releases failed with ERR_BLOCKED_BY_CLIENT.
+   * Only run where the network is available and asked for.
+   */
+  if (process.env.FTREE_SMOKE_NETWORK) {
+    let reachable = false;
+    let detail = '';
+    try {
+      const releases = await fetchReleases();
+      reachable = Array.isArray(releases) && releases.length > 0;
+      detail = `${releases.length} releases`;
+    } catch (error) {
+      detail = error.message;
+    }
+    check('the updater can reach GitHub through the page-level refusal', reachable, detail);
+  }
 
   if (process.env.FTREE_SMOKE_SHOT) {
     const image = await win.webContents.capturePage();

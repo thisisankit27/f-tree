@@ -53,6 +53,9 @@ jobs:
         working-directory: desktop
         env:
           FTREE_SMOKE: ${{ runner.temp }}/fixtures/sample-family.ftree
+          # Asserts the updater is not blocked by the page's own network refusal - the regression
+          # that shipped in 0.2.0 and reported itself as ERR_BLOCKED_BY_CLIENT.
+          FTREE_SMOKE_NETWORK: '1'
         run: xvfb-run -a npx electron . --no-sandbox
 
   package:
