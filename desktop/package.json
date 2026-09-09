@@ -40,9 +40,17 @@
     "extraResources": [
       {
         "from": "../site/playground",
-        "to": "viewer",
+        "to": "page/site/playground",
         "filter": [
           "**/*"
+        ]
+      },
+      {
+        "from": "renderer",
+        "to": "page/renderer",
+        "filter": [
+          "**/*",
+          "!*.test.js"
         ]
       },
       {
