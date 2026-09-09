@@ -10,9 +10,13 @@
  * What the shell adds is the part a browser tab cannot have: a real file picker, a native menu,
  * and a memory of which tree you were reading.
  */
-const { app, BrowserWindow, Menu, dialog, ipcMain, session, shell } = require('electron');
+const { app, BrowserWindow, Menu, dialog, ipcMain, net, session, shell } = require('electron');
+const crypto = require('node:crypto');
 const fs = require('node:fs/promises');
+const os = require('node:os');
 const path = require('node:path');
+
+const { chooseUpdate } = require('./update');
 
 /*
  * The viewer, which lives beside this app rather than inside it.
@@ -32,7 +36,38 @@ const VIEWER = app.isPackaged
  * A path and nothing else. Not the tree, not a copy of it, not anything out of it - the file
  * stays wherever its owner put it, and if they move or delete it the app simply opens empty.
  */
+/* The mark, for the window and its place in the taskbar. */
+const ICON_FOR_WINDOW = path.join(__dirname, 'build', 'icons', '256x256.png');
+
 const stateFile = () => path.join(app.getPath('userData'), 'session.json');
+const settingsFile = () => path.join(app.getPath('userData'), 'settings.json');
+
+/*
+ * What the reader has switched on. Both off until they do.
+ *
+ * The same two the app offers, and off for the same reason: this app makes no network request of
+ * any kind unless somebody has asked it to, and a default of "on" would quietly make that untrue
+ * for everybody who never opened this menu.
+ */
+const DEFAULT_SETTINGS = { checkForUpdates: false, betaReleases: false };
+let settings = { ...DEFAULT_SETTINGS };
+
+async function readSettings() {
+  try {
+    return { ...DEFAULT_SETTINGS, ...JSON.parse(await fs.readFile(settingsFile(), 'utf8')) };
+  } catch {
+    return { ...DEFAULT_SETTINGS };
+  }
+}
+
+async function writeSettings() {
+  try {
+    await fs.mkdir(path.dirname(settingsFile()), { recursive: true });
+    await fs.writeFile(settingsFile(), JSON.stringify(settings, null, 2));
+  } catch {
+    // A preference that fails to persist is worth less than an error dialog costs.
+  }
+}
 
 async function readSession() {
   try {
@@ -87,6 +122,192 @@ async function chooseInto(win) {
   return picked.filePaths[0];
 }
 
+/* ------------------------------------------------------------------ updates */
+
+const RELEASES_API = 'https://api.github.com/repos/thisisankit27/f-tree/releases?per_page=30';
+
+/**
+ * Asks GitHub what exists.
+ *
+ * From the main process, never the page: the window is refused the network outright and stays that
+ * way. This is the only request the app can make, it is made only when somebody has switched the
+ * check on or picked "Check for updates now", and it sends nothing but the request itself.
+ */
+function fetchReleases() {
+  return new Promise((resolve, reject) => {
+    const request = net.request({ url: RELEASES_API, useSessionCookies: false });
+    request.setHeader('accept', 'application/vnd.github+json');
+    request.setHeader('user-agent', `f-tree-desktop/${app.getVersion()}`);
+    request.on('response', (response) => {
+      if (response.statusCode !== 200) {
+        response.on('data', () => {});
+        response.on('end', () => reject(new Error(`GitHub answered ${response.statusCode}`)));
+        return;
+      }
+      const chunks = [];
+      response.on('data', (chunk) => chunks.push(chunk));
+      response.on('end', () => {
+        try { resolve(JSON.parse(Buffer.concat(chunks).toString('utf8'))); }
+        catch (error) { reject(error); }
+      });
+    });
+    request.on('error', reject);
+    request.end();
+  });
+}
+
+/** Downloads to a temporary file and returns its path and its actual hash. */
+function download(url, into) {
+  return new Promise((resolve, reject) => {
+    const request = net.request({ url, useSessionCookies: false });
+    request.setHeader('user-agent', `f-tree-desktop/${app.getVersion()}`);
+    request.on('response', (response) => {
+      if (response.statusCode !== 200) {
+        response.on('data', () => {});
+        response.on('end', () => reject(new Error(`the download answered ${response.statusCode}`)));
+        return;
+      }
+      const hash = crypto.createHash('sha256');
+      const chunks = [];
+      response.on('data', (chunk) => { hash.update(chunk); chunks.push(chunk); });
+      response.on('end', async () => {
+        try {
+          await fs.writeFile(into, Buffer.concat(chunks));
+          resolve({ path: into, sha256: hash.digest('hex') });
+        } catch (error) { reject(error); }
+      });
+    });
+    request.on('error', reject);
+    request.end();
+  });
+}
+
+/*
+ * The whole update conversation.
+ *
+ * `quiet` is the automatic check on launch: it says nothing unless there is something to say, so
+ * starting the app never costs the reader a dialog. Asking from the menu always gets an answer,
+ * including "you are up to date", because a question deserves one.
+ */
+async function checkForUpdates(win, { quiet = false } = {}) {
+  let releases;
+  try {
+    releases = await fetchReleases();
+  } catch (error) {
+    if (!quiet) {
+      await dialog.showMessageBox(win, {
+        type: 'warning',
+        message: 'Could not reach GitHub.',
+        detail: `${error.message}\n\nNothing was downloaded, and nothing about you was sent.`,
+        buttons: ['OK'],
+      });
+    }
+    return;
+  }
+
+  const found = chooseUpdate({
+    releases,
+    currentVersion: app.getVersion(),
+    platform: process.platform,
+    allowPreRelease: settings.betaReleases,
+  });
+
+  if (found.kind !== 'newer') {
+    if (!quiet) {
+      await dialog.showMessageBox(win, {
+        type: 'info',
+        message: found.kind === 'up-to-date'
+          ? `f-tree ${app.getVersion()} is the newest build.`
+          : 'There is no build on offer for this system just now.',
+        buttons: ['OK'],
+      });
+    }
+    return;
+  }
+
+  const answer = await dialog.showMessageBox(win, {
+    type: 'info',
+    message: `f-tree ${found.version} is available.`,
+    detail: `${found.notes ? found.notes.slice(0, 700) + '\n\n' : ''}`
+      + `${found.file.name} · ${(found.file.size / 1048576).toFixed(1)} MB`
+      + `${found.file.sha256 ? '' : '\n\nGitHub has published no checksum for this file.'}`,
+    buttons: ['Download', 'Release notes', 'Not now'],
+    defaultId: 0,
+    cancelId: 2,
+  });
+  if (answer.response === 1) { shell.openExternal(found.notesUrl); return; }
+  if (answer.response !== 0) return;
+
+  let got;
+  const into = path.join(os.tmpdir(), found.file.name);
+  try {
+    got = await download(found.file.url, into);
+  } catch (error) {
+    await dialog.showMessageBox(win, {
+      type: 'warning', message: 'The download did not finish.', detail: error.message, buttons: ['OK'],
+    });
+    return;
+  }
+
+  /*
+   * Verified before anything is offered to run.
+   *
+   * The hash comes from GitHub's own metadata for the asset, not from the file and not from this
+   * app. A mismatch means the bytes are not the ones that came out of the public build, and the
+   * only safe thing to do with them is delete them.
+   */
+  if (found.file.sha256 && got.sha256 !== found.file.sha256) {
+    await fs.rm(into, { force: true });
+    await dialog.showMessageBox(win, {
+      type: 'error',
+      message: 'That download does not match its checksum.',
+      detail: `Expected ${found.file.sha256}\nGot      ${got.sha256}\n\n`
+        + 'The file has been deleted. Nothing was installed.',
+      buttons: ['OK'],
+    });
+    return;
+  }
+
+  const windows = process.platform === 'win32';
+  const next = await dialog.showMessageBox(win, {
+    type: 'info',
+    message: `Downloaded and verified f-tree ${found.version}.`,
+    detail: windows
+      ? 'Run the installer to finish. f-tree will close while it installs.'
+      : `Saved to ${got.path}\n\nAn AppImage replaces the one you are running: make it `
+        + 'executable with chmod +x and start it. Nothing has been changed for you.',
+    buttons: windows ? ['Run the installer', 'Show the file', 'Later'] : ['Show the file', 'Later'],
+    defaultId: 0,
+    cancelId: windows ? 2 : 1,
+  });
+
+  if (windows && next.response === 0) { shell.openPath(got.path); app.quit(); return; }
+  if ((windows && next.response === 1) || (!windows && next.response === 0)) {
+    shell.showItemInFolder(got.path);
+  }
+}
+
+/*
+ * Turning betas on is a decision worth interrupting; turning them off is not.
+ *
+ * The same judgement the app makes, and it states the same consequence: a beta keeps you on betas
+ * until a stable release passes it.
+ */
+async function confirmBeta(win) {
+  const answer = await dialog.showMessageBox(win, {
+    type: 'warning',
+    message: 'Offer me beta releases?',
+    detail: 'A beta is an unfinished build of an app you keep your family in. You will be offered '
+      + 'them as soon as they are published, before anyone has used them much.\n\n'
+      + 'You can switch this back off at any time; you will then stay on the build you have until '
+      + 'a stable release passes it.',
+    buttons: ['Offer me betas', 'Cancel'],
+    defaultId: 1,
+    cancelId: 1,
+  });
+  return answer.response === 0;
+}
+
 function buildMenu(win) {
   const isMac = process.platform === 'darwin';
   const template = [
@@ -114,6 +335,41 @@ function buildMenu(win) {
         { label: 'Switch theme', accelerator: 'CmdOrCtrl+Shift+D', click: () => win.webContents.send('menu:command', 'theme') },
         { type: 'separator' },
         { role: 'togglefullscreen' },
+      ],
+    },
+    {
+      label: 'Updates',
+      submenu: [
+        { label: 'Check for updates now…', click: () => checkForUpdates(win) },
+        { type: 'separator' },
+        {
+          label: 'Check for updates automatically',
+          type: 'checkbox',
+          checked: settings.checkForUpdates,
+          click: async (item) => {
+            settings.checkForUpdates = item.checked;
+            await writeSettings();
+          },
+        },
+        {
+          label: 'Offer me beta releases',
+          type: 'checkbox',
+          checked: settings.betaReleases,
+          click: async (item) => {
+            // Asked before it is on, not after.
+            if (item.checked && !(await confirmBeta(win))) {
+              item.checked = false;
+              return;
+            }
+            settings.betaReleases = item.checked;
+            await writeSettings();
+          },
+        },
+        { type: 'separator' },
+        {
+          label: 'Both are off until you switch them on',
+          enabled: false,
+        },
       ],
     },
     {
@@ -186,6 +442,9 @@ async function createWindow() {
     backgroundColor: '#f7f6f1',
     show: false,
     title: 'f-tree',
+    // Packaged builds take it from the installer's own resources, but a window manager that asks
+    // the app rather than the desktop entry - and every run from source - gets it from here.
+    icon: ICON_FOR_WINDOW,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
@@ -246,6 +505,7 @@ ipcMain.handle('tree:last', async () => {
  */
 async function runSmoke(win, file) {
   const failures = [];
+  const iconExists = await fs.access(ICON_FOR_WINDOW).then(() => true, () => false);
   const check = (label, ok, detail = '') => {
     if (!ok) failures.push(label);
     console.log(`${ok ? '  ok  ' : ' FAIL '} ${label}${detail ? `  ${detail}` : ''}`);
@@ -279,6 +539,18 @@ async function runSmoke(win, file) {
   check('the bundled typefaces loaded without the network', seen.literata && seen.mono,
     `Literata ${seen.literata}, JetBrains Mono ${seen.mono}`);
 
+  /*
+   * The promise on the download page, asserted rather than believed: both switches start off, so a
+   * fresh install makes no request of any kind until somebody asks it to.
+   */
+  const fresh = await readSettings();
+  check('update checking is off until switched on', fresh.checkForUpdates === false,
+    String(fresh.checkForUpdates));
+  check('beta releases are off until switched on', fresh.betaReleases === false,
+    String(fresh.betaReleases));
+  check('the window carries the app mark', Boolean(win.getRepresentedFilename) && iconExists,
+    ICON_FOR_WINDOW);
+
   if (process.env.FTREE_SMOKE_SHOT) {
     const image = await win.webContents.capturePage();
     await fs.writeFile(process.env.FTREE_SMOKE_SHOT, image.toPNG());
@@ -290,11 +562,17 @@ async function runSmoke(win, file) {
 }
 
 app.whenReady().then(async () => {
+  settings = await readSettings();
   window_ = await createWindow();
 
   if (process.env.FTREE_SMOKE) {
     await runSmoke(window_, path.resolve(process.env.FTREE_SMOKE));
     return;
+  }
+
+  // Only if asked, and quietly: starting the app never costs a dialog for having nothing to say.
+  if (settings.checkForUpdates) {
+    checkForUpdates(window_, { quiet: true }).catch(() => {});
   }
 
   app.on('activate', async () => {

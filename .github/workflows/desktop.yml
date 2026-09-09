@@ -33,6 +33,12 @@ jobs:
         working-directory: desktop
         run: npm ci || npm install
 
+      # The update rules are pure and their table is the mitigation for porting rules out of the
+      # Kotlin: a divergence fails here rather than offering somebody the wrong build.
+      - name: Update rules
+        working-directory: desktop
+        run: npm test
+
       # The layout is checked in both orientations here as well as in the site workflow: the
       # desktop draws in columns, and that is this app's invariant to keep, not the website's.
       - name: Check the layout, rows and columns

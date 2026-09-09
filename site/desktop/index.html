@@ -217,11 +217,12 @@
         <span aria-hidden="true">◌</span>
         <span>
           <strong>What the app can reach.</strong> It reads the file you open and writes one small
-          note of which file that was, so it can reopen it next time. There is no account, no server
-          and no telemetry — and the app <em>refuses</em> network requests rather than merely not
-          making any: every <code>http</code> and <code>https</code> request is cancelled by the
-          app itself, so the typefaces are read from disk and nothing announces that you opened it.
-          Pull the plug on your internet and it behaves identically.
+          note of which file that was, so it can reopen it next time. There is no account, no
+          server and no telemetry. The window itself is <em>refused</em> the network outright —
+          every <code>http</code> and <code>https</code> request from the page is cancelled by the
+          app, which is why the typefaces are read from disk rather than fetched from Google. The
+          only request the app can make is the update check below, and that is off until you turn
+          it on. Leave it off and the app never touches the network at all.
         </span>
       </div>
     </div>
@@ -245,6 +246,35 @@
       <div id="desktop-hashes"></div>
       <p style="margin-top:18px">
         <a id="dfact-notes" href="https://github.com/thisisankit27/f-tree/releases?q=desktop&amp;expanded=true">Release notes and every build on GitHub</a>
+      </p>
+    </div>
+  </div>
+</section>
+
+<section class="band band-sunk" id="updates">
+  <div class="shell" style="max-width:780px">
+    <p class="rule-label">Staying up to date</p>
+    <div class="slab">
+      <h2 style="font-size:26px;margin-bottom:14px">Two switches, both off</h2>
+      <p>
+        Under <b>Updates</b> in the menu bar there are two, and neither is on when you install:
+      </p>
+      <dl class="facts">
+        <div>
+          <dt>Check automatically</dt>
+          <dd>Looks once at startup and says nothing unless there is something to say.</dd>
+        </div>
+        <div>
+          <dt>Offer me betas</dt>
+          <dd>Unfinished builds, as soon as they are published. Asks before it turns on.</dd>
+        </div>
+      </dl>
+      <p style="margin-top:18px">
+        <b>Check for updates now</b> always answers, including &ldquo;you have the newest
+        build&rdquo;, because a question deserves one. Anything downloaded is checked against the
+        SHA-256 GitHub published for it <i>before</i> you are offered it to run; if the two disagree
+        the file is deleted and nothing is installed. On Windows the installer can be run from the
+        app; on Linux the AppImage is downloaded and shown to you, and you put it where you want it.
       </p>
     </div>
   </div>

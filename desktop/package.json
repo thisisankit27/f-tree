@@ -1,7 +1,7 @@
 {
   "name": "f-tree-desktop",
   "productName": "f-tree",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "A local-first family tree, on your own machine",
   "author": {
     "name": "thisisankit27",
@@ -14,7 +14,8 @@
     "start": "electron .",
     "smoke": "electron . --no-sandbox",
     "pack:linux": "electron-builder --linux AppImage deb",
-    "pack:win": "electron-builder --win nsis"
+    "pack:win": "electron-builder --win nsis",
+    "test": "node --test update.test.js"
   },
   "devDependencies": {
     "electron": "^33.2.0",
@@ -31,7 +32,9 @@
     "files": [
       "main.js",
       "preload.js",
-      "package.json"
+      "update.js",
+      "package.json",
+      "build/icons/*.png"
     ],
     "extraResources": [
       {
@@ -57,7 +60,7 @@
       "category": "Office",
       "synopsis": "A local-first family tree",
       "description": "Read and explore a family tree exported from the f-tree Android app. Everything stays on this machine: no account, no cloud, no backend.",
-      "icon": "build/icon.png",
+      "icon": "build/icons",
       "mimeTypes": [
         "application/x-ftree"
       ],
