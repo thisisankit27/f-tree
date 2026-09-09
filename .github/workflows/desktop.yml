@@ -60,6 +60,12 @@ jobs:
           python3 tools/make_sample_tree.py "$RUNNER_TEMP/fixtures"
           node tools/check_layout.mjs "$RUNNER_TEMP/fixtures"
 
+      # The writer is the first piece of the editor, and the only reader that matters for it is the
+      # Android app's: it walks local file headers, so an archive whose sizes live in a data
+      # descriptor reads as empty there. Checked against a real export, both directions.
+      - name: Check the .ftree writer
+        run: node tools/check_writer.mjs "$RUNNER_TEMP/fixtures"
+
       # A desktop app cannot be checked by reading it: the shell, the preload bridge and the viewer
       # only meet once a window exists. So this starts the real app and asserts what would actually
       # be broken if the wiring came apart.
