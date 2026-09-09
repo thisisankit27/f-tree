@@ -1106,6 +1106,23 @@ async function runSmoke(win, file) {
     ICON_FOR_WINDOW);
 
   /*
+   * A question nobody asked is not on the screen.
+   *
+   * #125: the review dialog's box was styled without `[open]`, which beat the user agent's
+   * `dialog:not([open]) { display: none }` and left 160px of empty dialog -- with a live Import
+   * button in it -- painted over the tree on every screen. Asserted here rather than in the import
+   * smoke because the failure is about the state where no import is happening, which is every
+   * other moment the app is running.
+   */
+  const shut = await win.webContents.executeJavaScript(`(() => {
+    const dialog = document.getElementById('review');
+    return { open: dialog.open, display: getComputedStyle(dialog).display,
+             height: dialog.getBoundingClientRect().height };
+  })()`);
+  check('a dialog nobody opened takes up no room', !shut.open && shut.display === 'none'
+    && shut.height === 0, JSON.stringify(shut));
+
+  /*
    * The updater must not be blocked by the page's own guard.
    *
    * This is the regression that shipped: the refusal was installed on the default session, which
