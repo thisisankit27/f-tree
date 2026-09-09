@@ -1,0 +1,6 @@
+{
+  "name": "f-tree-renderer",
+  "private": true,
+  "type": "module",
+  "description": "The desktop app's own page: everything the viewer is not. ES modules, stated rather than detected."
+}
