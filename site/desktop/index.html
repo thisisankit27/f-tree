@@ -69,227 +69,131 @@
 <main>
 
 <section class="band" style="padding-bottom:0">
-  <div class="shell" style="max-width:780px">
+  <div class="shell" style="max-width:900px">
     <p class="eyebrow">For your laptop</p>
     <h1 style="font-size:clamp(32px,4.6vw,48px);line-height:1.1;font-weight:600;letter-spacing:-0.02em;margin:0 0 18px">
       f-tree on Windows and Ubuntu.
     </h1>
     <p class="lede" style="max-width:38em">
-      It opens a <code>.ftree</code> exported from the phone and draws it the way the phone does —
-      a generation is a column, ancestors at the left. Everything stays on the machine.
+      Opens a <code>.ftree</code> exported from the phone and draws it the way the phone does —
+      a generation is a column, ancestors at the left. Free, open source, no account.
     </p>
+
+    <div class="beta-note">
+      <span class="badge">Beta</span>
+      <span>
+        <strong>This is an early build and it will have rough edges.</strong> It is new, it has been
+        tested by very few people, and it may misbehave — expect that rather than a finished app.
+        The one thing it cannot do is damage your family tree: it only ever <em>reads</em> the
+        <code>.ftree</code> you open, and never writes to it. Building and editing a tree is still
+        the <a href="../thanks/">Android app's</a> job.
+      </span>
+    </div>
 
     <!--
-      The download the reader is most likely to want, chosen from their own platform, with the
-      others a click away rather than hidden. Filled in by app.js from the published release, so
-      a new version needs no edit here; the markup is the fallback if GitHub cannot be reached.
+      One card per system, every file a row of its own.
+      Detection marks a recommendation and nothing more: a reader on a machine the page guessed
+      wrong still sees every file, at the same size, one click away.
     -->
-    <div id="desktop-downloads">
-      <p style="margin:28px 0 0">
-        <a class="btn btn-primary" id="desktop-primary"
-           href="https://github.com/thisisankit27/f-tree/releases?q=desktop&amp;expanded=true">
-          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M12 3v12m0 0l-4.5-4.5M12 15l4.5-4.5M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/>
-          </svg>
-          <span id="desktop-primary-label">Get the desktop app</span>
-        </a>
-      </p>
-      <p class="status-line" id="desktop-status">Finding the latest build…</p>
-      <p class="status-line" id="desktop-others"></p>
-    </div>
-  </div>
-</section>
+    <div class="platforms" id="platforms">
+      <div class="platform" id="card-windows">
+        <h3>
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3 5.6l7.4-1v7.1H3V5.6zm8.6-1.2L21 3v8.7h-9.4V4.4zM3 12.8h7.4v7.1L3 18.9v-6.1zm8.6 0H21V21l-9.4-1.3v-6.9z"/></svg>
+          Windows
+          <span class="tag" id="tag-windows" hidden>Your system</span>
+        </h3>
+        <p>Windows 10 or 11, 64-bit. Installs for your account, so it never asks for an administrator password.</p>
+        <div id="files-windows"></div>
+      </div>
 
-<!--
-  One set of steps per system. Both are shown: a reader on Windows sometimes installs for a
-  relative on Ubuntu, and a page that hides the other half makes them go looking for it.
--->
-<section class="band" id="windows">
-  <div class="shell" style="max-width:780px">
-    <h2 class="rule-label">Installing on Windows</h2>
-
-    <ol class="steps">
-      <li>
-        <h3>Windows will refuse to run it</h3>
-        <p>
-          Not because of anything in the file. Windows trusts installers whose publisher has paid
-          for a code-signing certificate, and f-tree has not — so it arrives as an unrecognised app
-          and Defender stops it. Choose <b>More info</b>, then <b>Run anyway</b>.
-        </p>
-        <p class="quote">
-          <b>“Windows protected your PC.”</b> Microsoft Defender SmartScreen prevented an
-          unrecognised app from starting. — More info → Run anyway
-        </p>
-        <p>
-          The publisher will read <b>Unknown</b>. That is the honest state of it: nobody has
-          vouched for this file except the checksum below, which you can check yourself.
-        </p>
-      </li>
-
-      <li>
-        <h3>Choose where it goes</h3>
-        <p>
-          The installer offers a folder and installs for your account only, so it never asks for an
-          administrator password. Nothing is written outside that folder and your own app data.
-        </p>
-      </li>
-
-      <li>
-        <h3>Open it and open your tree</h3>
-        <p>
-          Export a <code>.ftree</code> from the phone — <b>Settings → Export your tree</b> — get it
-          onto the laptop however you like, and open it with <b>File → Open tree</b>. The app
-          reopens it by itself next time.
-        </p>
-      </li>
-    </ol>
-  </div>
-</section>
-
-<section class="band band-sunk" id="linux">
-  <div class="shell" style="max-width:780px">
-    <h2 class="rule-label">Installing on Ubuntu and other Linux</h2>
-
-    <p style="max-width:38em">
-      Two ways, and the <code>.deb</code> is the easier one if you are on Ubuntu, Debian or Mint —
-      it puts f-tree in your applications menu like anything else. The <code>.AppImage</code> is
-      one file that runs anywhere and installs nothing.
-    </p>
-
-    <ol class="steps">
-      <li>
-        <h3>The .deb — apt, not a double-click</h3>
-        <p>
-          Double-clicking a <code>.deb</code> opens an archive manager on most desktops now, which
-          is not what you want. Install it from the folder you downloaded it to:
-        </p>
-        <p class="quote"><code>sudo apt install ./f-tree-desktop_*_amd64.deb</code></p>
-        <p>The leading <code>./</code> matters — without it apt goes looking for a package by that name.</p>
-      </li>
-
-      <li>
-        <h3>The .AppImage — make it executable first</h3>
-        <p>
-          A downloaded AppImage is not executable, by design. Give it permission and run it:
-        </p>
-        <p class="quote"><code>chmod +x f-tree-*.AppImage &amp;&amp; ./f-tree-*.AppImage</code></p>
-        <p>
-          On Ubuntu 22.04 and newer it may stop with <code>dlopen(): error loading libfuse.so.2</code>.
-          AppImages need the older FUSE library, which no longer ships by default:
-        </p>
-        <p class="quote"><code>sudo apt install libfuse2</code></p>
-        <p>
-          Or skip it entirely with <code>./f-tree-*.AppImage --appimage-extract-and-run</code>, which
-          unpacks to a temporary folder instead.
-        </p>
-      </li>
-
-      <li>
-        <h3>Open your tree</h3>
-        <p>
-          Export a <code>.ftree</code> from the phone — <b>Settings → Export your tree</b> — and open
-          it with <b>File → Open tree</b>. The app reopens it by itself next time.
-        </p>
-      </li>
-    </ol>
-  </div>
-</section>
-
-<section class="band">
-  <div class="shell" style="max-width:780px">
-    <p class="rule-label">Why your computer complains</p>
-    <div class="slab">
-      <h2 style="font-size:26px;margin-bottom:14px">Nobody has vouched for this file</h2>
-      <p>
-        Windows and macOS trust software whose publisher has bought a code-signing certificate and
-        kept a reputation with it. That costs a few hundred pounds a year and identifies a company.
-        f-tree is a free app with no company behind it, so it has neither, and every operating
-        system it lands on will say so.
-      </p>
-      <p>
-        The warning is doing its job. Clicking past one is a habit worth keeping rare, so here is
-        what you can check instead of taking my word for it: every file below was built by GitHub
-        Actions from the public source, in the open, and GitHub — not this page — publishes the
-        checksum. If the hash of your download matches, the file is byte-for-byte the one that came
-        out of that build.
-      </p>
-      <div class="notice">
-        <span aria-hidden="true">◌</span>
-        <span>
-          <strong>What the app can reach.</strong> It reads the file you open and writes one small
-          note of which file that was, so it can reopen it next time. There is no account, no
-          server and no telemetry. The window itself is <em>refused</em> the network outright —
-          every <code>http</code> and <code>https</code> request from the page is cancelled by the
-          app, which is why the typefaces are read from disk rather than fetched from Google. The
-          only request the app can make is the update check below, and that is off until you turn
-          it on. Leave it off and the app never touches the network at all.
-        </span>
+      <div class="platform" id="card-linux">
+        <h3>
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2c-2.2 0-3.4 1.8-3.4 4 0 1.6.3 2.3-.5 3.6C7 11.4 5.6 13 5.6 15.4c0 .9.3 1.5-.3 2.3-.5.7-.4 1.5.4 1.8.9.3 1.6-.2 2.4.3 1 .6 2.3 1 3.9 1s2.9-.4 3.9-1c.8-.5 1.5 0 2.4-.3.8-.3.9-1.1.4-1.8-.6-.8-.3-1.4-.3-2.3 0-2.4-1.4-4-2.5-5.8-.8-1.3-.5-2-.5-3.6 0-2.2-1.2-4-3.4-4z"/></svg>
+          Ubuntu &amp; Linux
+          <span class="tag" id="tag-linux" hidden>Your system</span>
+        </h3>
+        <p>The <code>.deb</code> if you are on Ubuntu, Debian or Mint. The portable folder if you would rather install nothing.</p>
+        <div id="files-linux"></div>
       </div>
     </div>
+
+    <p class="assurance" id="assurance">Finding the latest build…</p>
   </div>
 </section>
 
 <section class="band band-sunk">
-  <div class="shell" style="max-width:780px">
-    <p class="rule-label">Checking what you got</p>
-    <div class="slab">
-      <h2 style="font-size:26px;margin-bottom:14px">Verify the download</h2>
-      <p>
-        On Linux run <code>sha256sum &lt;file&gt;</code>; on Windows,
-        <code>certutil -hashfile &lt;file&gt; SHA256</code>. Compare the result with the matching
-        line below.
-      </p>
-      <dl class="facts" id="desktop-facts">
-        <div><dt>Version</dt><dd id="dfact-version">the latest desktop release</dd></div>
-        <div><dt>Released</dt><dd id="dfact-date">see the release page</dd></div>
-      </dl>
-      <div id="desktop-hashes"></div>
-      <p style="margin-top:18px">
-        <a id="dfact-notes" href="https://github.com/thisisankit27/f-tree/releases?q=desktop&amp;expanded=true">Release notes and every build on GitHub</a>
-      </p>
-    </div>
-  </div>
-</section>
-
-<section class="band band-sunk" id="updates">
-  <div class="shell" style="max-width:780px">
-    <p class="rule-label">Staying up to date</p>
-    <div class="slab">
-      <h2 style="font-size:26px;margin-bottom:14px">Two switches, both off</h2>
-      <p>
-        Under <b>Updates</b> in the menu bar there are two, and neither is on when you install:
-      </p>
-      <dl class="facts">
-        <div>
-          <dt>Check automatically</dt>
-          <dd>Looks once at startup and says nothing unless there is something to say.</dd>
-        </div>
-        <div>
-          <dt>Offer me betas</dt>
-          <dd>Unfinished builds, as soon as they are published. Asks before it turns on.</dd>
-        </div>
-      </dl>
-      <p style="margin-top:18px">
-        <b>Check for updates now</b> always answers, including &ldquo;you have the newest
-        build&rdquo;, because a question deserves one. Anything downloaded is checked against the
-        SHA-256 GitHub published for it <i>before</i> you are offered it to run; if the two disagree
-        the file is deleted and nothing is installed. On Windows the installer can be run from the
-        app; on Linux the AppImage is downloaded and shown to you, and you put it where you want it.
-      </p>
-    </div>
+  <div class="shell" style="max-width:900px">
+    <p class="expect">
+      <strong>One thing to expect on Windows.</strong> The installer is not code-signed — there is
+      no certificate behind it — so Defender will stop it with <b>“Windows protected your PC”</b>
+      and the publisher will read <b>Unknown</b>. Choose <b>More info</b>, then <b>Run anyway</b>.
+      Every file here is built in the open by GitHub Actions, and each has a checksum you can
+      check on the page that follows your download.
+    </p>
   </div>
 </section>
 
 <section class="band">
-  <div class="shell" style="max-width:780px">
-    <p class="rule-label">One more thing</p>
-    <p style="max-width:38em">
-      The desktop app <b>reads</b> a tree today: the chart, the people index, the search and the
-      relation finder. Editing, settings and the updater are being built —
-      <a href="https://github.com/thisisankit27/f-tree/issues/89">follow along here</a>. Building
-      and editing a tree is the phone's job for now, and the
-      <a href="../thanks/">Android app</a> does all of it.
-    </p>
+  <div class="shell" style="max-width:900px">
+    <p class="rule-label">Good to know</p>
+
+    <details class="folded">
+      <summary>Which Linux file should I take?</summary>
+      <p style="margin:14px 0 0;max-width:40em">
+        The <b>.deb</b> unless you have a reason not to: it puts f-tree in your applications menu
+        like anything else, and updates cleanly. The <b>portable folder</b> installs nothing —
+        unpack it anywhere and run it — which is the one to take on a machine you do not administer.
+      </p>
+      <p style="margin:12px 0 0;max-width:40em">
+        The <b>AppImage</b> is there for people who prefer them, with a caveat worth reading first:
+        on <b>Ubuntu 24.04 and newer</b> it will not start by double-clicking. Those releases
+        replaced the FUSE 2 helper it needs with <code>fusermount3</code>, and the failure is a
+        terse <i>“Cannot mount AppImage”</i> in a terminal, or simply nothing at all from the
+        desktop. Running it as
+        <code>./f-tree-*.AppImage --appimage-extract-and-run</code> works. Installing
+        <code>libfuse2</code> does <em>not</em> fix it on those releases, whatever the internet says.
+      </p>
+    </details>
+
+    <details class="folded">
+      <summary>Is there a macOS build?</summary>
+      <p style="margin:14px 0 0;max-width:40em">
+        Not yet. Windows and Linux are what is built and tested today.
+      </p>
+    </details>
+
+    <details class="folded">
+      <summary>What can the app reach?</summary>
+      <p style="margin:14px 0 0;max-width:40em">
+        It reads the file you open and writes one small note of which file that was, so it can
+        reopen it next time. No account, no server, no telemetry. The window itself is
+        <em>refused</em> the network outright — which is why its typefaces are read from disk rather
+        than fetched from Google. The only request the app can make is the update check, and that
+        is off until you switch it on in <b>Updates</b>.
+      </p>
+    </details>
+
+    <details class="folded">
+      <summary>How do updates work?</summary>
+      <p style="margin:14px 0 0;max-width:40em">
+        Two switches under <b>Updates</b>, both off when you install: <b>check automatically</b>,
+        which looks once at startup and stays quiet unless there is something to say, and
+        <b>offer me betas</b>, which asks before it turns on. Anything downloaded is checked against
+        the SHA-256 GitHub published for it before you are offered it to run; if they disagree the
+        file is deleted and nothing is installed.
+      </p>
+    </details>
+
+    <details class="folded">
+      <summary>What does it do today?</summary>
+      <p style="margin:14px 0 0;max-width:40em">
+        It <b>reads</b> a tree: the chart, the people index, the search and the relation finder.
+        Editing, settings and Hindi kinship are
+        <a href="https://github.com/thisisankit27/f-tree/issues/89">being built</a>. Building and
+        editing a tree is the phone's job for now, and the <a href="../thanks/">Android app</a>
+        does all of it.
+      </p>
+    </details>
   </div>
 </section>
 

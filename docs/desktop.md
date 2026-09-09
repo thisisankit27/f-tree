@@ -91,6 +91,28 @@ npm run pack:win     # NSIS installer, on Windows
 CI does both, on `ubuntu-latest` and `windows-latest`, for every change to `desktop/` or to the
 viewer.
 
+## Linux packaging, and the AppImage problem
+
+Three Linux targets, in the order the download page offers them:
+
+| | |
+|---|---|
+| `.deb` | the ordinary answer on Ubuntu, Debian and Mint |
+| `.tar.gz` | a portable folder: unpack anywhere, run it, install nothing |
+| `.AppImage` | for people who prefer them, with a caveat |
+
+**An AppImage will not start on Ubuntu 24.04 or newer by double-clicking.** Those releases replaced
+the FUSE 2 helper the AppImage runtime needs: `/usr/bin/fusermount` is now a symlink to
+`fusermount3`, which speaks a different protocol, and the failure is
+`fusermount: file descriptor 5 is not a socket, can't send fuse fd` in a terminal or nothing at all
+from the desktop. **Installing `libfuse2` does not fix it** — the library is present and the helper
+is what is missing — so the advice found all over the internet is wrong for these releases.
+`--appimage-extract-and-run` works, and the `.deb` and `.tar.gz` need nothing.
+
+That is why the updater only offers an AppImage to somebody already running one, where it is known
+to work because they are running it. A `.deb` install is told a new version exists and sent to the
+download page, because installing one needs root and the app has no business asking for it.
+
 ## Releases, and why they are pre-releases
 
 A desktop release is tagged `desktop-v<version>` and published as a **pre-release**. Neither is

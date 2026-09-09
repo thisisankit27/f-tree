@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Your download — f-tree</title>
+<meta name="description" content="Your f-tree download, with the install steps for the file you took and the checksum to verify it.">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#f7f6f1" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#10150f" media="(prefers-color-scheme: dark)">
+<link rel="icon" href="../../favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,600;0,7..72,700;1,7..72,400&family=JetBrains+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="../../style.css">
+
+<!--
+  The theme, decided before the first paint.
+
+  This runs where it sits, in the head, so the ground is already the right colour when the page
+  first draws — pushed to the end of the body it would flash bone at a reader who chose dark.
+  Nothing is stamped when there is no stored choice: the absence of the attribute is what lets
+  the prefers-color-scheme rule in style.css keep following the system, including live, while
+  data-js is what reveals the toggle (see style.css).
+-->
+<script>
+(function () {
+  var root = document.documentElement;
+  root.setAttribute('data-js', '');
+  try {
+    var saved = localStorage.getItem('ftree.theme');
+    if (saved === 'dark' || saved === 'light') root.setAttribute('data-theme', saved);
+  } catch (e) { /* private windows and blocked storage both land here; the system decides */ }
+})();
+</script>
+
+</head>
+<body>
+
+<header class="masthead">
+  <div class="shell">
+    <a class="wordmark" href="../../">
+      <svg width="26" height="26" viewBox="0 0 32 32" aria-hidden="true">
+        <rect width="32" height="32" rx="7" fill="var(--mark-tile)"/>
+        <g fill="none" stroke="var(--mark-line)" stroke-width="1.7" stroke-linecap="round">
+          <circle cx="11" cy="9.5" r="3.1"/><circle cx="21" cy="9.5" r="3.1"/>
+          <path d="M14.1 9.5h3.8"/><path d="M16 12.6v3.4M9 16h14M9 16v2.6M23 16v2.6"/>
+          <circle cx="9" cy="22" r="3.1"/>
+          <circle cx="23" cy="22" r="3.1" stroke="var(--mark-dash)" stroke-dasharray="2.2 2"/>
+        </g>
+      </svg>
+      f-tree
+    </a>
+    <nav>
+      <a class="nav-link" href="../">Back to the downloads</a>
+      <button type="button" class="theme-toggle" id="theme-toggle" aria-label="Switch theme">
+        <svg class="i-moon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M20.5 14.3A8.5 8.5 0 0 1 9.7 3.5a8.5 8.5 0 1 0 10.8 10.8z"/>
+        </svg>
+        <svg class="i-sun" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="4.1"/>
+          <path d="M12 2.6v2.2M12 19.2v2.2M4.35 4.35l1.55 1.55M18.1 18.1l1.55 1.55M2.6 12h2.2M19.2 12h2.2M4.35 19.65 5.9 18.1M18.1 5.9l1.55-1.55"/>
+        </svg>
+      </button>
+    </nav>
+  </div>
+</header>
+
+
+<main>
+
+<section class="band" style="padding-bottom:0">
+  <div class="shell" style="max-width:780px">
+    <p class="eyebrow" id="dl-eyebrow">Download started</p>
+    <h1 style="font-size:clamp(30px,4.4vw,44px);line-height:1.12;font-weight:600;letter-spacing:-0.02em;margin:0 0 16px">
+      Thanks — your download is on its way.
+    </h1>
+    <p class="lede" style="max-width:38em" id="dl-lede">
+      It should be in your Downloads folder in a moment. Here is what to do with it.
+    </p>
+
+    <div class="beta-note">
+      <span class="badge">Beta</span>
+      <span>
+        <strong>This is an early build and it will have rough edges.</strong> It is new, it has been
+        tested by very few people, and it may misbehave — expect that rather than a finished app.
+        The one thing it cannot do is damage your family tree: it only ever <em>reads</em> the
+        <code>.ftree</code> you open, and never writes to it. Building and editing a tree is still
+        the <a href="../../thanks/">Android app's</a> job.
+      </span>
+    </div>
+
+    <div class="slab" style="margin-top:26px">
+      <p style="font-family:var(--mono);font-size:15px;margin:0 0 6px" id="dl-name">the latest build</p>
+      <p style="font-family:var(--mono);font-size:12.5px;color:var(--ink-faint);margin:0 0 14px" id="dl-meta"></p>
+      <p style="margin:0"><a id="dl-fallback" href="https://github.com/thisisankit27/f-tree/releases?q=desktop&amp;expanded=true">Download didn't start? Get it here</a></p>
+    </div>
+  </div>
+</section>
+
+<section class="band">
+  <div class="shell" style="max-width:780px">
+    <h2 class="rule-label" id="steps-title">Installing</h2>
+    <p style="max-width:38em;margin:0 0 4px" id="steps-lede"></p>
+    <ol class="steps" id="steps"></ol>
+    <p class="expect" id="steps-caution" hidden></p>
+  </div>
+</section>
+
+<section class="band band-sunk">
+  <div class="shell" style="max-width:780px">
+    <p class="rule-label">Check you got what we built</p>
+    <div class="slab">
+      <h2 style="font-size:24px;margin-bottom:12px">Verify the file</h2>
+      <p style="max-width:40em">
+        Nothing here is code-signed, so this is the honest way to confirm the file is intact. Run
+        the command and compare it with the digest below.
+      </p>
+      <div id="verify-command"></div>
+      <p style="font-family:var(--mono);font-size:12.5px;margin:12px 0 0;overflow-wrap:anywhere">
+        <span style="color:var(--ink-faint)">Expected SHA-256:</span>
+        <span id="dl-sha" style="color:var(--forest)">published with the release</span>
+      </p>
+      <p class="expect" style="margin-top:20px">
+        <strong>What this does and does not prove.</strong> The checksum is published with the
+        release, so it catches a truncated, corrupted or tampered-with <i>download</i> — not a
+        compromised release, since both would come from the same place. Only code signing fixes
+        that. It is still worth thirty seconds before running an installer.
+      </p>
+    </div>
+  </div>
+</section>
+
+<section class="band">
+  <div class="shell" style="max-width:780px">
+    <p class="rule-label">Nothing leaves your computer</p>
+    <p style="max-width:40em">
+      No account, no upload, no telemetry. The window is refused the network outright — its
+      typefaces are read from disk rather than fetched from Google. The only request the app can
+      make is the update check under <b>Updates</b>, and both switches there are off until you turn
+      them on.
+    </p>
+  </div>
+</section>
+
+</main>
+
+
+<footer class="footer">
+  <div class="shell">
+    <span>f-tree — built by <a href="https://github.com/thisisankit27">thisisankit27</a>. MIT licensed.</span>
+    <nav>
+      <a href="../../">Home</a>
+      <a href="../../playground/">Viewer</a>
+      <a href="https://github.com/thisisankit27/f-tree">Source</a>
+      <a href="https://github.com/thisisankit27/f-tree/releases">Releases</a>
+    </nav>
+  </div>
+</footer>
+
+<script src="../../app.js"></script>
+</body>
+</html>
