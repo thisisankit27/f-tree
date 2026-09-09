@@ -552,9 +552,10 @@
           + '<b>Run anyway</b>. That is the whole of it — there is nothing else unusual about the file.'],
         ['Choose where it goes', 'It installs for your account only, so it never asks for an '
           + 'administrator password and writes nothing outside that folder and your own app data.'],
-        ['Open your tree', 'Export a <code>.ftree</code> from the phone — <b>Settings → Export your '
-          + 'tree</b> — get it onto the laptop, and open it with <b>File → Open tree</b>. It reopens '
-          + 'that file by itself next time.']
+        ['Start a tree, or open one', 'Choose <b>Start a new tree</b> and add people, or open a '
+          + '<code>.ftree</code> you already have with <b>File → Open tree</b> — including one '
+          + 'exported from the Android app under <b>Settings → Export your tree</b>. It reopens the '
+          + 'last file by itself next time.']
       ]
     };
     if (id === 'deb') return {
@@ -565,7 +566,7 @@
         ['Install it', 'The leading <code>./</code> matters — without it apt goes looking for a '
           + 'package by that name instead of your file.<br>' + copyable('sudo apt install ./' + name)],
         ['Launch it', 'From the applications menu, or run <code>/opt/f-tree/f-tree-desktop</code>. '
-          + 'Then open a <code>.ftree</code> exported from the phone with <b>File → Open tree</b>.']
+          + 'Then choose <b>Start a new tree</b>, or open a <code>.ftree</code> you already have.']
       ]
     };
     if (id === 'tar') {
@@ -584,8 +585,8 @@
               + folder + '/chrome-sandbox')],
           ['Run it', 'Straight out of the folder it unpacked into.<br>'
             + copyable('./' + folder + '/f-tree-desktop')],
-          ['Open your tree', 'Export a <code>.ftree</code> from the phone — <b>Settings → Export '
-            + 'your tree</b> — and open it with <b>File → Open tree</b>.']
+          ['Start a tree, or open one', 'Choose <b>Start a new tree</b>, or open a '
+            + '<code>.ftree</code> you already have with <b>File → Open tree</b>.']
         ],
         caution: '<strong>If you would rather not type any of that,</strong> the '
           + '<a href="../">.deb</a> does the same thing for you and needs no follow-up.'
