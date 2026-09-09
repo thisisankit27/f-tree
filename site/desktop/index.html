@@ -112,7 +112,7 @@
           Ubuntu &amp; Linux
           <span class="tag" id="tag-linux" hidden>Your system</span>
         </h3>
-        <p>The <code>.deb</code> if you are on Ubuntu, Debian or Mint. The portable folder if you would rather install nothing.</p>
+        <p>Take the <code>.deb</code> on Ubuntu, Debian or Mint — it is the one that needs nothing from you afterwards. The other two ask for a command first.</p>
         <div id="files-linux"></div>
       </div>
     </div>
@@ -140,18 +140,28 @@
     <details class="folded">
       <summary>Which Linux file should I take?</summary>
       <p style="margin:14px 0 0;max-width:40em">
-        The <b>.deb</b> unless you have a reason not to: it puts f-tree in your applications menu
-        like anything else, and updates cleanly. The <b>portable folder</b> installs nothing —
-        unpack it anywhere and run it — which is the one to take on a machine you do not administer.
+        The <b>.deb</b>, unless you have a reason not to. It puts f-tree in your applications menu
+        like anything else, updates cleanly, and — the part that matters on current Ubuntu — it is
+        the only one of the three that can set up Chromium’s sandbox helper for you.
       </p>
       <p style="margin:12px 0 0;max-width:40em">
-        The <b>AppImage</b> is there for people who prefer them, with a caveat worth reading first:
-        on <b>Ubuntu 24.04 and newer</b> it will not start by double-clicking. Those releases
-        replaced the FUSE 2 helper it needs with <code>fusermount3</code>, and the failure is a
-        terse <i>“Cannot mount AppImage”</i> in a terminal, or simply nothing at all from the
-        desktop. Running it as
-        <code>./f-tree-*.AppImage --appimage-extract-and-run</code> works. Installing
-        <code>libfuse2</code> does <em>not</em> fix it on those releases, whatever the internet says.
+        That caveat applies to both of the other formats, so it is worth understanding once.
+        <b>Ubuntu 24.04 and newer</b> stop an ordinary program from using the sandbox Chromium
+        prefers, so it falls back to a small helper that has to be owned by <code>root</code>. A
+        package installer can arrange that; an archive you unpacked yourself cannot. Start one of
+        those builds without arranging it and the app exits on the spot, complaining about
+        <code>chrome-sandbox</code>. The <b>portable folder</b> is still perfectly usable — it needs
+        one <code>sudo chmod</code>, printed on its download page — but it is no longer the answer
+        for a machine you do not administer, and we would rather say so than let you find out.
+      </p>
+      <p style="margin:12px 0 0;max-width:40em">
+        The <b>AppImage</b> is the one to avoid on those releases. It has a second, unrelated
+        problem: they replaced the FUSE 2 helper it needs with <code>fusermount3</code>, so it will
+        not start by double-clicking, and installing <code>libfuse2</code> does <em>not</em> fix it,
+        whatever the internet says. Running it as
+        <code>./f-tree-*.AppImage --appimage-extract-and-run</code> gets past that and walks
+        straight into the sandbox problem above — which cannot be solved for a folder that is
+        unpacked fresh into a temporary directory every time it runs.
       </p>
     </details>
 
