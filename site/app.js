@@ -568,20 +568,32 @@
           + 'Then open a <code>.ftree</code> exported from the phone with <b>File → Open tree</b>.']
       ]
     };
-    if (id === 'tar') return {
-      title: 'Running the portable folder',
-      lede: 'Nothing is installed and nothing needs your password.',
-      steps: [
-        ['Unpack it', copyable('tar -xzf ' + name)],
-        ['Run it', 'Straight out of the folder it unpacked into.<br>'
-          + copyable('./' + name.replace(/\.tar\.gz$/, '') + '/f-tree-desktop')],
-        ['Open your tree', 'Export a <code>.ftree</code> from the phone — <b>Settings → Export your '
-          + 'tree</b> — and open it with <b>File → Open tree</b>.']
-      ]
-    };
+    if (id === 'tar') {
+      var folder = name.replace(/\.tar\.gz$/, '');
+      return {
+        title: 'Running the portable folder',
+        lede: 'Nothing is installed — but on current Ubuntu it needs one command first.',
+        steps: [
+          ['Unpack it', copyable('tar -xzf ' + name)],
+          ['On Ubuntu 24.04 and newer, do this once', 'Those releases stop an ordinary program '
+            + 'from using the sandbox Chromium prefers, so it falls back to a helper that has to '
+            + 'be owned by root. A tar archive cannot carry that, so the app exits the moment you '
+            + 'start it, complaining about <code>chrome-sandbox</code>. This is the fix, and it '
+            + 'keeps the sandbox switched on:<br>'
+            + copyable('sudo chown root:root ' + folder + '/chrome-sandbox && sudo chmod 4755 '
+              + folder + '/chrome-sandbox')],
+          ['Run it', 'Straight out of the folder it unpacked into.<br>'
+            + copyable('./' + folder + '/f-tree-desktop')],
+          ['Open your tree', 'Export a <code>.ftree</code> from the phone — <b>Settings → Export '
+            + 'your tree</b> — and open it with <b>File → Open tree</b>.']
+        ],
+        caution: '<strong>If you would rather not type any of that,</strong> the '
+          + '<a href="../">.deb</a> does the same thing for you and needs no follow-up.'
+      };
+    }
     return {
       title: 'Running the AppImage',
-      lede: 'One file, no install — with one caveat on current Ubuntu.',
+      lede: 'One file, no install — and the format that struggles most on current Ubuntu.',
       steps: [
         ['Make it executable', copyable('chmod +x ' + name)],
         ['Run it', copyable('./' + name)],
@@ -591,8 +603,11 @@
           + 'by unpacking to a temporary folder instead:<br>'
           + copyable('./' + name + ' --appimage-extract-and-run')]
       ],
-      caution: '<strong>If you would rather not think about any of that,</strong> the '
-        + '<a href="../">.deb or the portable folder</a> both just run.'
+      caution: '<strong>On Ubuntu 24.04 and newer this format is a poor bet.</strong> Even once '
+        + 'it mounts, it unpacks somewhere temporary, and the sandbox helper Chromium falls back '
+        + 'to on those releases has to be owned by root — which nothing unpacked to a temporary '
+        + 'folder can be. Take the <a href="../">.deb</a> instead; it is the Linux build that '
+        + 'needs nothing from you.'
     };
   }
 

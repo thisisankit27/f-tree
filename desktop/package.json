@@ -1,7 +1,7 @@
 {
   "name": "f-tree-desktop",
   "productName": "f-tree",
-  "version": "0.3.2",
+  "version": "0.3.3",
   "description": "A local-first family tree, on your own machine",
   "author": {
     "name": "thisisankit27",
@@ -13,7 +13,7 @@
   "scripts": {
     "start": "electron .",
     "smoke": "electron . --no-sandbox",
-    "pack:linux": "electron-builder --linux AppImage deb",
+    "pack:linux": "electron-builder --linux",
     "pack:win": "electron-builder --win nsis",
     "test": "node --test update.test.js"
   },
@@ -66,6 +66,9 @@
         "application/x-ftree"
       ],
       "maintainer": "thisisankit27 <69184999+thisisankit27@users.noreply.github.com>"
+    },
+    "deb": {
+      "afterInstall": "build/linux-after-install.sh"
     },
     "win": {
       "target": [
