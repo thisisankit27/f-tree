@@ -20,14 +20,24 @@ const pkg = JSON.parse(fs.readFileSync(path.join(__dirname, 'package.json'), 'ut
 
 // The scripts that run tests, and the directories a test file may live in. Both are stated
 // rather than discovered, so adding either is a deliberate edit to this file.
+//
+// `../site/playground` is here because the shared engine's tests run from this package: `site/`
+// has no package.json of its own, so there is nowhere else for them to be run from, and a rule
+// ported out of the Kotlin into the engine is exactly as able to go unrun as one ported into the
+// renderer. The extension differs -- `.test.mjs` there, because those files must be modules
+// whatever the directory above them says.
 const RUNNERS = ['test', 'test:package'];
-const TEST_DIRS = ['.', 'renderer'];
+const TEST_DIRS = [
+  { dir: '.', suffix: '.test.js' },
+  { dir: 'renderer', suffix: '.test.js' },
+  { dir: '../site/playground', suffix: '.test.mjs' },
+];
 
 function testFiles() {
   const found = [];
-  for (const dir of TEST_DIRS) {
+  for (const { dir, suffix } of TEST_DIRS) {
     for (const name of fs.readdirSync(path.join(__dirname, dir))) {
-      if (name.endsWith('.test.js')) found.push(dir === '.' ? name : `${dir}/${name}`);
+      if (name.endsWith(suffix)) found.push(dir === '.' ? name : `${dir}/${name}`);
     }
   }
   return found.sort();
@@ -46,7 +56,8 @@ function argumentsOf(script) {
 // unclaimed rather than be waved through.
 function claims(script, file) {
   const dir = path.dirname(file);
-  const patterns = new Set([file, dir === '.' ? '*.test.js' : `${dir}/*.test.js`]);
+  const suffix = file.endsWith('.test.mjs') ? '.test.mjs' : '.test.js';
+  const patterns = new Set([file, dir === '.' ? `*${suffix}` : `${dir}/*${suffix}`]);
   return argumentsOf(script).some((arg) => patterns.has(arg));
 }
 
@@ -65,7 +76,7 @@ test('the scripts do not name test files that no longer exist', () => {
   const named = [];
   for (const name of RUNNERS) {
     for (const file of argumentsOf(pkg.scripts[name] || '')) {
-      if (file.endsWith('.test.js') && !file.includes('*')) named.push(file);
+      if (/\.test\.m?js$/.test(file) && !file.includes('*')) named.push(file);
     }
   }
   assert.deepStrictEqual(named.filter((f) => !present.has(f)), []);

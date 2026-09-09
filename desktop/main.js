@@ -446,6 +446,8 @@ function buildMenu(win) {
       submenu: [
         { label: 'Chart', accelerator: 'CmdOrCtrl+1', click: () => win.webContents.send('menu:command', 'view:chart') },
         { label: 'Index', accelerator: 'CmdOrCtrl+2', click: () => win.webContents.send('menu:command', 'view:index') },
+        // Third, and third in the numbering, so nobody's Cmd+2 changes meaning under them.
+        { label: 'Compact', accelerator: 'CmdOrCtrl+3', click: () => win.webContents.send('menu:command', 'view:compact') },
         { type: 'separator' },
         { label: 'Zoom in', accelerator: 'CmdOrCtrl+Plus', click: () => win.webContents.send('menu:command', 'zoom:in') },
         { label: 'Zoom out', accelerator: 'CmdOrCtrl+-', click: () => win.webContents.send('menu:command', 'zoom:out') },
@@ -921,6 +923,149 @@ async function runEditSmoke(win, check) {
  * hand, so what is asserted here is not "it worked" but "it asked first": the dialog opens, it
  * names the evidence, and the tree is untouched until the button is pressed.
  */
+/*
+ * The compact view, read rather than drawn.
+ *
+ * What this asserts is not "it rendered" but the three claims the view makes that a picture cannot
+ * be trusted to keep: that the generations are named from their distance, that a person married
+ * into a generation is shown without being counted as one of it, and that clicking a name walks the
+ * reading to that person rather than doing something else. The last one matters because everywhere
+ * else in this app a click on a person opens the editor, and here it deliberately does not.
+ */
+async function runCompactSmoke(win, check) {
+  const page = (fn, ...args) => win.webContents.executeJavaScript(
+    `(${fn.toString()})(${args.map((a) => JSON.stringify(a)).join(',')})`);
+  const settle = (ms = 350) => new Promise((r) => setTimeout(r, ms));
+
+  console.log('\n  -- reading the generations --');
+
+  win.webContents.send('menu:command', 'view:compact');
+  await settle(500);
+
+  const seen = await page(() => {
+    const view = document.getElementById('compact');
+    const bands = [...view.querySelectorAll('.band')];
+    return {
+      shown: view.hidden === false,
+      chartHidden: getComputedStyle(document.getElementById('canvas')).display === 'none',
+      headings: bands.map((b) => b.querySelector('.band-heading span')?.textContent ?? ''),
+      offsets: bands.map((b) => b.dataset.offset),
+      focusName: view.querySelector('.band-focus-name')?.textContent ?? '',
+      names: [...view.querySelectorAll('.band-name')].length,
+      marriedIn: [...view.querySelectorAll(".band-name[data-married='true']")].length,
+      rules: [...view.querySelectorAll('.band-join.married')].length,
+      // Per group: how many names, and how many marriage rules between them.
+      groups: [...view.querySelectorAll('.band-group')].map((g) => ({
+        names: g.querySelectorAll('.band-name').length,
+        rules: g.querySelectorAll('.band-join.married').length,
+      })),
+      // The count in a heading is what the band is about, so it can be lower than the number of
+      // names on the row -- that difference is the step-grandmother.
+      counts: bands.map((b) => b.querySelector('.band-count')?.textContent ?? ''),
+      note: document.querySelector('#compact .index-note')?.textContent ?? '',
+    };
+  });
+
+  check('the compact view opens on its own', seen.shown, String(seen.shown));
+  check('the chart stands down while the bands are up', seen.chartHidden,
+    String(seen.chartHidden));
+  check('it is centred on somebody', seen.focusName.length > 0, seen.focusName);
+  check('there are generations to read', seen.headings.length > 0,
+    `${seen.headings.length} bands: ${seen.headings.join(' / ')}`);
+  check('a generation is named, not numbered',
+    seen.headings.every((h) => h.length > 0 && !/^-?\d+$/.test(h)), seen.headings.join(' / '));
+  check('the reading says how far it reaches', /generation|nobody/.test(seen.note), seen.note);
+  check('every name on the page is reachable', seen.names > 0, `${seen.names} names`);
+
+  /*
+   * A marriage is a doubled rule, and only a marriage.
+   *
+   * Stated as an invariant rather than as "there is at least one rule", because a tree of cousins
+   * has no marriages in it at all and would fail that for being correct. A group is a set of people
+   * joined *by marriage*, so:
+   *
+   *   two or more names in a group means at least one marriage joined them; and
+   *   there can never be more rules than gaps -- somebody who married twice puts three people in
+   *   one group, and only two of the three pairs are marriages. Marking the third would state a
+   *   wedding that never happened, and that is exactly what `CompactGroup.links` exists to prevent.
+   *
+   * Both hold whatever is in the file, and neither is visible in a screenshot.
+   */
+  const joined = seen.groups.filter((g) => g.names >= 2);
+  check('a couple on a row is joined by a doubled rule',
+    joined.every((g) => g.rules >= 1),
+    `${joined.length} groups of two or more, rules ${joined.map((g) => g.rules).join(',') || 'n/a'}`);
+  check('no rule is drawn where there was no wedding',
+    seen.groups.every((g) => g.rules <= Math.max(0, g.names - 1)),
+    seen.groups.map((g) => `${g.names}:${g.rules}`).join(' '));
+
+  // Both themes, because this screen is read in whichever one somebody happens to use and a token
+  // that only exists in one of them looks fine right up until it does not. Taken before the walk
+  // below, because the first reading is the one with every band on it.
+  if (process.env.FTREE_SMOKE_SHOT_COMPACT) {
+    const shot = process.env.FTREE_SMOKE_SHOT_COMPACT;
+    await fs.writeFile(shot, (await win.webContents.capturePage()).toPNG());
+    console.log(`       wrote ${shot}`);
+
+    await page(() => document.getElementById('theme-btn').click());
+    await settle(300);
+    const other = shot.replace(/(\.png)?$/, '-other-theme.png');
+    await fs.writeFile(other, (await win.webContents.capturePage()).toPNG());
+    console.log(`       wrote ${other}`);
+    await page(() => document.getElementById('theme-btn').click());
+    await settle(200);
+  }
+
+  /*
+   * Reading further, where the record goes further.
+   *
+   * The offer is only made when the walk actually stopped short of the end, so the first assertion
+   * is that the button and the sentence agree -- an offer to read on where there is nothing more is
+   * the kind of thing nobody notices until they press it.
+   */
+  const reach = await page(() => ({
+    offered: Boolean(document.querySelector('#compact .band-more')),
+    bands: document.querySelectorAll('#compact .band').length,
+  }));
+  check('the offer to read further matches whether there is further to read',
+    reach.offered === /continues past/.test(seen.note),
+    `offered ${reach.offered}, said "${seen.note}"`);
+
+  if (reach.offered) {
+    await page(() => document.querySelector('#compact .band-more').click());
+    await settle(500);
+    const further = await page(() => document.querySelectorAll('#compact .band').length);
+    check('reading further actually reaches further', further > reach.bands,
+      `${reach.bands} bands -> ${further}`);
+  }
+
+  // Walking the reading. Clicking a name must re-centre rather than open the editor: two meanings
+  // for one click on a person's name would make both of them uncertain.
+  const walked = await page(() => {
+    const before = document.querySelector('.band-focus-name').textContent;
+    const target = [...document.querySelectorAll('#compact .band .band-name')]
+      .find((el) => el.querySelector('.band-who').textContent !== before);
+    const wanted = target?.querySelector('.band-who').textContent ?? '';
+    target?.click();
+    return { before, wanted };
+  });
+  await settle(400);
+
+  const after = await page(() => ({
+    focusName: document.querySelector('.band-focus-name')?.textContent ?? '',
+    panelOpen: document.getElementById('panel')?.hidden === false,
+  }));
+
+  check('clicking a name walks the reading to that person',
+    after.focusName === walked.wanted && after.focusName !== walked.before,
+    `${walked.before} -> ${after.focusName}`);
+  check('walking does not open the editor over what was asked for', !after.panelOpen,
+    String(after.panelOpen));
+
+  win.webContents.send('menu:command', 'view:chart');
+  await settle(300);
+}
+
 async function runImportSmoke(win, check) {
   const page = (fn, ...args) => win.webContents.executeJavaScript(
     `(${fn.toString()})(${args.map((a) => JSON.stringify(a)).join(',')})`);
@@ -1087,7 +1232,17 @@ async function runSmoke(win, file) {
    * screen no name is readable, so this is the only way to find somebody by name -- and the only
    * place a person with no relatives is as visible as everybody else.
    */
-  check('everybody in the file is listed by name', seen.peopleRows === 23,
+  /*
+   * Counted against the file rather than against 23.
+   *
+   * The literal was the sample family's population, which made the whole harness refuse to be
+   * pointed at any other fixture -- it failed on the 2030-person tree by saying "2030 rows, 2030
+   * people". The claim worth making is that the list holds *everybody*, whoever was opened, and
+   * that is what the tree's own count is for.
+   */
+  const population = Number(/(\d+)\s+(?:person|people)/.exec(seen.counts ?? '')?.[1] ?? NaN);
+  check('everybody in the file is listed by name',
+    Number.isFinite(population) && seen.peopleRows === population,
     `${seen.peopleRows} rows — ${seen.peopleNote}`);
   // Refusing the network must not quietly cost the app its typography.
   check('the bundled typefaces loaded without the network', seen.literata && seen.mono,
@@ -1143,6 +1298,8 @@ async function runSmoke(win, file) {
   }
 
   if (process.env.FTREE_SMOKE_SAVE_TO) await runEditSmoke(win, check);
+
+  if (process.env.FTREE_SMOKE_COMPACT) await runCompactSmoke(win, check);
 
   if (process.env.FTREE_SMOKE_IMPORT) await runImportSmoke(win, check);
 

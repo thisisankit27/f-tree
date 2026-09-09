@@ -1,14 +1,37 @@
 # The desktop app
 
-f-tree on Windows and Ubuntu. It reads a `.ftree` exported from the Android app and draws it the
-way the app does — a generation is a column, ancestors at the left — with the people index, the
-search and the relation finder.
+f-tree on Windows and Ubuntu. It reads a `.ftree`, and it writes one: a tree can be built here from
+nothing by somebody who has never owned the phone app. Generations run as **rows**, ancestors at the
+top, as the website viewer draws them — columns are the layout for a screen taller than it is wide,
+and a laptop never is.
 
 `desktop/` is an Electron shell around `site/playground/`. **One viewer, two shells**: the chart,
-the index, the search, the relation finder and the themes are the same files the website serves,
-so a fix to the chart is a fix in both places rather than a fix and a note to remember the other
-one. What the shell adds is what a browser tab cannot have — a real file picker, a native menu,
-and a memory of which tree you were reading.
+the index, the search, the kinship engine and the themes are the same files the website serves, so
+a fix to the chart is a fix in both places rather than a fix and a note to remember the other one.
+What the shell adds is what a browser tab cannot have — a real file picker, a native menu, and a
+memory of which tree you were reading.
+
+## Three ways to read a tree
+
+| | | |
+|---|---|---|
+| **Chart** | `Ctrl+1` | The whole tree, drawn. Pan, zoom, search, click a person to edit them. |
+| **People** | `Ctrl+2` | Everybody by name, grouped as the chart groups them, filterable to the living. The only place somebody with no recorded relatives is as visible as anybody else. |
+| **Compact** | `Ctrl+3` | One person's family as generation bands, read as text at any size. |
+
+Compact exists for the space between the other two. The chart is a picture: to read a name you
+zoom, to reach a relative you pan, and a canvas holds nothing at all for a screen reader. The people
+list is alphabetical and has no family in it. Compact is the missing middle — centred on somebody,
+three generations up and down, with everybody's partners; deliberately **not** cousins or nieces,
+which multiply a chart's width far faster than they add to what it tells you. Clicking a name walks
+the reading to that person. Where the record goes further than the reading, it says so and offers
+to go on.
+
+The rules about who appears live in `site/playground/focus.js` and `site/playground/compact.js`,
+ported from `graph/TreeLayoutEngine.kt` and `graph/CompactFamily.kt` with their test tables. On
+Android, compact is derived from the focused chart, so the two cannot disagree; the desktop's chart
+is the whole tree and there is no focused chart here, so compact makes that selection itself. That
+is a deliberate difference, and the reason the selection rules sit in one shared module.
 
 ## Why Electron and not the app's own code
 

@@ -24,11 +24,14 @@ import { openArchive, parseDocument, ArchiveError } from '../../site/playground/
 import { buildGraph, displayName, lifespan, relationsOf } from '../../site/playground/model.js';
 import { layoutArchive } from '../../site/playground/layout.js';
 import { Chart } from '../../site/playground/chart.js';
+import { compactFamily } from '../../site/playground/compact.js';
+import { mostConnected } from '../../site/playground/focus.js';
 
 import { Tree, RelationshipType, Rejection } from './document.js';
 import { bytesForTree, SaveRefused } from './save.js';
 import { planImport, applyImport, ImportRefused } from './import.js';
 import { MatchTier } from './matching.js';
+import { renderBands } from './bands.js';
 
 const { PARENT, SPOUSE, SIBLING } = RelationshipType;
 
@@ -47,8 +50,18 @@ const state = {
   selected: null,
   /** Which kind of relative the "add" form is currently offering. */
   adding: null,
-  /** 'chart' or 'index'. */
+  /** 'chart', 'compact' or 'index'. */
   view: 'chart',
+  /**
+   * The person the compact view is centred on, and how far it reaches from them.
+   *
+   * Kept apart from `selected` because they answer different questions: `selected` is "who am I
+   * editing", which the chart and the panel share, and this is "whose family am I reading". Walking
+   * outwards through a family should not silently change what the panel is about.
+   */
+  focus: null,
+  generationsUp: 3,
+  generationsDown: 3,
   /** 'all' or 'living' -- the same filter the phone's people list offers. */
   who: 'all',
   saving: false,
@@ -155,8 +168,61 @@ function setView(view) {
     button.setAttribute('aria-pressed', String(button.dataset.view === view));
   }
   $('index').hidden = view !== 'index';
+  $('compact').hidden = view !== 'compact';
   if (view === 'chart') chart.resize();
+  else if (view === 'compact') renderCompact();
   else renderPeople();
+}
+
+/* ------------------------------------------------------------------ generations, as bands */
+
+/**
+ * The compact view, centred on somebody.
+ *
+ * Needs a focus person, which the phone never has to work out: you arrive at its focused chart
+ * *from* a person. This app can open a file with nothing selected, so the order is the selected
+ * person, then whoever the view was last centred on, then the most-connected person -- never the
+ * first row of the file, which is export order and means nothing to a reader.
+ */
+function renderCompact() {
+  if (!state.graph) return;
+
+  let focusId = state.focus;
+  if (!focusId || !state.graph.people.has(focusId)) {
+    focusId = state.selected && state.graph.people.has(state.selected)
+      ? state.selected
+      : mostConnected(state.graph);
+    state.focus = focusId;
+  }
+
+  const family = compactFamily(state.graph, focusId, {
+    up: state.generationsUp,
+    down: state.generationsDown,
+  });
+
+  renderBands($('compact-inner'), family, {
+    generations: reachWords(),
+    onFocus: (id) => {
+      state.focus = id;
+      // A walk outwards resets the reach: the reader asked to see this person's family, not to
+      // carry somebody else's "show more" over onto them.
+      state.generationsUp = 3;
+      state.generationsDown = 3;
+      renderCompact();
+      $('compact').scrollTop = 0;
+    },
+    onEdit: (id) => select(id),
+    onMore: () => {
+      state.generationsUp += 2;
+      state.generationsDown += 2;
+      renderCompact();
+    },
+  });
+}
+
+/** How far the reading currently reaches, for the line that offers to extend it. */
+function reachWords() {
+  return `${state.generationsUp} generations`;
 }
 
 /**
@@ -1073,6 +1139,7 @@ function wireShell() {
     if (command === 'zoom:out') { chart.zoomBy(0.8); updateZoom(); return; }
     if (command === 'zoom:fit') { chart.fit(); updateZoom(); return; }
     if (command === 'view:chart') { setView('chart'); return; }
+    if (command === 'view:compact') { setView('compact'); return; }
     if (command === 'view:index') { setView('index'); return; }
     if (command === 'search') { $('search').focus(); return; }
     if (command === 'theme') { $('theme-btn').click(); return; }
@@ -1097,6 +1164,9 @@ function wireKeys() {
     if (event.key === '/') { event.preventDefault(); $('search').focus(); }
     if (event.key === 'i' || event.key === 'I') {
       setView(state.view === 'index' ? 'chart' : 'index');
+    }
+    if (event.key === 'c' || event.key === 'C') {
+      setView(state.view === 'compact' ? 'chart' : 'compact');
     }
     if (event.key === 'f' || event.key === 'F') { chart.fit(); updateZoom(); }
   });
