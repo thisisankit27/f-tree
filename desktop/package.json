@@ -1,7 +1,7 @@
 {
   "name": "f-tree-desktop",
   "productName": "f-tree",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "A local-first family tree, on your own machine",
   "author": {
     "name": "thisisankit27",
@@ -54,8 +54,9 @@
     ],
     "linux": {
       "target": [
-        "AppImage",
-        "deb"
+        "deb",
+        "tar.gz",
+        "AppImage"
       ],
       "category": "Office",
       "synopsis": "A local-first family tree",

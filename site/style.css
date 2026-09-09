@@ -924,3 +924,196 @@ h2.rule-label,
   .steps > li { padding-left: 46px; margin-left: 14px; }
   .steps > li::before { left: -15px; width: 29px; height: 29px; font-size: 12px; }
 }
+
+
+/* ------------------------------------------------- the download cards
+
+   One card per system, every file in it as its own row with its own size, so nothing about
+   choosing depends on the page having guessed the reader's machine correctly. Detection only
+   marks a recommendation; it never hides the other half.
+*/
+
+.platforms {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(310px, 1fr));
+  gap: 20px;
+  margin: 30px 0 0;
+}
+.platform {
+  border: 1px solid var(--rule);
+  border-radius: 16px;
+  padding: 22px 22px 18px;
+  background: var(--raised);
+}
+.platform.is-yours { border-color: var(--forest); box-shadow: 0 0 0 1px var(--forest); }
+.platform h3 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 6px;
+  font-size: 19px;
+  font-weight: 600;
+}
+.platform h3 .tag {
+  margin-left: auto;
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--forest);
+  border: 1px solid var(--forest);
+  border-radius: 999px;
+  padding: 3px 9px;
+}
+.platform > p { margin: 0 0 16px; font-size: 14.5px; color: var(--ink-soft); }
+
+.file {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  width: 100%;
+  border: 1px solid var(--rule);
+  border-radius: 11px;
+  padding: 13px 15px;
+  margin-bottom: 9px;
+  text-decoration: none;
+  color: var(--ink);
+  background: var(--ground);
+  transition: border-color .15s, background .15s;
+}
+.file:hover { border-color: var(--forest); background: var(--raised); }
+.file .what { font-weight: 600; font-size: 15px; }
+.file .meta { margin-left: auto; font-family: var(--mono); font-size: 12px; color: var(--ink-faint); }
+.file.primary { border-color: var(--forest); background: var(--sage-container, var(--raised)); }
+.file.primary .what { color: var(--forest); }
+.platform .caution {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: var(--ink-faint);
+  line-height: 1.55;
+}
+
+/* A single fact bar under the cards. */
+.assurance {
+  margin: 22px 0 0;
+  font-size: 14px;
+  color: var(--ink-faint);
+  text-align: center;
+}
+
+/* "What to expect", set apart by a rule rather than a box within a box. */
+.expect {
+  margin: 34px 0 0;
+  border-left: 3px solid var(--brass);
+  padding: 4px 0 4px 18px;
+  font-size: 14.5px;
+  line-height: 1.65;
+  color: var(--ink-soft);
+}
+.expect strong { color: var(--ink); }
+
+/* The long-form steps, folded away until wanted. */
+details.folded {
+  border-top: 1px solid var(--rule);
+  padding: 16px 0;
+}
+details.folded > summary {
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 16px;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+details.folded > summary::-webkit-details-marker { display: none; }
+details.folded > summary::after {
+  content: "+";
+  margin-left: auto;
+  font-family: var(--mono);
+  color: var(--ink-faint);
+  font-size: 18px;
+}
+details.folded[open] > summary::after { content: "\2013"; }
+details.folded > summary:hover { color: var(--forest); }
+
+
+/* A command you are meant to run, with a button that saves retyping it. */
+.copyline {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+  margin: 10px 0 0;
+  border: 1px solid var(--rule);
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--ground);
+}
+.copyline code {
+  flex: 1;
+  padding: 11px 13px;
+  font-family: var(--mono);
+  font-size: 13px;
+  overflow-x: auto;
+  white-space: nowrap;
+  background: none;
+  border: 0;
+}
+.copyline .copy {
+  flex: none;
+  border: 0;
+  border-left: 1px solid var(--rule);
+  background: var(--raised);
+  color: var(--ink-soft);
+  font-family: var(--sans);
+  font-size: 13px;
+  padding: 0 15px;
+  cursor: pointer;
+}
+.copyline .copy:hover { background: var(--forest); color: var(--paper, #fff); }
+
+
+/* An unfinished thing, said plainly rather than in small print. */
+.beta-note {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  margin: 26px 0 0;
+  padding: 16px 18px;
+  border: 1px solid var(--brass);
+  border-radius: 13px;
+  background: var(--brass-surface, transparent);
+  font-size: 14.5px;
+  line-height: 1.6;
+  color: var(--ink-soft);
+  max-width: 46em;
+}
+.beta-note .badge {
+  flex: none;
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--brass);
+  border: 1px solid var(--brass);
+  border-radius: 999px;
+  padding: 3px 10px;
+  margin-top: 1px;
+}
+.beta-note strong { color: var(--ink); }
+
+/* A heading that has to carry a caveat with it. */
+.beta-tag {
+  display: inline-block;
+  vertical-align: middle;
+  margin-left: 10px;
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--brass);
+  border: 1px solid var(--brass);
+  border-radius: 999px;
+  padding: 3px 10px;
+}

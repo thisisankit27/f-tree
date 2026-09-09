@@ -69,27 +69,24 @@
     }
     if (!rel) return null;
 
-    var files = {};
-    (rel.assets || []).forEach(function (a) {
-      var kind = /\.exe$/i.test(a.name) ? 'windows'
-        : /\.AppImage$/i.test(a.name) ? 'appimage'
-        : /\.deb$/i.test(a.name) ? 'deb'
-        : null;
-      if (!kind) return;
-      files[kind] = {
-        kind: kind,
-        name: a.name,
-        size: a.size,
-        sha256: (a.digest || '').replace(/^sha256:/, ''),
-        url: a.browser_download_url
-      };
-    });
+    // Handed on as a flat list: which files a release has is the pages' business, not this
+    // function's, and naming them here meant adding a branch every time a target was added.
+    var assets = (rel.assets || [])
+      .filter(function (a) { return /^https:/.test(a.browser_download_url || ''); })
+      .map(function (a) {
+        return {
+          name: a.name,
+          size: a.size,
+          sha256: (a.digest || '').replace(/^sha256:/, ''),
+          url: a.browser_download_url
+        };
+      });
 
     return {
       version: (rel.tag_name || '').replace(/^desktop-v/, ''),
       published: rel.published_at,
       notesUrl: rel.html_url,
-      files: files
+      assets: assets
     };
   }
 
@@ -443,19 +440,16 @@
     if (status) status.textContent = 'Your download has started.';
   }
 
-  /* ------------------------------------------------------ the desktop page */
+  /* ------------------------------------------------------ the desktop pages */
 
   /*
-   * Which file this reader wants.
+   * Which file this reader most likely wants.
    *
-   * A guess, and treated as one: it picks the primary button and nothing else, with the other two
-   * kept one click away rather than hidden. `userAgentData` where it exists, the platform string
-   * where it does not, and no pretence of certainty either way.
+   * A guess, and treated as one: it puts a "your system" mark on a card and moves that card first.
+   * It never hides the other one. `?platform=` overrides it, which is how somebody gets the file
+   * for a different machine and how the routing is testable in a browser rather than by reading it.
    */
   function guessPlatform() {
-    // `?platform=windows` overrides the guess. It is how somebody on one machine gets the file for
-    // another - "send me the Windows link" - and it is what makes the routing testable in a real
-    // browser rather than only by reading it.
     var forced = (location.search.match(/[?&]platform=([a-z]+)/i) || [])[1];
     if (forced) return forced.toLowerCase();
 
@@ -470,84 +464,214 @@
     return 'unknown';
   }
 
-  var KIND_LABEL = {
-    windows: 'the Windows installer',
-    deb: 'the .deb for Ubuntu and Debian',
-    appimage: 'the AppImage'
+  /* Each file, as the download page and the thank-you page both need to talk about it. */
+  var FILES = {
+    win: { os: 'windows', what: 'Installer', kind: '.exe', match: /\.exe$/i },
+    deb: { os: 'linux', what: 'Debian / Ubuntu', kind: '.deb', match: /\.deb$/i },
+    tar: { os: 'linux', what: 'Portable folder', kind: '.tar.gz', match: /\.tar\.gz$/i },
+    app: { os: 'linux', what: 'AppImage', kind: '.AppImage', match: /\.AppImage$/i }
   };
+  var ORDER = { windows: ['win'], linux: ['deb', 'tar', 'app'] };
 
-  function wireDesktop(desktop) {
-    var button = document.getElementById('desktop-primary');
-    var label = document.getElementById('desktop-primary-label');
-    var status = document.getElementById('desktop-status');
-    var others = document.getElementById('desktop-others');
-    if (!button) return;
-
-    if (!desktop || !Object.keys(desktop.files).length) {
-      status.textContent = 'Could not reach GitHub just now. The releases page has every build.';
-      label.textContent = 'Open the releases page';
-      return;
-    }
-
-    var platform = guessPlatform();
-
-    // A phone cannot run any of these, and saying so is more use than offering an 80MB installer.
-    if (platform === 'android' || platform === 'ios') {
-      label.textContent = 'Get f-tree for Android';
-      button.href = platform === 'android' ? '../thanks/' : '../';
-      status.textContent = 'This page is for a laptop. On a phone, f-tree is an Android app.';
-      others.innerHTML = '';
-      return;
-    }
-
-    var order = platform === 'windows' ? ['windows', 'deb', 'appimage'] : ['deb', 'appimage', 'windows'];
-    var first = null;
-    order.forEach(function (kind) { if (!first && desktop.files[kind]) first = desktop.files[kind]; });
-    if (!first) return;
-
-    button.href = first.url;
-    button.setAttribute('download', first.name);
-    label.textContent = 'Download ' + KIND_LABEL[first.kind];
-    status.textContent = first.name + ' · ' + megabytes(first.size) + ' · version ' + desktop.version;
-
-    // Mac is not built yet, and pretending otherwise would waste somebody's afternoon.
-    if (platform === 'mac') {
-      status.textContent = 'There is no macOS build yet. These are the Windows and Linux files.';
-    }
-
-    var rest = order.slice(1).filter(function (k) { return desktop.files[k]; });
-    others.innerHTML = rest.length
-      ? 'On another system? ' + rest.map(function (kind) {
-        var f = desktop.files[kind];
-        return '<a href="' + f.url + '" download="' + f.name + '">' + KIND_LABEL[kind]
-          + '</a> (' + megabytes(f.size) + ')';
-      }).join(' &middot; ')
-      : '';
-
-    fillDesktopFacts(desktop);
+  function filesFrom(desktop) {
+    var found = {};
+    Object.keys(FILES).forEach(function (id) {
+      var f = (desktop.assets || []).filter(function (a) { return FILES[id].match.test(a.name); })[0];
+      if (f) found[id] = f;
+    });
+    return found;
   }
 
-  function fillDesktopFacts(desktop) {
-    var version = document.getElementById('dfact-version');
-    var date = document.getElementById('dfact-date');
-    var notes = document.getElementById('dfact-notes');
-    var hashes = document.getElementById('desktop-hashes');
-    if (version) version.textContent = desktop.version;
-    if (date && desktop.published) date.textContent = longDate(desktop.published);
-    if (notes && desktop.notesUrl) notes.href = desktop.notesUrl;
-    if (!hashes) return;
+  function fileRow(id, asset, recommended) {
+    var spec = FILES[id];
+    return '<a class="file' + (recommended ? ' primary' : '') + '" href="thanks/?f=' + id + '">'
+      + '<span class="what">' + spec.what + '</span>'
+      + '<span class="meta">' + spec.kind + '  ·  ' + megabytes(asset.size) + '</span></a>';
+  }
 
-    var rows = ['windows', 'deb', 'appimage'].filter(function (k) { return desktop.files[k]; });
-    hashes.innerHTML = rows.map(function (kind) {
-      var f = desktop.files[kind];
-      return '<div class="hash-row"><p class="hash-name">' + f.name + '</p>'
-        + '<p class="hash">' + (f.sha256 || 'published on the release page') + '</p></div>';
+  function wireDownloads(desktop) {
+    var assurance = document.getElementById('assurance');
+    if (!document.getElementById('platforms')) return;
+
+    if (!desktop || !(desktop.assets || []).length) {
+      assurance.innerHTML = 'Could not reach GitHub just now. '
+        + '<a href="https://github.com/thisisankit27/f-tree/releases?q=desktop&expanded=true">'
+        + 'The releases page has every build.</a>';
+      return;
+    }
+
+    var files = filesFrom(desktop);
+    var platform = guessPlatform();
+
+    ['windows', 'linux'].forEach(function (os) {
+      var ids = ORDER[os].filter(function (id) { return files[id]; });
+      var into = document.getElementById('files-' + os);
+      if (!into) return;
+      into.innerHTML = ids.map(function (id, i) {
+        return fileRow(id, files[id], platform === os && i === 0);
+      }).join('')
+        // Said once, under the row it is about, rather than crammed into a size column.
+        + (files.app && os === 'linux'
+          ? '<p class="caution">On Ubuntu 24.04 and newer an AppImage needs one extra flag to '
+            + 'start. The steps say which; the other two files need nothing.</p>'
+          : '');
+      if (platform === os) {
+        document.getElementById('card-' + os).classList.add('is-yours');
+        document.getElementById('tag-' + os).hidden = false;
+      }
+    });
+
+    assurance.textContent = 'Version ' + desktop.version + ' · released '
+      + (desktop.published ? longDate(desktop.published) : 'recently')
+      + ' · built in the open by GitHub Actions, with a checksum for every file.';
+
+    if (platform === 'android' || platform === 'ios') {
+      assurance.innerHTML = 'This page is for a laptop. On a phone, '
+        + '<a href="../thanks/">f-tree is an Android app</a>.';
+    } else if (platform === 'mac') {
+      assurance.textContent = 'There is no macOS build yet — these are the Windows and Linux files.';
+    }
+  }
+
+  /* ------------------------------------------------ the thank-you page */
+
+  function copyable(command) {
+    return '<span class="copyline"><code>' + command + '</code>'
+      + '<button type="button" class="copy" data-copy="' + command.replace(/"/g, '&quot;')
+      + '">Copy</button></span>';
+  }
+
+  /* The steps for the one file this reader actually took, and no others. */
+  function stepsFor(id, name) {
+    if (id === 'win') return {
+      title: 'Installing on Windows',
+      lede: 'Two clicks past a warning, then it is an ordinary app.',
+      steps: [
+        ['Windows will stop it', 'The installer is not code-signed, so Defender treats it as an '
+          + 'unrecognised app and the publisher reads <b>Unknown</b>. Choose <b>More info</b>, then '
+          + '<b>Run anyway</b>. That is the whole of it — there is nothing else unusual about the file.'],
+        ['Choose where it goes', 'It installs for your account only, so it never asks for an '
+          + 'administrator password and writes nothing outside that folder and your own app data.'],
+        ['Open your tree', 'Export a <code>.ftree</code> from the phone — <b>Settings → Export your '
+          + 'tree</b> — get it onto the laptop, and open it with <b>File → Open tree</b>. It reopens '
+          + 'that file by itself next time.']
+      ]
+    };
+    if (id === 'deb') return {
+      title: 'Installing on Ubuntu or Debian',
+      lede: 'One command, then it is in your applications menu.',
+      steps: [
+        ['Open a terminal where you downloaded it', 'Usually <code>~/Downloads</code>.'],
+        ['Install it', 'The leading <code>./</code> matters — without it apt goes looking for a '
+          + 'package by that name instead of your file.<br>' + copyable('sudo apt install ./' + name)],
+        ['Launch it', 'From the applications menu, or run <code>/opt/f-tree/f-tree-desktop</code>. '
+          + 'Then open a <code>.ftree</code> exported from the phone with <b>File → Open tree</b>.']
+      ]
+    };
+    if (id === 'tar') return {
+      title: 'Running the portable folder',
+      lede: 'Nothing is installed and nothing needs your password.',
+      steps: [
+        ['Unpack it', copyable('tar -xzf ' + name)],
+        ['Run it', 'Straight out of the folder it unpacked into.<br>'
+          + copyable('./' + name.replace(/\.tar\.gz$/, '') + '/f-tree-desktop')],
+        ['Open your tree', 'Export a <code>.ftree</code> from the phone — <b>Settings → Export your '
+          + 'tree</b> — and open it with <b>File → Open tree</b>.']
+      ]
+    };
+    return {
+      title: 'Running the AppImage',
+      lede: 'One file, no install — with one caveat on current Ubuntu.',
+      steps: [
+        ['Make it executable', copyable('chmod +x ' + name)],
+        ['Run it', copyable('./' + name)],
+        ['If nothing happens, run it this way instead', 'On <b>Ubuntu 24.04 and newer</b> an '
+          + 'AppImage will not mount: those releases replaced the FUSE 2 helper it needs with '
+          + '<code>fusermount3</code>. Installing <code>libfuse2</code> does not fix it. This does, '
+          + 'by unpacking to a temporary folder instead:<br>'
+          + copyable('./' + name + ' --appimage-extract-and-run')]
+      ],
+      caution: '<strong>If you would rather not think about any of that,</strong> the '
+        + '<a href="../">.deb or the portable folder</a> both just run.'
+    };
+  }
+
+  function wireThanksDesktop(desktop) {
+    var nameEl = document.getElementById('dl-name');
+    if (!nameEl) return;
+
+    var id = (location.search.match(/[?&]f=([a-z]+)/i) || [])[1] || 'win';
+    if (!FILES[id]) id = 'win';
+
+    if (!desktop) {
+      document.getElementById('dl-eyebrow').textContent = 'Download';
+      document.getElementById('dl-lede').textContent =
+        'Could not reach GitHub just now — the releases page has every build.';
+      return;
+    }
+
+    var files = filesFrom(desktop);
+    var asset = files[id];
+    if (!asset) {
+      document.getElementById('dl-lede').textContent =
+        'That file is not in the latest release. The releases page has every build.';
+      return;
+    }
+
+    nameEl.textContent = asset.name;
+    document.getElementById('dl-meta').textContent =
+      megabytes(asset.size) + '  ·  version ' + desktop.version;
+    var fallback = document.getElementById('dl-fallback');
+    fallback.href = asset.url;
+    fallback.setAttribute('download', asset.name);
+    document.getElementById('dl-sha').textContent = asset.sha256 || 'published with the release';
+
+    var verify = document.getElementById('verify-command');
+    if (verify) {
+      verify.innerHTML = copyable(id === 'win'
+        ? 'certutil -hashfile ' + asset.name + ' SHA256'
+        : 'sha256sum ' + asset.name);
+    }
+
+    var plan = stepsFor(id, asset.name);
+    document.getElementById('steps-title').textContent = plan.title;
+    document.getElementById('steps-lede').textContent = plan.lede;
+    document.getElementById('steps').innerHTML = plan.steps.map(function (step) {
+      return '<li><h3>' + step[0] + '</h3><p>' + step[1] + '</p></li>';
     }).join('');
+    if (plan.caution) {
+      var caution = document.getElementById('steps-caution');
+      caution.innerHTML = plan.caution;
+      caution.hidden = false;
+    }
+
+    wireCopyButtons();
+
+    // Start it without navigating away from the instructions.
+    var frame = document.createElement('iframe');
+    frame.style.display = 'none';
+    frame.src = asset.url;
+    document.body.appendChild(frame);
+  }
+
+  function wireCopyButtons() {
+    document.querySelectorAll('button.copy').forEach(function (button) {
+      button.addEventListener('click', function () {
+        var text = button.dataset.copy;
+        var done = function () {
+          button.textContent = 'Copied';
+          setTimeout(function () { button.textContent = 'Copy'; }, 1600);
+        };
+        if (navigator.clipboard) navigator.clipboard.writeText(text).then(done, function () {});
+        else done();
+      });
+    });
   }
 
   /* -------------------------------------------------------------------- init */
 
-  var onDesktop = !!document.getElementById('desktop-downloads');
+  var onDownloads = !!document.getElementById('platforms');
+  var onDesktopThanks = !!document.getElementById('dl-name');
   var onThanks = !!document.getElementById('apk-link');
 
   wireTheme();
@@ -557,12 +681,14 @@
   loadRelease().then(function (data) {
     if (!data) throw new Error('no releases published');
     fillSpecs(data);
-    if (onDesktop) wireDesktop(data.desktop);
+    if (onDesktopThanks) wireThanksDesktop(data.desktop);
+    else if (onDownloads) wireDownloads(data.desktop);
     else if (onThanks) wireThanks(data);
     else showCounter(data);
   }).catch(function (err) {
     if (window.console) console.warn('f-tree: release data unavailable —', err.message);
-    if (onDesktop) wireDesktop(null);
+    if (onDesktopThanks) wireThanksDesktop(null);
+    else if (onDownloads) wireDownloads(null);
     else if (onThanks) wireThanks(null);
     else hideCounter();
   });

@@ -19,6 +19,19 @@ const path = require('node:path');
 const { chooseUpdate } = require('./update');
 
 /*
+ * A window needs somewhere to be.
+ *
+ * With neither DISPLAY nor WAYLAND_DISPLAY, Chromium fails to bring up its platform layer and the
+ * process dies of a segmentation fault - no window, no message, nothing to search for. Saying so
+ * first costs one line and turns a silent crash into an answer.
+ */
+if (process.platform === 'linux' && !process.env.DISPLAY && !process.env.WAYLAND_DISPLAY) {
+  console.error('f-tree: no display found. $DISPLAY and $WAYLAND_DISPLAY are both unset, so there '
+    + 'is nowhere to open a window. If you are on a remote shell, this needs a desktop session.');
+  process.exit(1);
+}
+
+/*
  * The viewer, which lives beside this app rather than inside it.
  *
  * In the repository it is `site/playground/`, the same directory the website serves. Packaged, it
@@ -210,6 +223,9 @@ async function checkForUpdates(win, { quiet = false } = {}) {
     currentVersion: app.getVersion(),
     platform: process.platform,
     allowPreRelease: settings.betaReleases,
+    // The AppImage runtime sets this, so it is the one reliable way to know the reader is running
+    // an AppImage - and therefore that another one will actually start for them.
+    linuxFormat: process.env.APPIMAGE ? 'appimage' : null,
   });
 
   if (found.kind !== 'newer') {
@@ -222,6 +238,27 @@ async function checkForUpdates(win, { quiet = false } = {}) {
         buttons: ['OK'],
       });
     }
+    return;
+  }
+
+  /*
+   * A new version this install cannot apply for itself.
+   *
+   * A .deb needs root and a tarball was unpacked wherever the reader chose, so the app has no
+   * business rewriting either. Saying so and opening the page is the honest end of the sentence.
+   */
+  if (!found.file) {
+    const go = await dialog.showMessageBox(win, {
+      type: 'info',
+      message: `f-tree ${found.version} is available.`,
+      detail: 'This copy was installed in a way the app should not overwrite by itself — a .deb '
+        + 'needs your permission, and a folder you unpacked is yours to replace. The download '
+        + 'page has the file for your system.',
+      buttons: ['Open the download page', 'Not now'],
+      defaultId: 0,
+      cancelId: 1,
+    });
+    if (go.response === 0) shell.openExternal('https://ftree.vibethroughcode.com/desktop/');
     return;
   }
 
