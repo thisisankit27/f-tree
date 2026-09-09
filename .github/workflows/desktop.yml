@@ -63,7 +63,7 @@ jobs:
       matrix:
         include:
           - os: ubuntu-latest
-            targets: --linux AppImage deb
+            targets: --linux
           - os: windows-latest
             targets: --win nsis
     runs-on: ${{ matrix.os }}
@@ -86,6 +86,7 @@ jobs:
           path: |
             desktop/dist/*.AppImage
             desktop/dist/*.deb
+            desktop/dist/*.tar.gz
             desktop/dist/*.exe
           if-no-files-found: error
 
