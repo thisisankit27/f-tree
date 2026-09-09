@@ -40,6 +40,13 @@
         "filter": [
           "**/*"
         ]
+      },
+      {
+        "from": "../app/src/main/res/font",
+        "to": "fonts",
+        "filter": [
+          "*.ttf"
+        ]
       }
     ],
     "linux": {

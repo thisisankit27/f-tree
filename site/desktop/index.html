@@ -1,0 +1,283 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>f-tree for Windows and Linux</title>
+<meta name="description" content="Download f-tree for Windows or Ubuntu, with the SmartScreen and AppImage warnings explained, the install steps for each system, and the checksum to verify what you downloaded.">
+<meta name="theme-color" content="#f7f6f1" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#10150f" media="(prefers-color-scheme: dark)">
+<link rel="icon" href="../favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,600;0,7..72,700;1,7..72,400&family=JetBrains+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="../style.css">
+
+<!--
+  The theme, decided before the first paint.
+
+  This runs where it sits, in the head, so the ground is already the right colour when the page
+  first draws — pushed to the end of the body it would flash bone at a reader who chose dark.
+  Nothing is stamped when there is no stored choice: the absence of the attribute is what lets
+  the prefers-color-scheme rule in style.css keep following the system, including live, while
+  data-js is what reveals the toggle (see style.css).
+-->
+<script>
+(function () {
+  var root = document.documentElement;
+  root.setAttribute('data-js', '');
+  try {
+    var saved = localStorage.getItem('ftree.theme');
+    if (saved === 'dark' || saved === 'light') root.setAttribute('data-theme', saved);
+  } catch (e) { /* private windows and blocked storage both land here; the system decides */ }
+})();
+</script>
+
+</head>
+<body>
+
+<header class="masthead">
+  <div class="shell">
+    <a class="wordmark" href="../">
+      <svg width="26" height="26" viewBox="0 0 32 32" aria-hidden="true">
+        <rect width="32" height="32" rx="7" fill="var(--mark-tile)"/>
+        <g fill="none" stroke="var(--mark-line)" stroke-width="1.7" stroke-linecap="round">
+          <circle cx="11" cy="9.5" r="3.1"/><circle cx="21" cy="9.5" r="3.1"/>
+          <path d="M14.1 9.5h3.8"/><path d="M16 12.6v3.4M9 16h14M9 16v2.6M23 16v2.6"/>
+          <circle cx="9" cy="22" r="3.1"/>
+          <circle cx="23" cy="22" r="3.1" stroke="var(--mark-dash)" stroke-dasharray="2.2 2"/>
+        </g>
+      </svg>
+      f-tree
+    </a>
+    <nav>
+      <a class="nav-link" href="../">Back to the start</a>
+      <button type="button" class="theme-toggle" id="theme-toggle" aria-label="Switch theme">
+        <svg class="i-moon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M20.5 14.3A8.5 8.5 0 0 1 9.7 3.5a8.5 8.5 0 1 0 10.8 10.8z"/>
+        </svg>
+        <svg class="i-sun" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="4.1"/>
+          <path d="M12 2.6v2.2M12 19.2v2.2M4.35 4.35l1.55 1.55M18.1 18.1l1.55 1.55M2.6 12h2.2M19.2 12h2.2M4.35 19.65 5.9 18.1M18.1 5.9l1.55-1.55"/>
+        </svg>
+      </button>
+    </nav>
+  </div>
+</header>
+
+
+<main>
+
+<section class="band" style="padding-bottom:0">
+  <div class="shell" style="max-width:780px">
+    <p class="eyebrow">For your laptop</p>
+    <h1 style="font-size:clamp(32px,4.6vw,48px);line-height:1.1;font-weight:600;letter-spacing:-0.02em;margin:0 0 18px">
+      f-tree on Windows and Ubuntu.
+    </h1>
+    <p class="lede" style="max-width:38em">
+      It opens a <code>.ftree</code> exported from the phone and draws it the way the phone does —
+      a generation is a column, ancestors at the left. Everything stays on the machine.
+    </p>
+
+    <!--
+      The download the reader is most likely to want, chosen from their own platform, with the
+      others a click away rather than hidden. Filled in by app.js from the published release, so
+      a new version needs no edit here; the markup is the fallback if GitHub cannot be reached.
+    -->
+    <div id="desktop-downloads">
+      <p style="margin:28px 0 0">
+        <a class="btn btn-primary" id="desktop-primary"
+           href="https://github.com/thisisankit27/f-tree/releases?q=desktop&amp;expanded=true">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M12 3v12m0 0l-4.5-4.5M12 15l4.5-4.5M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/>
+          </svg>
+          <span id="desktop-primary-label">Get the desktop app</span>
+        </a>
+      </p>
+      <p class="status-line" id="desktop-status">Finding the latest build…</p>
+      <p class="status-line" id="desktop-others"></p>
+    </div>
+  </div>
+</section>
+
+<!--
+  One set of steps per system. Both are shown: a reader on Windows sometimes installs for a
+  relative on Ubuntu, and a page that hides the other half makes them go looking for it.
+-->
+<section class="band" id="windows">
+  <div class="shell" style="max-width:780px">
+    <h2 class="rule-label">Installing on Windows</h2>
+
+    <ol class="steps">
+      <li>
+        <h3>Windows will refuse to run it</h3>
+        <p>
+          Not because of anything in the file. Windows trusts installers whose publisher has paid
+          for a code-signing certificate, and f-tree has not — so it arrives as an unrecognised app
+          and Defender stops it. Choose <b>More info</b>, then <b>Run anyway</b>.
+        </p>
+        <p class="quote">
+          <b>“Windows protected your PC.”</b> Microsoft Defender SmartScreen prevented an
+          unrecognised app from starting. — More info → Run anyway
+        </p>
+        <p>
+          The publisher will read <b>Unknown</b>. That is the honest state of it: nobody has
+          vouched for this file except the checksum below, which you can check yourself.
+        </p>
+      </li>
+
+      <li>
+        <h3>Choose where it goes</h3>
+        <p>
+          The installer offers a folder and installs for your account only, so it never asks for an
+          administrator password. Nothing is written outside that folder and your own app data.
+        </p>
+      </li>
+
+      <li>
+        <h3>Open it and open your tree</h3>
+        <p>
+          Export a <code>.ftree</code> from the phone — <b>Settings → Export your tree</b> — get it
+          onto the laptop however you like, and open it with <b>File → Open tree</b>. The app
+          reopens it by itself next time.
+        </p>
+      </li>
+    </ol>
+  </div>
+</section>
+
+<section class="band band-sunk" id="linux">
+  <div class="shell" style="max-width:780px">
+    <h2 class="rule-label">Installing on Ubuntu and other Linux</h2>
+
+    <p style="max-width:38em">
+      Two ways, and the <code>.deb</code> is the easier one if you are on Ubuntu, Debian or Mint —
+      it puts f-tree in your applications menu like anything else. The <code>.AppImage</code> is
+      one file that runs anywhere and installs nothing.
+    </p>
+
+    <ol class="steps">
+      <li>
+        <h3>The .deb — apt, not a double-click</h3>
+        <p>
+          Double-clicking a <code>.deb</code> opens an archive manager on most desktops now, which
+          is not what you want. Install it from the folder you downloaded it to:
+        </p>
+        <p class="quote"><code>sudo apt install ./f-tree-desktop_*_amd64.deb</code></p>
+        <p>The leading <code>./</code> matters — without it apt goes looking for a package by that name.</p>
+      </li>
+
+      <li>
+        <h3>The .AppImage — make it executable first</h3>
+        <p>
+          A downloaded AppImage is not executable, by design. Give it permission and run it:
+        </p>
+        <p class="quote"><code>chmod +x f-tree-*.AppImage &amp;&amp; ./f-tree-*.AppImage</code></p>
+        <p>
+          On Ubuntu 22.04 and newer it may stop with <code>dlopen(): error loading libfuse.so.2</code>.
+          AppImages need the older FUSE library, which no longer ships by default:
+        </p>
+        <p class="quote"><code>sudo apt install libfuse2</code></p>
+        <p>
+          Or skip it entirely with <code>./f-tree-*.AppImage --appimage-extract-and-run</code>, which
+          unpacks to a temporary folder instead.
+        </p>
+      </li>
+
+      <li>
+        <h3>Open your tree</h3>
+        <p>
+          Export a <code>.ftree</code> from the phone — <b>Settings → Export your tree</b> — and open
+          it with <b>File → Open tree</b>. The app reopens it by itself next time.
+        </p>
+      </li>
+    </ol>
+  </div>
+</section>
+
+<section class="band">
+  <div class="shell" style="max-width:780px">
+    <p class="rule-label">Why your computer complains</p>
+    <div class="slab">
+      <h2 style="font-size:26px;margin-bottom:14px">Nobody has vouched for this file</h2>
+      <p>
+        Windows and macOS trust software whose publisher has bought a code-signing certificate and
+        kept a reputation with it. That costs a few hundred pounds a year and identifies a company.
+        f-tree is a free app with no company behind it, so it has neither, and every operating
+        system it lands on will say so.
+      </p>
+      <p>
+        The warning is doing its job. Clicking past one is a habit worth keeping rare, so here is
+        what you can check instead of taking my word for it: every file below was built by GitHub
+        Actions from the public source, in the open, and GitHub — not this page — publishes the
+        checksum. If the hash of your download matches, the file is byte-for-byte the one that came
+        out of that build.
+      </p>
+      <div class="notice">
+        <span aria-hidden="true">◌</span>
+        <span>
+          <strong>What the app can reach.</strong> It reads the file you open and writes one small
+          note of which file that was, so it can reopen it next time. There is no account, no server
+          and no telemetry — and the app <em>refuses</em> network requests rather than merely not
+          making any: every <code>http</code> and <code>https</code> request is cancelled by the
+          app itself, so the typefaces are read from disk and nothing announces that you opened it.
+          Pull the plug on your internet and it behaves identically.
+        </span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="band band-sunk">
+  <div class="shell" style="max-width:780px">
+    <p class="rule-label">Checking what you got</p>
+    <div class="slab">
+      <h2 style="font-size:26px;margin-bottom:14px">Verify the download</h2>
+      <p>
+        On Linux run <code>sha256sum &lt;file&gt;</code>; on Windows,
+        <code>certutil -hashfile &lt;file&gt; SHA256</code>. Compare the result with the matching
+        line below.
+      </p>
+      <dl class="facts" id="desktop-facts">
+        <div><dt>Version</dt><dd id="dfact-version">the latest desktop release</dd></div>
+        <div><dt>Released</dt><dd id="dfact-date">see the release page</dd></div>
+      </dl>
+      <div id="desktop-hashes"></div>
+      <p style="margin-top:18px">
+        <a id="dfact-notes" href="https://github.com/thisisankit27/f-tree/releases?q=desktop&amp;expanded=true">Release notes and every build on GitHub</a>
+      </p>
+    </div>
+  </div>
+</section>
+
+<section class="band">
+  <div class="shell" style="max-width:780px">
+    <p class="rule-label">One more thing</p>
+    <p style="max-width:38em">
+      The desktop app <b>reads</b> a tree today: the chart, the people index, the search and the
+      relation finder. Editing, settings and the updater are being built —
+      <a href="https://github.com/thisisankit27/f-tree/issues/89">follow along here</a>. Building
+      and editing a tree is the phone's job for now, and the
+      <a href="../thanks/">Android app</a> does all of it.
+    </p>
+  </div>
+</section>
+
+</main>
+
+
+<footer class="footer">
+  <div class="shell">
+    <span>f-tree — built by <a href="https://github.com/thisisankit27">thisisankit27</a>. MIT licensed.</span>
+    <nav>
+      <a href="../">Home</a>
+      <a href="../playground/">Viewer</a>
+      <a href="https://github.com/thisisankit27/f-tree">Source</a>
+      <a href="https://github.com/thisisankit27/f-tree/releases">Releases</a>
+    </nav>
+  </div>
+</footer>
+
+<script src="../app.js"></script>
+</body>
+</html>
