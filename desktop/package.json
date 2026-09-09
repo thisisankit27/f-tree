@@ -15,7 +15,8 @@
     "smoke": "electron . --no-sandbox",
     "pack:linux": "electron-builder --linux",
     "pack:win": "electron-builder --win nsis",
-    "test": "node --test update.test.js \"renderer/*.test.js\""
+    "test": "node --test update.test.js atomic.test.js \"renderer/*.test.js\"",
+    "test:package": "node --test package.test.js"
   },
   "devDependencies": {
     "electron": "^33.2.0",

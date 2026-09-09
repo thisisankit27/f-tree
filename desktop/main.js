@@ -17,6 +17,7 @@ const os = require('node:os');
 const path = require('node:path');
 
 const { chooseUpdate } = require('./update');
+const { writeTreeFile } = require('./atomic');
 
 /*
  * A window needs somewhere to be.
@@ -67,6 +68,9 @@ if (process.env.FTREE_SMOKE) {
   app.setPath('userData', require('node:fs')
     .mkdtempSync(path.join(os.tmpdir(), 'ftree-smoke-')));
 }
+
+/** Which windows have edits that are not on disk. Keyed by window id. */
+const unsaved = new Map();
 
 const stateFile = () => path.join(app.getPath('userData'), 'session.json');
 const settingsFile = () => path.join(app.getPath('userData'), 'settings.json');
@@ -120,6 +124,24 @@ async function readTree(file) {
   const bytes = await fs.readFile(file);
   return { name: path.basename(file), path: file, bytes: bytes.buffer.slice(
     bytes.byteOffset, bytes.byteOffset + bytes.byteLength) };
+}
+
+/* ------------------------------------------------------------------ saving */
+
+async function saveInto(win, target, bytes) {
+  try {
+    await writeTreeFile(target, bytes);
+    await writeSession({ lastTree: target });
+    return { ok: true, path: target, name: path.basename(target) };
+  } catch (error) {
+    await dialog.showMessageBox(win, {
+      type: 'error',
+      message: 'That tree could not be saved.',
+      detail: `${target}\n\n${error.message}\n\nThe file on disk has not been changed.`,
+      buttons: ['OK'],
+    });
+    return { ok: false, reason: error.message };
+  }
 }
 
 let window_ = null;
@@ -368,6 +390,22 @@ function buildMenu(win) {
       label: 'File',
       submenu: [
         { label: 'Open tree…', accelerator: 'CmdOrCtrl+O', click: () => chooseInto(win) },
+        { type: 'separator' },
+        /*
+         * Saving is asked of the page, not done here. The page holds the tree, the writer and the
+         * reader it verifies itself with; this side only puts bytes on a disk. The menu therefore
+         * says "please save" and the page decides whether it can.
+         */
+        { label: 'Save', accelerator: 'CmdOrCtrl+S',
+          click: () => win.webContents.send('menu:command', 'file:save') },
+        { label: 'Save as…', accelerator: 'CmdOrCtrl+Shift+S',
+          click: () => win.webContents.send('menu:command', 'file:saveAs') },
+        { type: 'separator' },
+        { label: 'Undo', accelerator: 'CmdOrCtrl+Z',
+          click: () => win.webContents.send('menu:command', 'edit:undo') },
+        { label: 'Redo', accelerator: 'CmdOrCtrl+Shift+Z',
+          click: () => win.webContents.send('menu:command', 'edit:redo') },
+        { type: 'separator' },
         { label: 'Close tree', accelerator: 'CmdOrCtrl+W',
           click: () => { writeSession({}); win.webContents.send('menu:command', 'close'); } },
         { type: 'separator' },
@@ -492,6 +530,67 @@ function refuseTheNetwork(ses) {
     });
 }
 
+/*
+ * A window with unsaved edits does not simply vanish.
+ *
+ * The page reports whether there is unsaved work; this refuses the close while there is, and asks.
+ * "Save" hands the work back to the page, because the page is the only side that can serialise a
+ * tree and verify it -- and then waits for it to report itself clean rather than assuming it did.
+ *
+ * The wait has a deadline and the deadline has an honest ending: if the page has not saved by
+ * then, the window stays open and says so. An editor that hung on closing would be a worse bug
+ * than the one this prevents.
+ */
+function guardUnsavedWork(win) {
+  let letItGo = false;
+
+  win.on('close', (event) => {
+    if (letItGo || !unsaved.get(win.id)) return;
+    event.preventDefault();
+
+    (async () => {
+      const answer = await dialog.showMessageBox(win, {
+        type: 'warning',
+        message: 'This tree has changes you have not saved.',
+        detail: 'Closing now loses them. There is no copy of these edits anywhere else.',
+        buttons: ['Save', 'Discard the changes', 'Cancel'],
+        defaultId: 0,
+        cancelId: 2,
+      });
+
+      if (answer.response === 2) return;
+      if (answer.response === 1) { letItGo = true; win.close(); return; }
+
+      win.webContents.send('menu:command', 'file:save');
+      const saved = await waitUntilSaved(win);
+      if (!saved) {
+        await dialog.showMessageBox(win, {
+          type: 'warning',
+          message: 'The tree has not been saved.',
+          detail: 'The window has been left open so nothing is lost. Try File then Save.',
+          buttons: ['OK'],
+        });
+        return;
+      }
+      letItGo = true;
+      win.close();
+    })();
+  });
+
+  win.on('closed', () => unsaved.delete(win.id));
+}
+
+/** Polls for the page reporting itself clean. Ten seconds, then the honest answer. */
+async function waitUntilSaved(win, deadlineMs = 10_000) {
+  const until = Date.now() + deadlineMs;
+  while (Date.now() < until) {
+    if (!unsaved.get(win.id)) return true;
+    if (win.isDestroyed()) return true;
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  }
+  return !unsaved.get(win.id);
+}
+
 async function createWindow() {
   const win = new BrowserWindow({
     width: 1440,
@@ -514,6 +613,7 @@ async function createWindow() {
   });
 
   win.once('ready-to-show', () => win.show());
+  guardUnsavedWork(win);
 
   refuseTheNetwork(session.fromPartition(VIEWER_PARTITION));
   await win.loadFile(VIEWER);
@@ -541,6 +641,42 @@ ipcMain.handle('tree:choose', async (event) => {
   return chooseInto(win);
 });
 ipcMain.handle('tree:forget', async () => { await writeSession({}); });
+
+/*
+ * Saving takes the bytes the page produced, never a document for this side to serialise.
+ *
+ * The page owns the format: it has the writer, the reader it verifies with, and the tree itself.
+ * Handing a document across the bridge for the main process to encode would put a second encoder
+ * in the app and give the verification something other than the real bytes to check.
+ */
+ipcMain.handle('tree:save', async (event, { bytes, path: target }) => {
+  const win = BrowserWindow.fromWebContents(event.sender);
+  if (!target) return { ok: false, reason: 'NO_PATH' };
+  return saveInto(win, target, bytes);
+});
+
+ipcMain.handle('tree:saveAs', async (event, { bytes, suggest }) => {
+  const win = BrowserWindow.fromWebContents(event.sender);
+  const picked = await dialog.showSaveDialog(win, {
+    title: 'Save the family tree',
+    defaultPath: suggest || 'family-tree.ftree',
+    filters: [{ name: 'f-tree export', extensions: ['ftree'] }],
+  });
+  if (picked.canceled || !picked.filePath) return { ok: false, reason: 'CANCELLED' };
+  return saveInto(win, picked.filePath, bytes);
+});
+
+/*
+ * The page tells this side when there is unsaved work, so the window can refuse to vanish with
+ * it. Kept as a plain notification rather than something to ask for: the answer has to be current
+ * at the moment of closing, and asking then would race the close.
+ */
+ipcMain.on('tree:dirty', (event, dirty) => {
+  const win = BrowserWindow.fromWebContents(event.sender);
+  if (!win) return;
+  unsaved.set(win.id, Boolean(dirty));
+  win.setDocumentEdited(Boolean(dirty));
+});
 ipcMain.handle('tree:last', async () => {
   const { lastTree } = await readSession();
   if (!lastTree) return null;
@@ -596,6 +732,7 @@ async function runSmoke(win, file) {
     state: document.getElementById('viewer')?.dataset.state ?? null,
     fileName: document.getElementById('file-name')?.textContent ?? null,
     orientation: document.body.dataset.orientation ?? null,
+    bridgeNames: Object.keys(window.ftreeDesktop ?? {}).sort().join(','),
     openerError: document.getElementById('opener-error')?.textContent ?? null,
     hint: document.getElementById('hint')?.textContent ?? null,
     literata: document.fonts.check('16px Literata'),
@@ -617,6 +754,15 @@ async function runSmoke(win, file) {
    */
   check('generations run in rows, as they do on the website', seen.orientation === 'rows',
     String(seen.orientation));
+  /*
+   * The bridge is the whole surface between somebody's family and their machine. Asserting the
+   * names is not ceremony: a preload that fails to load leaves `window.ftreeDesktop` looking
+   * plausible enough for the page to run and for saving to silently do nothing.
+   */
+  for (const name of ['chooseTree', 'saveTree', 'saveTreeAs', 'setDirty']) {
+    check(`the page can ask to ${name}`, String(seen.bridgeNames).split(',').includes(name),
+      String(seen.bridgeNames));
+  }
   check('the archive was read and counted', /\d+ people/.test(seen.status ?? ''), String(seen.status));
   // Refusing the network must not quietly cost the app its typography.
   check('the bundled typefaces loaded without the network', seen.literata && seen.mono,
