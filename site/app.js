@@ -150,6 +150,82 @@
     if (box) box.hidden = true;
   }
 
+  /* ------------------------------------------------------------------ theme */
+  /*
+   * Light and dark. The head script has already put the stored choice on <html> before the
+   * first paint; all this does is flip it and remember it.
+   *
+   * The absence of data-theme is a state, not a missing value: it means "whatever the system
+   * says", which is how the page starts for everyone who has never touched the toggle. So the
+   * toggle asks what is actually on screen — matchMedia, not the attribute — and sets the
+   * opposite. Choosing the mode you are already in is how you get back to following the system,
+   * so picking light on a light system clears the choice rather than pinning it.
+   */
+
+  var DARK_GROUND = '#10150f';
+  var LIGHT_GROUND = '#f7f6f1';
+
+  function systemPrefersDark() {
+    return window.matchMedia('(prefers-color-scheme: dark)').matches;
+  }
+
+  function currentTheme() {
+    var set = document.documentElement.getAttribute('data-theme');
+    if (set === 'dark' || set === 'light') return set;
+    return systemPrefersDark() ? 'dark' : 'light';
+  }
+
+  /*
+   * Both metas carry the same value on purpose. The pair in the markup is media-scoped so that
+   * the browser chrome is right with this script switched off; once a choice has been made the
+   * matching one has to give the chosen answer, and the quiet way to guarantee that is for both
+   * to agree.
+   */
+  function paintBrowserChrome(theme) {
+    var ground = theme === 'dark' ? DARK_GROUND : LIGHT_GROUND;
+    document.querySelectorAll('meta[name="theme-color"]').forEach(function (meta) {
+      meta.setAttribute('content', ground);
+    });
+  }
+
+  function describeToggle(btn, theme) {
+    var next = theme === 'dark' ? 'light' : 'dark';
+    btn.setAttribute('aria-label', 'Switch to ' + next + ' mode');
+    btn.setAttribute('title', 'Switch to ' + next + ' mode');
+  }
+
+  function wireTheme() {
+    var btn = document.getElementById('theme-toggle');
+    if (!btn) return;
+
+    var system = window.matchMedia('(prefers-color-scheme: dark)');
+
+    var sync = function () {
+      var theme = currentTheme();
+      describeToggle(btn, theme);
+      paintBrowserChrome(theme);
+    };
+
+    btn.addEventListener('click', function () {
+      var next = currentTheme() === 'dark' ? 'light' : 'dark';
+      if (next === (system.matches ? 'dark' : 'light')) {
+        // Back in step with the system: stop overriding it rather than pinning today's answer.
+        document.documentElement.removeAttribute('data-theme');
+        try { localStorage.removeItem('ftree.theme'); } catch (e) { /* nothing to remember with */ }
+      } else {
+        document.documentElement.setAttribute('data-theme', next);
+        try { localStorage.setItem('ftree.theme', next); } catch (e) { /* a convenience, not a requirement */ }
+      }
+      sync();
+    });
+
+    // Only reaches the page while no explicit choice is stored, which is exactly when it should.
+    if (system.addEventListener) system.addEventListener('change', sync);
+    else if (system.addListener) system.addListener(sync);
+
+    sync();
+  }
+
   /* ------------------------------------------------- the one interactive node */
   /*
    * The hero chart's dashed card is the app's whole argument in one gesture: an unnamed
@@ -267,7 +343,7 @@
     btn.setAttribute('aria-label', 'Play the demo — 17 seconds, no sound');
     btn.innerHTML =
       '<span class="disc" aria-hidden="true">' +
-      '<svg width="24" height="24" viewBox="0 0 24 24" fill="#fff"><path d="M8 5.5v13l11-6.5z"/></svg>' +
+      '<svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.5v13l11-6.5z"/></svg>' +
       '</span>';
 
     btn.addEventListener('click', function () {
@@ -327,6 +403,7 @@
 
   var onThanks = !!document.getElementById('apk-link');
 
+  wireTheme();
   wireNamingSlot();
   wireDemo();
 

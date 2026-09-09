@@ -2,7 +2,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Viewer — open a whole f-tree on a big screen</title>
 <meta name="description" content="Open an exported .ftree file and see every person in it at once, including the ones no relationship reaches. Runs entirely in your browser; the file never leaves your device.">
-<meta name="theme-color" content="#f7f6f1">
+<meta name="theme-color" content="#f7f6f1" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#10150f" media="(prefers-color-scheme: dark)">
 <link rel="icon" href="../favicon.svg" type="image/svg+xml">
 <link rel="canonical" href="https://ftree.vibethroughcode.com/playground/">
 
@@ -16,7 +17,25 @@
 <link href="https://fonts.googleapis.com/css2?family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,600;0,7..72,700;1,7..72,400;1,7..72,600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="playground.css">
 
-<div class="viewer" id="viewer" data-state="empty" data-theme="light">
+<!--
+  The theme, decided before the first paint. main.js is a module and therefore deferred, so
+  leaving this to it would show a bone-white screen to somebody who asked for dark. Nothing is
+  stamped when no choice has been stored: that absence means "follow the system", and main.js
+  resolves it the same way (see loadPrefs).
+-->
+<script>
+(function () {
+  var theme = null;
+  try { theme = (JSON.parse(localStorage.getItem('ftree.viewer') || '{}') || {}).theme; }
+  catch (e) { /* private windows and blocked storage both land here; the system decides */ }
+  if (theme !== 'dark' && theme !== 'light') {
+    theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  }
+  document.documentElement.setAttribute('data-theme', theme);
+})();
+</script>
+
+<div class="viewer" id="viewer" data-state="empty">
 
   <header class="bar">
     <a class="wordmark" href="../" title="Back to f-tree">
@@ -35,6 +54,17 @@
     </div>
 
     <div class="bar-spacer"></div>
+
+    <!-- Outside .bar-tools on purpose: the opener needs this too, and .bar-tools is loaded-only. -->
+    <button type="button" class="icon theme-btn" id="theme-btn" aria-label="Switch theme">
+      <svg class="i-moon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M20.5 14.3A8.5 8.5 0 0 1 9.7 3.5a8.5 8.5 0 1 0 10.8 10.8z"/>
+      </svg>
+      <svg class="i-sun" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <circle cx="12" cy="12" r="4.1"/>
+        <path d="M12 2.6v2.2M12 19.2v2.2M4.35 4.35l1.55 1.55M18.1 18.1l1.55 1.55M2.6 12h2.2M19.2 12h2.2M4.35 19.65 5.9 18.1M18.1 5.9l1.55-1.55"/>
+      </svg>
+    </button>
 
     <div class="bar-tools" data-when="loaded">
       <div class="search" role="search">

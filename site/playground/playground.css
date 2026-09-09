@@ -31,6 +31,13 @@
   --sage-container: #cde6d5;
   --brass: #8a6420;
   --brass-surface: #f7eedc;
+  /* Roles rather than hues: forest is a dark green carrying white by day, sage a pale green
+     carrying dark green by night, so the controls ask for the job and not the colour. */
+  --forest-hover: var(--forest-deep);
+  --on-forest: #fff;
+  --on-sage: var(--forest-deep);
+  --glyph-moon: block;
+  --glyph-sun: none;
   --rule: #d8d7cd;
   --rule-strong: #b9b8ac;
   /* Matches chart.js's `departed`: the ground for somebody no longer living. */
@@ -59,7 +66,12 @@
   padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
 }
 
-.viewer[data-theme="dark"] {
+/*
+ * Night, from the app's own Color.kt. Stamped on <html> rather than on .viewer so that the
+ * inline script in the head can set it before the first paint — main.js is a module, so it is
+ * deferred, and waiting for it would show a bone-white screen to somebody who asked for dark.
+ */
+:root[data-theme="dark"] .viewer {
   --bone: #10150f;
   --bone-dim: #161c15;
   --raised: #1a211a;
@@ -74,6 +86,11 @@
   --rule-strong: #465146;
   --departed: #11160f;
   --shadow: 0 10px 34px rgba(0, 0, 0, .45);
+  --forest-hover: #b6dbc3;
+  --on-forest: #06371c;
+  --on-sage: #abe4bc;
+  --glyph-moon: none;
+  --glyph-sun: block;
   color-scheme: dark;
 }
 
@@ -187,6 +204,18 @@
   font-size: calc(15px * var(--ui));
 }
 
+/*
+ * Light and dark, in the bar rather than only in the Display menu.
+ *
+ * The menu lives inside data-when="loaded", so until this button existed there was no way to
+ * turn the lights down while looking at the opener — which is the screen somebody stares at
+ * longest before deciding whether to hand over a file. It is the same round control as the
+ * zoom buttons, and it offers the mode you are not in.
+ */
+.theme-btn svg { display: block; }
+.theme-btn .i-moon { display: var(--glyph-moon); }
+.theme-btn .i-sun { display: var(--glyph-sun); }
+
 .link-btn {
   font-family: var(--mono);
   font-size: calc(12px * var(--ui));
@@ -209,8 +238,7 @@
   gap: 2px;
 }
 .segmented button { border: 0; background: none; padding: calc(6px * var(--ui)) calc(13px * var(--ui)); }
-.segmented button[aria-pressed="true"] { background: var(--forest); color: #fff; }
-.viewer[data-theme="dark"] .segmented button[aria-pressed="true"] { color: var(--forest-deep); }
+.segmented button[aria-pressed="true"] { background: var(--forest); color: var(--on-forest); }
 
 .zoom { display: flex; align-items: center; gap: calc(6px * var(--ui)); }
 .zoom-level {
@@ -424,9 +452,8 @@ canvas:focus-visible { outline: 2px solid var(--forest); outline-offset: -2px; }
   font-size: 14px;
   padding: 13px 24px;
 }
-.btn.primary { background: var(--forest); border-color: var(--forest); color: #fff; }
-.viewer[data-theme="dark"] .btn.primary { color: var(--forest-deep); }
-.btn.primary:hover { background: var(--forest-deep); border-color: var(--forest-deep); color: #fff; }
+.btn.primary { background: var(--forest); border-color: var(--forest); color: var(--on-forest); }
+.btn.primary:hover { background: var(--forest-hover); border-color: var(--forest-hover); color: var(--on-forest); }
 .btn.quiet { background: transparent; }
 
 .assurance {
@@ -657,9 +684,8 @@ canvas:focus-visible { outline: 2px solid var(--forest); outline-offset: -2px; }
   padding: calc(15px * var(--ui));
   border-radius: 12px;
   background: var(--sage-container);
-  color: var(--forest-deep);
+  color: var(--on-sage);
 }
-.viewer[data-theme="dark"] .r-term { color: var(--ink); }
 .r-term b { font-weight: 700; }
 .r-none { background: var(--brass-surface); color: var(--ink); }
 .r-chain { list-style: none; margin: 0; padding: 0; display: grid; gap: 0; }

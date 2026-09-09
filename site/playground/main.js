@@ -41,8 +41,17 @@ const chart = new Chart($('canvas'), {
 
 /* ------------------------------------------------------------------ preferences */
 
+/*
+ * `theme` is three-valued, not two: 'light', 'dark', or null for "whatever the system says".
+ * Null is the state everyone starts in, and choosing the mode you are already in returns you to
+ * it — so a reader who follows their system at dusk keeps following it, rather than being pinned
+ * to whichever answer was true the first time they opened the page.
+ */
+const systemTheme = window.matchMedia('(prefers-color-scheme: dark)');
+const resolvedTheme = () => prefs.theme ?? (systemTheme.matches ? 'dark' : 'light');
+
 function loadPrefs() {
-  const fallback = { theme: 'light', photos: true, big: false, status: true };
+  const fallback = { theme: null, photos: true, big: false, status: true };
   try {
     const saved = JSON.parse(localStorage.getItem('ftree.viewer') ?? '{}');
     return { ...fallback, ...saved };
@@ -58,19 +67,35 @@ function savePrefs() {
 }
 
 function applyPrefs() {
-  viewer.dataset.theme = prefs.theme;
+  const theme = resolvedTheme();
+  // On <html>, not on .viewer: the inline script in the head stamps it there before first paint.
+  document.documentElement.dataset.theme = theme;
   viewer.dataset.big = String(prefs.big);
   viewer.dataset.status = prefs.status ? 'on' : 'off';
-  chart.setTheme(prefs.theme);
+  chart.setTheme(theme);
   chart.showPhotos = prefs.photos;
-  document.querySelector('meta[name="theme-color"]')
-    ?.setAttribute('content', prefs.theme === 'dark' ? '#10150f' : '#f7f6f1');
+  // Both metas are media-scoped so the chrome is right before this runs; giving them the same
+  // value is what makes whichever one matches agree with an explicit choice.
+  for (const meta of document.querySelectorAll('meta[name="theme-color"]')) {
+    meta.setAttribute('content', theme === 'dark' ? '#10150f' : '#f7f6f1');
+  }
+  const next = theme === 'dark' ? 'light' : 'dark';
+  $('theme-btn').setAttribute('aria-label', `Switch to ${next} mode`);
+  $('theme-btn').setAttribute('title', `Switch to ${next} mode`);
   for (const [key, on] of Object.entries({
-    theme: prefs.theme === 'dark', photos: prefs.photos, big: prefs.big, status: prefs.status,
+    theme: theme === 'dark', photos: prefs.photos, big: prefs.big, status: prefs.status,
   })) {
     $('display-menu').querySelector(`[data-toggle="${key}"]`)?.setAttribute('aria-checked', String(on));
   }
   chart.resize();
+}
+
+/** Flips the lights, and drops back to following the system when that is what you picked. */
+function toggleTheme() {
+  const next = resolvedTheme() === 'dark' ? 'light' : 'dark';
+  prefs.theme = next === (systemTheme.matches ? 'dark' : 'light') ? null : next;
+  savePrefs();
+  applyPrefs();
 }
 
 /* ------------------------------------------------------------------ loading a file */
@@ -702,8 +727,8 @@ function wireChrome() {
     const button = e.target.closest('button');
     if (!button) return;
     const toggle = button.dataset.toggle;
-    if (toggle === 'theme') prefs.theme = prefs.theme === 'dark' ? 'light' : 'dark';
-    else if (toggle) prefs[toggle] = !prefs[toggle];
+    if (toggle === 'theme') { toggleTheme(); return; }
+    if (toggle) prefs[toggle] = !prefs[toggle];
     if (button.dataset.action === 'fullscreen') toggleFullscreen();
     if (button.dataset.action === 'shortcuts') { $('shortcuts').hidden = false; menu.hidden = true; }
     if (toggle) { savePrefs(); applyPrefs(); }
@@ -722,6 +747,12 @@ function wireChrome() {
     if (action === 'relate-from') openRelate(state.selected);
   });
 
+  $('theme-btn').addEventListener('click', toggleTheme);
+  // Only moves the page while prefs.theme is null, which is exactly when it should.
+  const followSystem = () => { if (prefs.theme === null) applyPrefs(); };
+  if (systemTheme.addEventListener) systemTheme.addEventListener('change', followSystem);
+  else if (systemTheme.addListener) systemTheme.addListener(followSystem);
+
   window.addEventListener('resize', () => chart.resize());
   document.addEventListener('fullscreenchange', () => chart.resize());
 }
@@ -738,6 +769,11 @@ function wireKeys() {
       return;
     }
     if (typing || e.metaKey || e.ctrlKey || e.altKey) return;
+
+    // Turning the lights down is a property of the page, not of the chart, so it is answered
+    // above the guard: it has to work while somebody is still deciding whether to open a file.
+    if (e.key === 'd' || e.key === 'D') { toggleTheme(); return; }
+
     if (viewer.dataset.state !== 'loaded') return;
 
     switch (e.key) {
@@ -754,11 +790,6 @@ function wireKeys() {
         break;
       case '-': case '_':
         chart.zoomBy(1 / 1.3);
-        break;
-      case 'd': case 'D':
-        prefs.theme = prefs.theme === 'dark' ? 'light' : 'dark';
-        savePrefs();
-        applyPrefs();
         break;
       case 'i': case 'I':
         setView(state.view === 'chart' ? 'index' : 'chart');

@@ -4,6 +4,16 @@
  * The palette and the three typographic voices are lifted directly from the app
  * (ui/theme/Color.kt, ui/theme/Type.kt) so the site and the product read as the same
  * object. Brass keeps the single job it has in the app: marking what is not known.
+ *
+ * Both palettes are the app's own — bone and forest ink by day, the app's night ground and
+ * sage by night — so the site, the viewer (playground/playground.css, playground/chart.js)
+ * and the product are recognisably one thing in either mode.
+ *
+ * Roles, not just colours. A handful of tokens below name a *job* rather than a hue
+ * (--on-forest, --on-sage, --forest-hover, --deep) because those jobs do not map onto the
+ * same colour in both modes: forest is a dark green carrying white text by day, and sage is
+ * a pale green carrying dark green text by night. Rules further down ask for the role, so
+ * they never need to know which mode they are in.
  */
 
 :root {
@@ -29,12 +39,143 @@
   --rule: #c1c9c0;
   --rule-strong: #9aa69b;
 
+  /* Roles. See the note above. */
+  --forest-hover: var(--forest-deep);   /* the pressed/hover shade of the accent */
+  --on-forest: #fff;                    /* ink on a forest ground: the CTA, the primary button */
+  --on-sage: var(--forest-deep);        /* ink on a sage ground: a named card, a step number */
+
+  /* The wordmark tile. A launcher icon, so it holds its colour across both modes. */
+  --mark-tile: #2a5138;
+  --mark-line: #cde6d5;
+  --mark-dash: #e3c38c;
+
+  /* The "local first" slab is a dark green panel in both modes; only its ground shifts. */
+  --deep: var(--forest-deep);
+  --deep-ink: #dfe7e0;
+  --deep-ink-soft: #b3c4b8;
+  --deep-faint: #8fa694;
+  --deep-rule: rgba(179, 196, 184, .22);
+  --deep-hair: #c1c9c0;    /* the rule-label's hairline; --rule is tuned for the page, not this band */
+  --deep-brass: #f7eedc;   /* the "no" prefix; --brass-surface goes dark and would vanish here */
+  --deep-btn-line: #4a6a55;
+  --deep-btn-ink: #cde6d5;
+
+  /* The install page's one warning box. */
+  --notice-line: #e3c38c;
+  --notice-ink: #4a3810;
+  --notice-strong: #2c1d00;
+
+  --shadow-soft: 0 1px 2px rgba(12, 36, 23, .04);
+  --shadow-cast: 0 12px 32px -18px rgba(12, 36, 23, .22);
+  --shadow-disc: 0 6px 20px rgba(12, 36, 23, .28);
+
   --serif: "Literata", Georgia, "Times New Roman", serif;
   --mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
   --sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 
   --gutter: clamp(20px, 5vw, 64px);
   --measure: 1220px;
+
+  /* The toggle offers the mode you are not in, so the glyph is the opposite of the ground. */
+  --glyph-moon: block;
+  --glyph-sun: none;
+}
+
+/*
+ * Night.
+ *
+ * Two entry points, one palette, so the block is written twice and the two copies must be
+ * kept identical — edit one, edit the other. The media query is what a reader with a dark
+ * system and no stored choice gets (it is also the whole of dark mode with JavaScript off);
+ * the attribute is what the masthead toggle sets. `:not([data-theme="light"])` is what lets
+ * an explicit "light" win over a dark system.
+ */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+
+    --bone: #10150f;
+    --bone-raised: #1a211a;
+    --bone-dim: #181d17;
+    --bone-sunk: #0b100a;
+
+    --ink: #e0e4dd;
+    --ink-soft: #c1c9c0;
+    --ink-faint: #8b938a;   /* 5.4:1 on the dim band, the lowest-contrast ground it lands on */
+
+    --forest: #8fc7a1;
+    --forest-deep: #0c2417;
+    --sage: #24402e;
+    --sage-line: #8fc7a1;
+
+    --brass: #e3c38c;
+    --brass-surface: #2c2618;
+
+    --rule: #333c33;
+    --rule-strong: #5c665c;
+
+    --forest-hover: #b6dbc3;
+    --on-forest: #06371c;
+    --on-sage: #abe4bc;
+
+    --mark-tile: #2f5c3f;
+
+    --deep: #132b1c;
+
+    --notice-line: #5e4100;
+    --notice-ink: #e8dcc4;
+    --notice-strong: #ffdea8;
+
+    --shadow-soft: 0 1px 2px rgba(0, 0, 0, .5);
+    --shadow-cast: 0 14px 34px -18px rgba(0, 0, 0, .75);
+    --shadow-disc: 0 6px 20px rgba(0, 0, 0, .55);
+
+    --glyph-moon: none;
+    --glyph-sun: block;
+  }
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  --bone: #10150f;
+  --bone-raised: #1a211a;
+  --bone-dim: #181d17;
+  --bone-sunk: #0b100a;
+
+  --ink: #e0e4dd;
+  --ink-soft: #c1c9c0;
+  --ink-faint: #8b938a;   /* 5.4:1 on the dim band, the lowest-contrast ground it lands on */
+
+  --forest: #8fc7a1;
+  --forest-deep: #0c2417;
+  --sage: #24402e;
+  --sage-line: #8fc7a1;
+
+  --brass: #e3c38c;
+  --brass-surface: #2c2618;
+
+  --rule: #333c33;
+  --rule-strong: #5c665c;
+
+  --forest-hover: #b6dbc3;
+  --on-forest: #06371c;
+  --on-sage: #abe4bc;
+
+  --mark-tile: #2f5c3f;
+
+  --deep: #132b1c;
+
+  --notice-line: #5e4100;
+  --notice-ink: #e8dcc4;
+  --notice-strong: #ffdea8;
+
+  --shadow-soft: 0 1px 2px rgba(0, 0, 0, .5);
+  --shadow-cast: 0 14px 34px -18px rgba(0, 0, 0, .75);
+  --shadow-disc: 0 6px 20px rgba(0, 0, 0, .55);
+
+  --glyph-moon: none;
+  --glyph-sun: block;
 }
 
 * { box-sizing: border-box; }
@@ -112,15 +253,67 @@ input:focus-visible {
   font-family: var(--sans);
   font-size: 14px;
   font-weight: 500;
-  color: #fff;
+  color: var(--on-forest);
   background: var(--forest);
   padding: 8px 16px;
   border-radius: 999px;
   text-decoration: none;
 }
-.masthead .nav-cta:hover { background: var(--forest-deep); text-decoration: none; }
+.masthead .nav-cta:hover { background: var(--forest-hover); text-decoration: none; }
 @media (max-width: 620px) {
   .masthead nav .nav-link { display: none; }
+}
+
+
+/* ---------------------------------------------------------- light and dark */
+/*
+ * The toggle is a JavaScript control, so it is hidden until the inline script in the head has
+ * marked the document as scripted — the same bargain the demo's play button makes. With
+ * JavaScript off the page still follows prefers-color-scheme; it just cannot be overridden,
+ * and no dead button is offered.
+ *
+ * It sits outside .nav-link, so unlike the section links it survives on a phone: on a small
+ * screen the nav is the wordmark, this, and the download button.
+ */
+
+.theme-toggle { display: none; }
+:root[data-js] .theme-toggle {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border-radius: 999px;
+  border: 1px solid var(--rule);
+  background: transparent;
+  color: var(--ink-soft);
+  cursor: pointer;
+  transition: border-color .15s ease, color .15s ease, background-color .15s ease;
+}
+.theme-toggle:hover {
+  border-color: var(--forest);
+  color: var(--forest);
+  background: var(--bone-dim);
+}
+.theme-toggle svg { display: block; }
+.theme-toggle .i-moon { display: var(--glyph-moon); }
+.theme-toggle .i-sun { display: var(--glyph-sun); }
+
+/*
+ * Repainting the whole page on a click is the one place this site animates a colour, and it is
+ * worth it: without it the swap reads as a flicker rather than as the lights being turned down.
+ * Only the two grounds and the body text are transitioned — transitioning everything would drag
+ * the hairlines and the chart along with it and cost more than it buys.
+ */
+@media (prefers-reduced-motion: no-preference) {
+  :root[data-js] body,
+  :root[data-js] .masthead,
+  :root[data-js] .band-sunk,
+  :root[data-js] .slab,
+  :root[data-js] .chart-frame {
+    transition: background-color .2s ease, color .2s ease, border-color .2s ease;
+  }
 }
 
 /* ------------------------------------------------------- register headings */
@@ -231,8 +424,8 @@ h2.rule-label,
 .btn:hover { text-decoration: none; }
 .btn:active { transform: translateY(1px); }
 
-.btn-primary { background: var(--forest); color: #fff; }
-.btn-primary:hover { background: var(--forest-deep); }
+.btn-primary { background: var(--forest); color: var(--on-forest); }
+.btn-primary:hover { background: var(--forest-hover); }
 
 .btn-quiet {
   background: transparent;
@@ -298,7 +491,7 @@ h2.rule-label,
   border: 1px solid var(--rule);
   border-radius: 14px;
   padding: 10px 10px 0;
-  box-shadow: 0 1px 2px rgba(12, 36, 23, .04), 0 12px 32px -18px rgba(12, 36, 23, .22);
+  box-shadow: var(--shadow-soft), var(--shadow-cast);
 }
 .chart-stage { position: relative; }
 .chart-stage svg { display: block; width: 100%; height: auto; }
@@ -353,7 +546,7 @@ h2.rule-label,
 .node-slot:focus-visible .node-card { stroke-width: 2.5; stroke-dasharray: none; }
 
 .node-named .node-card { fill: var(--sage); stroke: var(--forest); stroke-dasharray: none; }
-.node-named .node-name { fill: var(--forest-deep); font-style: normal; }
+.node-named .node-name { fill: var(--on-sage); font-style: normal; }
 
 .name-input {
   position: absolute;
@@ -361,7 +554,7 @@ h2.rule-label,
   font-size: 15px;
   font-weight: 600;
   text-align: center;
-  color: var(--forest-deep);
+  color: var(--on-sage);
   background: var(--bone-raised);
   border: 2px solid var(--forest);
   border-radius: 8px;
@@ -372,7 +565,7 @@ h2.rule-label,
 
 .band { padding: clamp(52px, 7vw, 92px) 0; }
 .band-sunk { background: var(--bone-dim); border-block: 1px solid var(--rule); }
-.band-deep { background: var(--forest-deep); color: #dfe7e0; }
+.band-deep { background: var(--deep); color: var(--deep-ink); }
 
 /* Note: h2.rule-label deliberately out-specifies this — see the rule above the hero. */
 .band h2 {
@@ -384,7 +577,18 @@ h2.rule-label,
   text-wrap: balance;
 }
 .band p { margin: 0 0 18px; color: var(--ink-soft); max-width: 34em; }
-.band-deep p { color: #b3c4b8; }
+.band-deep p { color: var(--deep-ink-soft); }
+/*
+ * The deep band brings its own ground with it, so its label, its rule and its one button are
+ * set from the band's own tokens rather than the page's — they must read on dark green in
+ * either mode, not on whatever the page happens to be.
+ */
+.band-deep .rule-label { color: var(--deep-faint); }
+.band-deep .rule-label::after { background: var(--deep-hair); }
+.band-deep .btn-quiet { border-color: var(--deep-btn-line); color: var(--deep-btn-ink); }
+.band-deep .btn-quiet:hover { border-color: var(--deep-btn-ink); background: rgba(223, 231, 224, .07); }
+.band-deep a:focus-visible,
+.band-deep button:focus-visible { outline-color: var(--deep-btn-ink); }
 
 .split {
   display: grid;
@@ -435,15 +639,15 @@ h2.rule-label,
   align-items: baseline;
   gap: 14px;
   padding: 13px 0;
-  border-bottom: 1px solid rgba(179, 196, 184, .22);
+  border-bottom: 1px solid var(--deep-rule);
   font-family: var(--mono);
   font-size: 14px;
-  color: #dfe7e0;
+  color: var(--deep-ink);
 }
 .nots li::before {
   content: "no";
   flex: none;
-  color: var(--brass-surface);
+  color: var(--deep-brass);
   opacity: .8;
   font-size: 11px;
   letter-spacing: .14em;
@@ -517,11 +721,12 @@ h2.rule-label,
   height: 66px;
   border-radius: 999px;
   background: var(--forest);
-  box-shadow: 0 6px 20px rgba(12, 36, 23, .28);
+  color: var(--on-forest);   /* the triangle inside is filled with currentColor */
+  box-shadow: var(--shadow-disc);
   transition: background-color .15s ease, transform .15s ease;
 }
 .demo-play .disc svg { margin-left: 3px; }   /* a triangle looks off-centre when it is centred */
-.demo-play:hover .disc { background: var(--forest-deep); }
+.demo-play:hover .disc { background: var(--forest-hover); }
 .demo-play:focus-visible { outline: 2px solid var(--forest); outline-offset: 3px; }
 @media (prefers-reduced-motion: no-preference) {
   .demo-play:hover .disc { transform: scale(1.05); }
@@ -626,7 +831,7 @@ h2.rule-label,
   place-items: center;
   border-radius: 50%;
   background: var(--sage);
-  color: var(--forest-deep);
+  color: var(--on-sage);
   font-family: var(--mono);
   font-size: 13px;
   font-weight: 500;
@@ -657,13 +862,13 @@ h2.rule-label,
   gap: 14px;
   padding: 18px 20px;
   background: var(--brass-surface);
-  border: 1px solid #e3c38c;
+  border: 1px solid var(--notice-line);
   border-radius: 12px;
   font-size: 15.5px;
   line-height: 1.55;
-  color: #4a3810;
+  color: var(--notice-ink);
 }
-.notice strong { color: #2c1d00; }
+.notice strong { color: var(--notice-strong); }
 
 .hash {
   font-family: var(--mono);

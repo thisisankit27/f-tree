@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>f-tree — a private family tree app for Android, with a relationship finder</title>
 <meta name="description" content="A free, offline family tree app for Android. Ask how any two people are related and it names the relationship and shows the line. Record relatives whose names nobody remembers, keep everything on your phone, and share a branch as a file. No account, no server. English and Hindi kinship terms.">
+<meta name="theme-color" content="#f7f6f1" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#10150f" media="(prefers-color-scheme: dark)">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="canonical" href="https://ftree.vibethroughcode.com/">
 
@@ -51,6 +53,27 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,600;0,7..72,700;1,7..72,400&family=JetBrains+Mono:wght@400;500&display=swap">
 <link rel="stylesheet" href="style.css">
+
+<!--
+  The theme, decided before the first paint.
+
+  This runs where it sits, in the head, so the ground is already the right colour when the page
+  first draws — pushed to the end of the body it would flash bone at a reader who chose dark.
+  Nothing is stamped when there is no stored choice: the absence of the attribute is what lets
+  the prefers-color-scheme rule in style.css keep following the system, including live, while
+  data-js is what reveals the toggle (see style.css).
+-->
+<script>
+(function () {
+  var root = document.documentElement;
+  root.setAttribute('data-js', '');
+  try {
+    var saved = localStorage.getItem('ftree.theme');
+    if (saved === 'dark' || saved === 'light') root.setAttribute('data-theme', saved);
+  } catch (e) { /* private windows and blocked storage both land here; the system decides */ }
+})();
+</script>
+
 </head>
 <body>
 
@@ -58,12 +81,12 @@
   <div class="shell">
     <a class="wordmark" href="./">
       <svg width="26" height="26" viewBox="0 0 32 32" aria-hidden="true">
-        <rect width="32" height="32" rx="7" fill="#2A5138"/>
-        <g fill="none" stroke="#CDE6D5" stroke-width="1.7" stroke-linecap="round">
+        <rect width="32" height="32" rx="7" fill="var(--mark-tile)"/>
+        <g fill="none" stroke="var(--mark-line)" stroke-width="1.7" stroke-linecap="round">
           <circle cx="11" cy="9.5" r="3.1"/><circle cx="21" cy="9.5" r="3.1"/>
           <path d="M14.1 9.5h3.8"/><path d="M16 12.6v3.4M9 16h14M9 16v2.6M23 16v2.6"/>
           <circle cx="9" cy="22" r="3.1"/>
-          <circle cx="23" cy="22" r="3.1" stroke="#E3C38C" stroke-dasharray="2.2 2"/>
+          <circle cx="23" cy="22" r="3.1" stroke="var(--mark-dash)" stroke-dasharray="2.2 2"/>
         </g>
       </svg>
       f-tree
@@ -74,6 +97,15 @@
       <a class="nav-link" href="#merge">Sharing</a>
       <a class="nav-link" href="playground/">Viewer</a>
       <a class="nav-link" href="https://github.com/thisisankit27/f-tree">Source</a>
+      <button type="button" class="theme-toggle" id="theme-toggle" aria-label="Switch theme">
+        <svg class="i-moon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M20.5 14.3A8.5 8.5 0 0 1 9.7 3.5a8.5 8.5 0 1 0 10.8 10.8z"/>
+        </svg>
+        <svg class="i-sun" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="4.1"/>
+          <path d="M12 2.6v2.2M12 19.2v2.2M4.35 4.35l1.55 1.55M18.1 18.1l1.55 1.55M2.6 12h2.2M19.2 12h2.2M4.35 19.65 5.9 18.1M18.1 5.9l1.55-1.55"/>
+        </svg>
+      </button>
       <a class="nav-cta" href="thanks/">Download</a>
     </nav>
   </div>
@@ -392,7 +424,7 @@
 <section class="band band-deep">
   <div class="shell split">
     <div>
-      <p class="rule-label" style="color:#8fa694">Local first</p>
+      <p class="rule-label">Local first</p>
       <h2>No account, because there's no server.</h2>
       <p>
         f-tree never asks who you are, because your tree never leaves the phone. That isn't a
@@ -406,8 +438,7 @@
         it only asks.
       </p>
       <p style="margin-top:26px">
-        <a class="btn btn-quiet" style="border-color:#4a6a55;color:#cde6d5"
-           href="https://github.com/thisisankit27/f-tree">Read the source</a>
+        <a class="btn btn-quiet" href="https://github.com/thisisankit27/f-tree">Read the source</a>
       </p>
     </div>
     <ul class="nots">
