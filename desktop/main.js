@@ -52,6 +52,22 @@ const VIEWER = app.isPackaged
 /* The mark, for the window and its place in the taskbar. */
 const ICON_FOR_WINDOW = path.join(__dirname, 'build', 'icons', '256x256.png');
 
+/*
+ * The smoke test gets a userData directory of its own.
+ *
+ * Several of its assertions are about *defaults* - update checking off, beta releases off - and
+ * settings persist, so run from a machine where somebody has been using the app and the test reads
+ * their choices and reports the app broken. That is a false alarm on a developer's machine and,
+ * worse, silence on CI: there the directory is always fresh, so a bug that flipped a default would
+ * pass. Neither is a test. Point it somewhere empty and it asserts what it says it asserts.
+ *
+ * Before `app.whenReady()` on purpose: `setPath` is only honoured this early.
+ */
+if (process.env.FTREE_SMOKE) {
+  app.setPath('userData', require('node:fs')
+    .mkdtempSync(path.join(os.tmpdir(), 'ftree-smoke-')));
+}
+
 const stateFile = () => path.join(app.getPath('userData'), 'session.json');
 const settingsFile = () => path.join(app.getPath('userData'), 'settings.json');
 
@@ -545,7 +561,7 @@ ipcMain.handle('tree:last', async () => {
  * shell, the preload bridge and the viewer only meet each other once a window exists. So the test
  * is the real app, started the real way, opening a real `.ftree` - and it asserts the things that
  * would actually be broken if the wiring came apart: the bridge is reachable, the tree arrived,
- * every person was drawn, and the generations run in columns rather than rows.
+ * every person was drawn, and the layout ran.
  */
 async function runSmoke(win, file) {
   const failures = [];
@@ -593,8 +609,13 @@ async function runSmoke(win, file) {
   check('the tree opened', seen.state === 'loaded',
     `${seen.state}${seen.openerError ? ' — ' + seen.openerError : ''}${seen.hint ? ' — ' + seen.hint : ''}`);
   check('the file name is shown', Boolean(seen.fileName), String(seen.fileName));
-  // The whole reason the desktop app is not just the website in a window.
-  check('generations run in columns, as they do in the app', seen.orientation === 'columns',
+  /*
+   * Both shells are landscape readers: a generation is a row. This asserted `columns` until the
+   * desktop app was looked at on an actual laptop, where following the phone read badly. It is
+   * kept, pointing the other way, because it is the assertion that catches the layout silently
+   * not running -- `orientation` is only set once `layoutArchive` has returned.
+   */
+  check('generations run in rows, as they do on the website', seen.orientation === 'rows',
     String(seen.orientation));
   check('the archive was read and counted', /\d+ people/.test(seen.status ?? ''), String(seen.status));
   // Refusing the network must not quietly cost the app its typography.

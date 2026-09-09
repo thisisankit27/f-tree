@@ -102,8 +102,9 @@ package name and signing certificate before it installs anything. See
 ### On a laptop — Windows and Ubuntu
 
 The **[desktop app](https://ftree.vibethroughcode.com/desktop/)**
-opens an exported `.ftree` on a big screen and draws it the way the phone does: a generation is a
-column, ancestors at the left. Windows gets an installer; Linux gets an AppImage or a `.deb`.
+opens an exported `.ftree` on a big screen, laid out for the screen it is on: a generation is a
+row, ancestors at the top, the tree running across the width. Windows gets an installer; on Linux
+take the `.deb`.
 
 It reads a tree today — editing, settings and the updater are
 [being built](https://github.com/thisisankit27/f-tree/issues/89). Nothing leaves the machine.

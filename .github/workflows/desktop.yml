@@ -9,6 +9,19 @@ name: Desktop
 # beta channel. Publishing as a pre-release on top of that keeps `releases/latest` - the endpoint
 # the ordinary channel reads - answering with the newest *app* release. Two independent reasons a
 # phone will never be offered an .AppImage, because there are live users on the app.
+#
+# The pre-release flag now carries a second meaning as well: the desktop app stays a pre-release
+# until issue #89 is finished. Until then it reads a tree and does not build one, and calling any
+# build of it a stable release would claim a completeness it does not have.
+#
+# Worth keeping straight, because the two senses of "beta" are not the same mechanism:
+#
+#   GitHub's pre-release flag  ->  how finished this is. Set on every desktop release.
+#   the tag's suffix           ->  the app's own beta channel. `desktop-v0.3.3` is stable to it;
+#                                  `desktop-v0.3.3-beta.1` is not. See update.js.
+#
+# So a reader who has not opted into betas is still offered `desktop-v0.3.3`. That is deliberate:
+# withholding it would strand people on a build that will not start on current Ubuntu.
 on:
   push:
     branches: [main]
@@ -39,8 +52,9 @@ jobs:
         working-directory: desktop
         run: npm test
 
-      # The layout is checked in both orientations here as well as in the site workflow: the
-      # desktop draws in columns, and that is this app's invariant to keep, not the website's.
+      # The layout is checked in both orientations here as well as in the site workflow. Both
+      # shells draw rows today, but the engine keeps columns and so does this check: an
+      # orientation nobody currently ships is exactly the one that rots unnoticed.
       - name: Check the layout, rows and columns
         run: |
           python3 tools/make_sample_tree.py "$RUNNER_TEMP/fixtures"
@@ -133,5 +147,7 @@ jobs:
             Chromium a working sandbox helper without you touching anything; the portable
             \`.tar.gz\` and the \`.AppImage\` need one \`sudo chmod 4755\` on Ubuntu 24.04+.
 
-          Marked a pre-release on purpose. It is how this repository keeps the Android app's update
-          channel pointing at Android releases; it says nothing about how finished this build is."
+          Marked a pre-release on purpose, for two reasons. It keeps the Android app's update
+          channel pointing at Android releases; and the desktop app stays a pre-release until
+          [#89](https://github.com/thisisankit27/f-tree/issues/89) is done, because it reads a
+          tree today and does not yet build one."
