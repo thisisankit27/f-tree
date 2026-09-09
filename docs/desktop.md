@@ -106,7 +106,38 @@ Publishing a desktop build as an ordinary release would make `releases/latest` r
 with no APK on it, and every phone checking for updates would quietly stop being offered any. Two
 guards, because there are live users on the app.
 
+## The updater
+
+Two switches under **Updates**, both off until the reader turns them on, and the same two the
+Android app offers for the same reasons:
+
+| | |
+|---|---|
+| Check for updates automatically | one quiet look at startup; silent unless there is something to say |
+| Offer me beta releases | asks first, and states the consequence, as the app's dialog does |
+
+`update.js` holds the decision and nothing else — which release, for which platform, on which
+channel — as a pure function, so the awkward cases are settled by the table in `update.test.js`
+rather than against the network. That is the mitigation promised in #89 for porting rules into a
+second language: a divergence fails a test.
+
+Two rules differ from the Kotlin on purpose, and both are commented where they live:
+
+- Every desktop release is a GitHub *pre-release* by design, so `prerelease` cannot mean "beta"
+  here. The **suffix on the tag** does: `desktop-v0.2.0` is stable, `desktop-v0.2.0-beta.1` is not.
+- An empty candidate list means "up to date" rather than "nothing usable" when it was the channel
+  filter that emptied it. A reader who has not asked for betas, on the newest stable build, is up
+  to date; telling them the repository is broken would point at the wrong thing.
+
+Downloads are verified against the SHA-256 GitHub publishes for the asset **before** anything is
+offered to run; a mismatch deletes the file and installs nothing. On Windows the installer can be
+launched from the app. On Linux the AppImage is downloaded and revealed — a `.deb` needs `apt` and
+an AppImage is the reader's file to put where they want it, so the app does not pretend otherwise.
+
+**This is the one thing that reaches the network,** and it is made from the main process. The window
+stays refused outright, so nothing the page contains can ever call out.
+
 ## Not yet
 
-The desktop app currently **reads** a tree. Editing, the settings screen, Hindi kinship, photos and
-the updater are tracked in [#89](https://github.com/thisisankit27/f-tree/issues/89).
+The desktop app currently **reads** a tree. Editing, the settings screen, Hindi kinship and photos
+are tracked in [#89](https://github.com/thisisankit27/f-tree/issues/89).
