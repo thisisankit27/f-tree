@@ -366,3 +366,35 @@
   pointer-events: auto;
   justify-self: center;
 }
+
+/* ------------------------------------------------------------------ the people list */
+
+.editor .index-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.editor .segmented.small button {
+  font-size: 12px;
+  padding: 4px 10px;
+}
+
+/* Which person the panel is currently editing, marked where the eye already is. */
+.editor .index-row[aria-current='true'] {
+  outline: 2px solid var(--accent, #c56a3a);
+  outline-offset: -2px;
+  border-radius: 8px;
+}
+
+/*
+ * The list scrolls under the panel rather than beside it.
+ *
+ * A two-column layout would give the list a third of the width on a laptop and make the names --
+ * the whole reason for this view -- the first thing to be truncated.
+ */
+.editor .index {
+  overflow-y: auto;
+}

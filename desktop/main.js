@@ -903,6 +903,11 @@ async function runSmoke(win, file) {
     literata: document.fonts.check('16px Literata'),
     mono: document.fonts.check('13px "JetBrains Mono"'),
     counts: document.getElementById('counts')?.textContent?.trim() ?? null,
+    peopleRows: (() => {
+      document.querySelector('[data-view="index"]')?.click();
+      return document.querySelectorAll('#index-list .index-row').length;
+    })(),
+    peopleNote: document.getElementById('index-note')?.textContent ?? null,
     // The editor's own surface. A page that reads a tree but cannot change one is not this app.
     canEdit: Boolean(document.getElementById('add-person') && document.getElementById('save')),
     undoPresent: Boolean(document.getElementById('undo') && document.getElementById('redo')),
@@ -935,6 +940,13 @@ async function runSmoke(win, file) {
   check('the page can change a tree, not only read one', seen.canEdit === true);
   check('undo and redo are there', seen.undoPresent === true);
   check('a person can be opened for editing', seen.panelExists === true);
+  /*
+   * The list is not a second opinion on the chart. At the zoom that fits a large family on one
+   * screen no name is readable, so this is the only way to find somebody by name -- and the only
+   * place a person with no relatives is as visible as everybody else.
+   */
+  check('everybody in the file is listed by name', seen.peopleRows === 23,
+    `${seen.peopleRows} rows — ${seen.peopleNote}`);
   // Refusing the network must not quietly cost the app its typography.
   check('the bundled typefaces loaded without the network', seen.literata && seen.mono,
     `Literata ${seen.literata}, JetBrains Mono ${seen.mono}`);
