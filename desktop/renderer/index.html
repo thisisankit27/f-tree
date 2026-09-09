@@ -73,6 +73,7 @@
       <div class="segmented" role="group" aria-label="View">
         <button type="button" data-view="chart" aria-pressed="true">Chart</button>
         <button type="button" data-view="index" aria-pressed="false">People</button>
+        <button type="button" data-view="compact" aria-pressed="false">Compact</button>
       </div>
 
       <button type="button" class="tool primary-tool" id="add-person">Add a person</button>
@@ -152,6 +153,18 @@
         <p class="index-note" id="index-note"></p>
         <ol class="index-list" id="index-list"></ol>
       </div>
+    </section>
+
+    <!-- ------------------------------------------------------------ generation bands -->
+    <!--
+      The third reading of a tree, and the only one that is composed rather than painted. The chart
+      is a picture: to read a name you zoom, to reach a relative you pan, and a canvas holds nothing
+      at all for a screen reader. The people list is alphabetical and has no family in it. This is
+      the missing middle -- the same people, as generations you can read at any size, with a
+      keyboard and nothing else.
+    -->
+    <section class="compact" id="compact" data-when="compact" hidden aria-label="Generations">
+      <div class="compact-inner" id="compact-inner"></div>
     </section>
 
     <!-- ------------------------------------------------------------ one person, editable -->

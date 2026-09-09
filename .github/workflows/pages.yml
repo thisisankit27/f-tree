@@ -47,6 +47,13 @@ jobs:
                    | sed -E 's/:(src|href)="/ /; s/"$//')
           test "$missing" -eq 0
 
+      # The engine's own suites, which are the rules ported out of the Kotlin rather than anything
+      # about the page: who belongs on a chart centred on one person, and how a generation is read
+      # across. They run here as well as in the desktop workflow because the engine ships to both
+      # shells, and the site is the one that deploys without a desktop build in the way.
+      - name: The engine's rules, ported out of the Kotlin
+        run: node --test "site/playground/*.test.mjs"
+
       - name: Check the viewer parses and lays out a real archive
         run: |
           set -euo pipefail

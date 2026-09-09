@@ -658,3 +658,239 @@
   scrollbar-width: thin;
   scrollbar-color: var(--rule-strong) transparent;
 }
+
+/* ------------------------------------------------------------------ generations, as bands */
+
+/*
+ * The compact view.
+ *
+ * It borrows the index view's furniture deliberately -- the serif heading, the mono note, the
+ * tracked heading over a hairline -- because it is the same app reading the same tree, and a third
+ * visual language would say there was a third kind of thing here. What it does not borrow is the
+ * row: the index is a list of people, and this is a list of *generations*.
+ *
+ * The one device invented here is the marriage rule, and it is not decoration. The chart joins a
+ * couple with a doubled line; between names, the same doubled line, and only where there really was
+ * a marriage. Somebody who married twice sits between their two spouses with a rule on each side,
+ * which is exactly what the chart draws and exactly what a single flat list cannot say.
+ */
+
+/*
+ * The chart stands down while the bands are up.
+ *
+ * playground.css already does this for the index view, but it is shared with the website, which has
+ * no compact view to hide anything for. So the rule for this one lives here, with the view.
+ */
+.editor.viewer[data-view='compact'] [data-when='chart'] { display: none; }
+
+.editor .compact { position: absolute; inset: 0; overflow-y: auto; }
+
+.editor .compact-inner {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: clamp(18px, 2.4vw, 30px) clamp(18px, 3vw, 36px) 96px;
+}
+
+.editor .band-head { margin-bottom: 2px; }
+.editor .compact .index-heading { font-size: clamp(21px, 2.4vw, 27px); margin-bottom: 5px; }
+.editor .compact .index-note { margin-bottom: 0; }
+
+/*
+ * The heading over each generation: the name of the generation, and how many people it is about.
+ *
+ * The count is pushed to the far end rather than tucked after the words, so a reader scanning down
+ * the page reads a column of numbers -- four grandparents, two parents, three children -- which is
+ * a shape you can take in without reading any of the names.
+ */
+.editor .band-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: var(--brass);
+  padding: 22px 0 7px;
+  margin: 0 0 4px;
+  border-bottom: 1px solid var(--rule);
+}
+
+.editor .band-count {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: .06em;
+  color: var(--ink-faint);
+}
+
+/*
+ * Baseline, not centre.
+ *
+ * Centring puts the marriage rule on the middle of the whole name button -- name and years
+ * together -- which lands it in the gap between the two lines, where it reads as a dash between
+ * two names or, worse, as a line struck through them. Aligned to the baseline it sits across the
+ * middle of the names themselves, which is where the chart draws it.
+ */
+.editor .band-group {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 4px;
+  padding: 0;
+}
+
+.editor .band-name {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  color: inherit;
+  font-family: var(--serif);
+  text-align: left;
+  padding: 5px 9px;
+  border-radius: 3px;
+  min-width: 0;
+}
+
+.editor .band-name:hover,
+.editor .band-name:focus-visible {
+  background: var(--bone-dim);
+  outline: none;
+}
+
+.editor .band-name:focus-visible { box-shadow: inset 0 0 0 2px var(--forest); }
+
+.editor .band-who { font-size: 16.5px; font-weight: 600; line-height: 1.25; }
+.editor .band-who em { color: var(--brass); font-style: italic; }
+
+.editor .band-when {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--ink-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+/*
+ * Married into this generation rather than born to it.
+ *
+ * Lighter, and not italic: italics already mean "no name recorded" everywhere in this app, and one
+ * mark cannot mean two things. The heading has declined to count them, which is the load-bearing
+ * statement; this is only so the row can be read without consulting it.
+ */
+.editor .band-name[data-married='true'] .band-who {
+  font-weight: 400;
+  color: var(--ink-soft);
+}
+
+/* The gap between two people in a group who did not marry each other: a gap, and nothing else. */
+.editor .band-join { width: 14px; }
+
+/* The mark the chart draws. Two rules, because one would read as a dash between two names. */
+.editor .band-join.married {
+  width: 22px;
+  height: 8px;
+  border-top: 1px solid var(--rule-strong);
+  border-bottom: 1px solid var(--rule-strong);
+  flex: none;
+  /*
+   * An empty flex item synthesises its baseline from the bottom of its border box, so it lands
+   * just under the names rather than across them. Margin does not move it -- measured, it does
+   * not -- so the last 3px are nudged, which is safe here because the mark is drawn rather than
+   * laid out: nothing else is positioned from it.
+   */
+  position: relative;
+  top: -3px;
+}
+
+/*
+ * The person the reading is centred on.
+ *
+ * The one loud element on the page, and the only one, because it answers the question a reader
+ * arriving here has: whose family is this? Everything above it is their ancestry and everything
+ * below is their descent, so it is also the hinge the page turns on -- worth finding without
+ * reading.
+ */
+.editor .band-focus {
+  background: var(--sage-container);
+  border-radius: 4px;
+  padding: 13px 18px 12px;
+  margin: 26px 0 2px;
+  /* Sized to the person, not to the column. Run full width and it becomes a banner with half of
+     itself empty; sized to its contents it is what it actually is -- the card this reading is
+     about -- and the generations above and below still read as being either side of it. */
+  width: fit-content;
+  max-width: 100%;
+}
+
+.editor .band-focus-head {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+/* The years sit against the name rather than across the block: at this width, pushing them to the
+   far edge separates a person from their own dates by 500px of nothing. */
+.editor .band-focus-when { margin-right: auto; }
+
+.editor .band-focus-name {
+  font-family: var(--serif);
+  font-size: clamp(19px, 2vw, 23px);
+  font-weight: 600;
+  letter-spacing: -.015em;
+  line-height: 1.15;
+  margin: 0;
+  color: var(--ink);
+}
+
+.editor .band-focus-when {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--ink-soft);
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.editor .band-focus-married {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0 2px;
+  font-family: var(--serif);
+  font-size: 14.5px;
+  color: var(--ink-soft);
+  margin: 2px 0 0;
+  margin-left: -5px;   /* the name button carries its own padding; pull the row back into line */
+}
+
+.editor .band-focus-married .band-name { padding: 4px 5px; }
+.editor .band-focus-married .band-who { font-size: 14.5px; font-weight: 600; color: var(--ink); }
+.editor .band-focus-married .band-when { display: none; }
+.editor .band-focus-married .band-name:hover,
+.editor .band-focus-married .band-name:focus-visible { background: rgba(0, 0, 0, .06); }
+
+.editor .band-edit {
+  font-size: 12px;
+  padding: 6px 13px;
+  align-self: center;
+  flex: none;
+}
+
+.editor .band-more { margin-top: 30px; }
+
+.editor .band-empty {
+  font-family: var(--serif);
+  font-size: 16px;
+  color: var(--ink-soft);
+  line-height: 1.6;
+  margin: 0;
+}
+
+/* One name per line on a narrow window: a marriage rule that wraps says nothing. */
+@media (max-width: 560px) {
+  .editor .band-group { flex-direction: column; align-items: flex-start; gap: 0; }
+  .editor .band-join.married { width: 22px; margin: 0 0 0 9px; height: 5px; }
+}
