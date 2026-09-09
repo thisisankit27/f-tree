@@ -224,8 +224,33 @@ test('an edited tree writes a file the reader accepts', async () => {
 });
 
 test('sourceTreeId is carried through, not reissued', () => {
-  const tree = new Tree({ sourceTreeId: 'the-phone', people: [{ id: 'a' }] });
+  // The importer recognises a file whose sourceTreeId matches its own and then matches people by
+  // id with no name comparison at all. Rewriting it would send a desktop-edited tree back to the
+  // phone as a stranger.
+  const tree = new Tree({ sourceTreeId: 'the-phone', people: [{ id: 'a' }] },
+    { ownTreeId: 'this-desktop' });
   assert.strictEqual(tree.toExchange().sourceTreeId, 'the-phone');
+});
+
+test('a tree that came from nowhere takes this installation id', () => {
+  const tree = new Tree({}, { ownTreeId: 'this-desktop' });
+  tree.addPerson({ name: 'The first person anybody adds here' });
+  assert.strictEqual(tree.toExchange().sourceTreeId, 'this-desktop');
+});
+
+test('a tree started here is not written claiming the empty origin', () => {
+  /*
+   * The value that must never reach a file. Every desktop would be claiming it, so importing one
+   * such tree into another would match people who share nothing but a position in a list.
+   */
+  const tree = new Tree({}, { ownTreeId: 'this-desktop' });
+  assert.notStrictEqual(tree.toExchange().sourceTreeId, '');
+});
+
+test('an empty sourceTreeId in a file is replaced, not preserved', () => {
+  // A file written by an older desktop build, before it had an identity of its own.
+  const tree = new Tree({ sourceTreeId: '', people: [{ id: 'a' }] }, { ownTreeId: 'this-desktop' });
+  assert.strictEqual(tree.toExchange().sourceTreeId, 'this-desktop');
 });
 
 test('exportedAt is stamped at save time', () => {

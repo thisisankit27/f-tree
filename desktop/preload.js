@@ -13,6 +13,14 @@ contextBridge.exposeInMainWorld('ftreeDesktop', {
   platform: process.platform,
   version: () => ipcRenderer.invoke('app:version'),
 
+  /**
+   * This installation's own id, stamped into a tree started here.
+   *
+   * Not cosmetic: a tree written with an empty origin cannot be told apart from every other
+   * desktop's, and importing two of them into one another merges strangers. See identity.js.
+   */
+  installationId: () => ipcRenderer.invoke('app:installationId'),
+
   /** Opens the system file picker and returns { name, bytes } or null if it was cancelled. */
   chooseTree: () => ipcRenderer.invoke('tree:choose'),
 

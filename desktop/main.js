@@ -18,6 +18,7 @@ const path = require('node:path');
 
 const { chooseUpdate } = require('./update');
 const { writeTreeFile } = require('./atomic');
+const { installationId } = require('./identity');
 
 /*
  * A window needs somewhere to be.
@@ -389,6 +390,12 @@ function buildMenu(win) {
     {
       label: 'File',
       submenu: [
+        /*
+         * First, and not as a courtesy. Somebody may have installed this having never owned the
+         * phone app, and for them "Open tree" is a dead end -- there is nothing to open.
+         */
+        { label: 'New tree', accelerator: 'CmdOrCtrl+N',
+          click: () => win.webContents.send('menu:command', 'file:new') },
         { label: 'Open tree…', accelerator: 'CmdOrCtrl+O', click: () => chooseInto(win) },
         { type: 'separator' },
         /*
@@ -475,7 +482,8 @@ function buildMenu(win) {
             type: 'info',
             message: `f-tree ${app.getVersion()}`,
             detail: 'A local-first family tree. Everything stays on this machine: no account, no '
-              + 'cloud, no backend. Open a .ftree exported from the Android app to read it here.',
+              + 'cloud, no backend. It reads and writes .ftree files, the same ones the Android '
+              + 'app uses — but it does not need it: a tree can start here.',
             buttons: ['OK'],
           }),
         },
@@ -636,6 +644,14 @@ async function createWindow() {
 }
 
 ipcMain.handle('app:version', () => app.getVersion());
+
+/*
+ * Who this installation is, for a tree started here.
+ *
+ * Minted once and never changed. The page needs it before it can create a tree, because a tree
+ * written without one claims the empty origin -- see identity.js.
+ */
+ipcMain.handle('app:installationId', () => installationId(app.getPath('userData')));
 ipcMain.handle('tree:choose', async (event) => {
   const win = BrowserWindow.fromWebContents(event.sender);
   return chooseInto(win);
