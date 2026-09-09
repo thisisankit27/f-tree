@@ -119,7 +119,7 @@ async function openFile(file) {
     if (graph.people.size === 0) {
       throw new ArchiveError('That file parsed, but it has no people in it.');
     }
-    const layout = layoutArchive(graph, { orientation: ORIENTATION });
+    const layout = layoutArchive(graph, { orientation: 'rows' });
 
     releasePhotos();
     state.graph = graph;
@@ -836,12 +836,16 @@ function wireKeys() {
  * for. Everything below is additive: with no shell there is no `desktop`, and the website behaves
  * exactly as it did.
  *
- * The one thing that genuinely differs is which way the tree runs. On the web this is a landscape
- * reader for a whole archive on a big screen, and generations read as rows. The desktop app is the
- * Android app's sibling and follows the app: a generation is a column, ancestors at the left.
+ * The tree runs the same way in both. It did not at first: the desktop app followed the phone and
+ * drew a generation as a column, on the reasoning that it is the Android app's sibling. Seen on a
+ * laptop that was simply worse -- a column layout is what you reach for when the screen is taller
+ * than it is wide, and a laptop never is. So both shells are landscape readers now, generations as
+ * rows, and the shell no longer changes how the tree is drawn at all.
+ *
+ * The engine still does both, and `tools/check_layout.mjs` still checks both in CI. Columns are a
+ * layout this can offer again -- as a setting, if it is ever wanted -- not a capability thrown away.
  */
 const desktop = globalThis.ftreeDesktop ?? null;
-const ORIENTATION = desktop ? 'columns' : 'rows';
 
 function wireDesktop() {
   if (!desktop) return;
