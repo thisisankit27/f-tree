@@ -45,6 +45,10 @@ const state = {
   selected: null,
   /** Which kind of relative the "add" form is currently offering. */
   adding: null,
+  /** 'chart' or 'index'. */
+  view: 'chart',
+  /** 'all' or 'living' -- the same filter the phone's people list offers. */
+  who: 'all',
   saving: false,
 };
 
@@ -106,6 +110,7 @@ function rebuild({ refit = false } = {}) {
 
   document.body.dataset.orientation = state.layout.orientation;
   renderCounts();
+  renderPeople();
   renderPanel();
   renderEmptyInvitation();
   reflectDirty();
@@ -136,6 +141,94 @@ function renderCounts() {
     ? 'Nobody yet'
     : `${count(people, 'person', 'people')}·`
       + `${count(state.tree.relationships.length, 'connection', 'connections')}`;
+}
+
+/* ------------------------------------------------------------------ everyone, as a list */
+
+function setView(view) {
+  state.view = view;
+  $('viewer').dataset.view = view;
+  for (const button of document.querySelectorAll('[data-view]')) {
+    button.setAttribute('aria-pressed', String(button.dataset.view === view));
+  }
+  $('index').hidden = view !== 'index';
+  if (view === 'chart') chart.resize();
+  else renderPeople();
+}
+
+/**
+ * Everyone, grouped as the chart groups them and sorted by name.
+ *
+ * Grouped rather than one flat list because the grouping carries information the chart shows and
+ * a list normally loses: which people form a family, and which are connected to nobody at all.
+ * That last group is the reason this view exists on the website too -- somebody with no recorded
+ * relatives is invisible in a family chart and perfectly visible here.
+ */
+function renderPeople() {
+  if (!state.graph || !state.layout) return;
+  const list = $('index-list');
+  const query = $('search').value.trim().toLowerCase();
+
+  const wanted = (person) => {
+    if (state.who === 'living' && person.deceased) return false;
+    if (!query) return true;
+    return (person.name ?? 'unknown').toLowerCase().includes(query)
+      || (person.birthDate ?? '').includes(query);
+  };
+
+  list.replaceChildren();
+  let shown = 0;
+
+  for (const group of state.layout.groups) {
+    const members = group.members
+      .map((id) => state.graph.people.get(id))
+      .filter(Boolean)
+      .filter(wanted)
+      .sort((a, b) => (a.name ?? '\uffff').localeCompare(b.name ?? '\uffff'));
+    if (!members.length) continue;
+
+    const heading = document.createElement('li');
+    heading.className = 'index-group';
+    heading.textContent = group.kind === 'isolated'
+      ? `Not connected to anyone · ${count(group.count, 'person', 'people')}`
+      : `A family of ${group.count} · ${count(group.generations, 'generation', 'generations')}`;
+    list.append(heading);
+
+    for (const person of members) {
+      shown += 1;
+      const li = document.createElement('li');
+      const row = document.createElement('button');
+      row.type = 'button';
+      row.className = 'index-row';
+      if (person.id === state.selected) row.setAttribute('aria-current', 'true');
+
+      const left = document.createElement('span');
+      const who = document.createElement('span');
+      who.className = 'who';
+      who.textContent = displayName(person);
+      const when = document.createElement('span');
+      when.className = 'when';
+      when.textContent = lifespan(person) || '\u00a0';
+      left.append(who, document.createElement('br'), when);
+
+      const how = document.createElement('span');
+      how.className = 'how';
+      const groups = relationsOf(state.graph, person.id);
+      how.textContent = groups.length
+        ? groups.map((g) => count(g.items.length, ...RELATION_WORDS[g.heading])).join(' · ')
+        : 'No recorded relatives';
+
+      row.append(left, how);
+      row.addEventListener('click', () => select(person.id));
+      li.append(row);
+      list.append(li);
+    }
+  }
+
+  const total = state.tree.people.length;
+  $('index-note').textContent = shown === total
+    ? `${count(total, 'person', 'people')}, sorted by name within each family.`
+    : `${shown} of ${count(total, 'person', 'people')} shown.`;
 }
 
 /** A tree with nobody in it is where every tree starts, so it gets an invitation, not an error. */
@@ -170,6 +263,20 @@ const GENDERS = [
   ['FEMALE', 'Female'],
   ['OTHER', 'Other'],
 ];
+
+/*
+ * The headings `relationsOf` groups by, with a singular for each.
+ *
+ * Lowercasing the heading and printing it beside a number is what produces "1 parents" and, worse,
+ * "1 childrens" for anyone who reaches for a naive de-pluraliser. English does not have a rule
+ * here, so the words are simply listed.
+ */
+const RELATION_WORDS = {
+  Parents: ['parent', 'parents'],
+  Partners: ['partner', 'partners'],
+  Siblings: ['sibling', 'siblings'],
+  Children: ['child', 'children'],
+};
 
 const KINDS = [
   ['parent', 'Parent'],
@@ -464,6 +571,8 @@ function select(id) {
   chart.selected = id;
   chart.invalidate();
   renderPanel();
+  // The list marks who is being edited, so it has to hear about a selection made on the chart.
+  if (state.view === 'index') renderPeople();
 }
 
 function addPerson() {
@@ -674,6 +783,19 @@ function wireChrome() {
   $('redo').addEventListener('click', redo);
   $('panel-close').addEventListener('click', () => select(null));
 
+  for (const button of document.querySelectorAll('[data-view]')) {
+    button.addEventListener('click', () => setView(button.dataset.view));
+  }
+  for (const button of document.querySelectorAll('[data-who]')) {
+    button.addEventListener('click', () => {
+      state.who = button.dataset.who;
+      for (const other of document.querySelectorAll('[data-who]')) {
+        other.setAttribute('aria-pressed', String(other.dataset.who === state.who));
+      }
+      renderPeople();
+    });
+  }
+
   $('zoom-in').addEventListener('click', () => { chart.zoomBy(1.25); updateZoom(); });
   $('zoom-out').addEventListener('click', () => { chart.zoomBy(0.8); updateZoom(); });
   $('fit').addEventListener('click', () => { chart.fit(); updateZoom(); });
@@ -688,6 +810,9 @@ function wireChrome() {
   const search = $('search');
   const results = $('search-results');
   search.addEventListener('input', () => {
+    // In the list the search filters in place; a dropdown over a filtered list would be two
+    // answers to one question.
+    if (state.view === 'index') { results.hidden = true; renderPeople(); return; }
     const term = search.value.trim().toLowerCase();
     results.replaceChildren();
     if (!state.tree || term.length < 2) { results.hidden = true; return; }
@@ -726,6 +851,8 @@ function wireShell() {
     if (command === 'zoom:in') { chart.zoomBy(1.25); updateZoom(); return; }
     if (command === 'zoom:out') { chart.zoomBy(0.8); updateZoom(); return; }
     if (command === 'zoom:fit') { chart.fit(); updateZoom(); return; }
+    if (command === 'view:chart') { setView('chart'); return; }
+    if (command === 'view:index') { setView('index'); return; }
     if (command === 'search') { $('search').focus(); return; }
     if (command === 'theme') { $('theme-btn').click(); return; }
     if (command === 'close') {
@@ -747,6 +874,9 @@ function wireKeys() {
     }
     if (typing) return;
     if (event.key === '/') { event.preventDefault(); $('search').focus(); }
+    if (event.key === 'i' || event.key === 'I') {
+      setView(state.view === 'index' ? 'chart' : 'index');
+    }
     if (event.key === 'f' || event.key === 'F') { chart.fit(); updateZoom(); }
   });
 }

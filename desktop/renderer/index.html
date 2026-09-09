@@ -70,6 +70,11 @@
         <ul class="search-results" id="search-results" role="listbox" hidden></ul>
       </div>
 
+      <div class="segmented" role="group" aria-label="View">
+        <button type="button" data-view="chart" aria-pressed="true">Chart</button>
+        <button type="button" data-view="index" aria-pressed="false">People</button>
+      </div>
+
       <button type="button" class="tool primary-tool" id="add-person">Add a person</button>
 
       <div class="undo-pair" role="group" aria-label="Undo and redo">
@@ -123,10 +128,31 @@
     </section>
 
     <!-- ------------------------------------------------------------ the chart -->
-    <canvas id="canvas" tabindex="0" role="img"
+    <canvas id="canvas" data-when="chart" tabindex="0" role="img"
             aria-label="Family chart. Select a person to edit them."></canvas>
 
-    <p class="hint" id="hint" hidden></p>
+    <p class="hint" id="hint" data-when="chart" hidden></p>
+
+    <!-- ------------------------------------------------------------ everyone, as a list -->
+    <!--
+      The chart cannot be read at the zoom that fits a large family on one screen, so this is not
+      a second opinion on the same information: it is the only way to find somebody by name in a
+      tree of any size, and the only place a person with no relatives is as visible as anybody
+      else.
+    -->
+    <section class="index" id="index" data-when="index" hidden>
+      <div class="index-inner">
+        <div class="index-head">
+          <h2 class="index-heading">Everyone in this tree</h2>
+          <div class="segmented small" role="group" aria-label="Who to show">
+            <button type="button" data-who="all" aria-pressed="true">Everyone</button>
+            <button type="button" data-who="living" aria-pressed="false">Living</button>
+          </div>
+        </div>
+        <p class="index-note" id="index-note"></p>
+        <ol class="index-list" id="index-list"></ol>
+      </div>
+    </section>
 
     <!-- ------------------------------------------------------------ one person, editable -->
     <aside class="panel edit-panel" id="panel" hidden aria-label="Edit this person">
