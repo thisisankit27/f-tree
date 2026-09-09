@@ -30,6 +30,8 @@ Ask how any two people are related and it names the relationship, in English or 
 <a href="https://github.com/thisisankit27/f-tree/releases/latest"><img src="https://img.shields.io/badge/Download%20the%20APK-2a5138?style=for-the-badge&logo=android&logoColor=white" alt="Download the APK" height="34"></a>
 &nbsp;
 <a href="https://ftree.vibethroughcode.com/playground/"><img src="https://img.shields.io/badge/Try%20it%20in%20your%20browser-8a6420?style=for-the-badge&logo=googlechrome&logoColor=white" alt="Try it in your browser" height="34"></a>
+
+<a href="https://github.com/thisisankit27/f-tree/releases?q=desktop&expanded=true"><img src="https://img.shields.io/badge/Desktop%20app-1f3d2b?style=for-the-badge&logo=linux&logoColor=white" alt="Desktop app for Windows and Linux" height="34"></a>
 &nbsp;
 <a href="https://ftree.vibethroughcode.com/"><img src="https://img.shields.io/badge/Website-414942?style=for-the-badge&logo=safari&logoColor=white" alt="Website" height="34"></a>
 &nbsp;
@@ -96,6 +98,15 @@ release and installs it over the running copy, so upgrading keeps your tree inst
 export and an import. It is off until you switch it on, and it verifies the download's hash,
 package name and signing certificate before it installs anything. See
 [Updating in place](docs/architecture.md#updating-in-place).
+
+### On a laptop — Windows and Ubuntu
+
+The **[desktop app](https://github.com/thisisankit27/f-tree/releases?q=desktop&expanded=true)**
+opens an exported `.ftree` on a big screen and draws it the way the phone does: a generation is a
+column, ancestors at the left. Windows gets an installer; Linux gets an AppImage or a `.deb`.
+
+It reads a tree today — editing, settings and the updater are
+[being built](https://github.com/thisisankit27/f-tree/issues/89). Nothing leaves the machine.
 
 ### Try it without installing anything
 
@@ -201,6 +212,7 @@ package (`update/`) so that claim is checkable by reading rather than by trust.
 | 🔤 [**Fonts**](docs/fonts.md) | Literata and JetBrains Mono, and why they are bundled |
 | 🔨 [**Building & releasing**](docs/building.md) | Build, run, test, sign, tag, ship |
 | 🌐 [**Site & browser viewer**](docs/site.md) | The landing page and the dependency-free `.ftree` reader |
+| 🖥️ [**Desktop app**](docs/desktop.md) | Windows and Linux, one viewer in two shells, and why its releases are pre-releases |
 | 🤝 [**Contributing**](CONTRIBUTING.md) | Good first issues, project shape, and how a change gets reviewed |
 | 🔒 [**Security policy**](SECURITY.md) | How to report a vulnerability |
 | 📜 [**Changelog**](CHANGELOG.md) | What changed in each release |

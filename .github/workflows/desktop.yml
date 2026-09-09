@@ -1,0 +1,116 @@
+name: Desktop
+
+# The desktop app is built and smoke-tested on every change to it or to the viewer it runs, and
+# packaged for Windows and Linux when a `desktop-v*` tag is pushed.
+#
+# The tag prefix is not decoration. The Android updater reads this repository's releases and asks
+# `AppVersion.parse` to make sense of each tag; its pattern is `^v?(\d+(\.\d+)*)(-(.+))?$`, which
+# `desktop-v0.1.0` cannot match, so a desktop release is invisible to both the ordinary and the
+# beta channel. Publishing as a pre-release on top of that keeps `releases/latest` - the endpoint
+# the ordinary channel reads - answering with the newest *app* release. Two independent reasons a
+# phone will never be offered an .AppImage, because there are live users on the app.
+on:
+  push:
+    branches: [main]
+    paths: ['desktop/**', 'site/playground/**', '.github/workflows/desktop.yml']
+    tags: ['desktop-v*']
+  pull_request:
+    paths: ['desktop/**', 'site/playground/**', '.github/workflows/desktop.yml']
+
+permissions:
+  contents: write
+
+jobs:
+  smoke:
+    name: Start the app and open a tree
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '22' }
+
+      - name: Install
+        working-directory: desktop
+        run: npm ci || npm install
+
+      # The layout is checked in both orientations here as well as in the site workflow: the
+      # desktop draws in columns, and that is this app's invariant to keep, not the website's.
+      - name: Check the layout, rows and columns
+        run: |
+          python3 tools/make_sample_tree.py "$RUNNER_TEMP/fixtures"
+          node tools/check_layout.mjs "$RUNNER_TEMP/fixtures"
+
+      # A desktop app cannot be checked by reading it: the shell, the preload bridge and the viewer
+      # only meet once a window exists. So this starts the real app and asserts what would actually
+      # be broken if the wiring came apart.
+      - name: Smoke test
+        working-directory: desktop
+        env:
+          FTREE_SMOKE: ${{ runner.temp }}/fixtures/sample-family.ftree
+        run: xvfb-run -a npx electron . --no-sandbox
+
+  package:
+    name: Package (${{ matrix.os }})
+    needs: smoke
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            targets: --linux AppImage deb
+          - os: windows-latest
+            targets: --win nsis
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '22' }
+
+      - name: Install
+        working-directory: desktop
+        run: npm ci || npm install
+
+      - name: Build the installers
+        working-directory: desktop
+        run: npx electron-builder ${{ matrix.targets }} --publish never
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: installers-${{ matrix.os }}
+          path: |
+            desktop/dist/*.AppImage
+            desktop/dist/*.deb
+            desktop/dist/*.exe
+          if-no-files-found: error
+
+  publish:
+    name: Publish the release
+    needs: package
+    if: startsWith(github.ref, 'refs/tags/desktop-v')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with: { path: installers, merge-multiple: true }
+
+      - name: Publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          version="${GITHUB_REF_NAME#desktop-v}"
+          ls -la installers
+
+          # Published as a pre-release deliberately. See the note at the top of this file: it is
+          # what keeps `releases/latest` answering with the newest Android release for the app's
+          # ordinary update channel.
+          gh release create "$GITHUB_REF_NAME" installers/* \
+            --prerelease \
+            --title "f-tree desktop $version" \
+            --notes "The desktop app for Windows and Linux, version $version.
+
+          - **Windows**: the \`.exe\` installer.
+          - **Linux**: the \`.AppImage\` (make it executable and run it) or the \`.deb\`.
+
+          Marked a pre-release on purpose. It is how this repository keeps the Android app's update
+          channel pointing at Android releases; it says nothing about how finished this build is."
