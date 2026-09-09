@@ -1,0 +1,85 @@
+{
+  "name": "f-tree-desktop",
+  "productName": "f-tree",
+  "version": "0.1.0",
+  "description": "A local-first family tree, on your own machine",
+  "author": {
+    "name": "thisisankit27",
+    "email": "69184999+thisisankit27@users.noreply.github.com"
+  },
+  "license": "MIT",
+  "main": "main.js",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "smoke": "electron . --no-sandbox",
+    "pack:linux": "electron-builder --linux AppImage deb",
+    "pack:win": "electron-builder --win nsis"
+  },
+  "devDependencies": {
+    "electron": "^33.2.0",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "com.vibethroughcode.ftree",
+    "productName": "f-tree",
+    "copyright": "MIT",
+    "directories": {
+      "buildResources": "build",
+      "output": "dist"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "../site/playground",
+        "to": "viewer",
+        "filter": [
+          "**/*"
+        ]
+      }
+    ],
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb"
+      ],
+      "category": "Office",
+      "synopsis": "A local-first family tree",
+      "description": "Read and explore a family tree exported from the f-tree Android app. Everything stays on this machine: no account, no cloud, no backend.",
+      "icon": "build/icon.png",
+      "mimeTypes": [
+        "application/x-ftree"
+      ],
+      "maintainer": "thisisankit27 <69184999+thisisankit27@users.noreply.github.com>"
+    },
+    "win": {
+      "target": [
+        "nsis"
+      ],
+      "icon": "build/icon.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "perMachine": false,
+      "shortcutName": "f-tree"
+    },
+    "fileAssociations": [
+      {
+        "ext": "ftree",
+        "name": "f-tree export",
+        "description": "A family tree exported from f-tree",
+        "role": "Viewer"
+      }
+    ]
+  },
+  "homepage": "https://ftree.vibethroughcode.com/",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/thisisankit27/f-tree.git"
+  }
+}

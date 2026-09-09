@@ -409,27 +409,40 @@ export class Chart {
   }
 
   drawBands(ctx, c, view, s) {
-    const { NODE_H } = this.layout.metrics;
+    const columns = this.layout.orientation === 'columns';
     ctx.save();
     ctx.strokeStyle = c.band;
     ctx.lineWidth = 1 / s;
+    // A band marks one generation: a rule along the axis that generation spreads on, so it runs
+    // across the page for rows and down it for columns.
     for (const band of this.layout.bands) {
-      const y = band.y + NODE_H / 2;
-      if (y < view.y0 - 40 || y > view.y1 + 40) continue;
-      ctx.beginPath();
-      ctx.moveTo(band.x, y);
-      ctx.lineTo(band.x + band.width, y);
-      ctx.stroke();
+      if (columns) {
+        if (band.x < view.x0 - 40 || band.x > view.x1 + 40) continue;
+        ctx.beginPath();
+        ctx.moveTo(band.x, band.y);
+        ctx.lineTo(band.x, band.y + band.width);
+        ctx.stroke();
+      } else {
+        if (band.y < view.y0 - 40 || band.y > view.y1 + 40) continue;
+        ctx.beginPath();
+        ctx.moveTo(band.x, band.y);
+        ctx.lineTo(band.x + band.width, band.y);
+        ctx.stroke();
+      }
     }
     if (s > 0.22) {
       ctx.fillStyle = c.inkFaint;
       ctx.font = `500 ${13 / s}px "JetBrains Mono", ui-monospace, monospace`;
       ctx.textAlign = 'left';
-      ctx.textBaseline = 'middle';
+      ctx.textBaseline = columns ? 'bottom' : 'middle';
       for (const band of this.layout.bands) {
-        const y = band.y + NODE_H / 2;
-        if (y < view.y0 - 40 || y > view.y1 + 40) continue;
-        ctx.fillText(`G${band.level + 1}`, band.x + 8, y - 14 / s);
+        if (columns) {
+          if (band.x < view.x0 - 40 || band.x > view.x1 + 40) continue;
+          ctx.fillText(`G${band.level + 1}`, band.x + 8 / s, band.y - 8 / s);
+        } else {
+          if (band.y < view.y0 - 40 || band.y > view.y1 + 40) continue;
+          ctx.fillText(`G${band.level + 1}`, band.x + 8, band.y - 14 / s);
+        }
       }
     }
     ctx.restore();
@@ -490,93 +503,94 @@ export class Chart {
     return this.selected ? [false, true] : [false];
   }
 
-  drawDescents(ctx, c, view, s) {
+  /*
+   * Whether a connector runs to the person the reader has selected.
+   *
+   * Strictly the lines that *touch* them. A marriage bar between two of their relatives is not a
+   * line leading to a relative, and lighting it as well would make the highlight mean two things
+   * at once - which is the state the fading cards were already in before the lines joined them.
+   *
+   * Every link kind already names its own ends, so nothing has to be derived here.
+   */
+  linkLit(link) {
+    const id = this.selected;
+    if (!id) return false;
+    if (link.parents) return link.parents.includes(id) || link.children.includes(id);
+    return link.a === id || link.b === id;
+  }
+
+  /*
+   * Lit connectors are drawn in a second pass, after the faded ones.
+   *
+   * In a chart of any size the lines cross constantly, and a line at 0.28 laid over a highlighted
+   * one cuts it in half - the reader is then following a dashed answer that the data never had.
+   * The extra pass is skipped entirely when nobody is selected, which is the common case and the
+   * one that has to stay cheap while somebody drags a two-thousand-card chart around.
+   */
+  get linkPasses() {
+    return this.selected ? [false, true] : [false];
+  }
+
+  /**
+   * Strokes one set of connectors.
+   *
+   * The layout hands over plain segments in screen coordinates, so nothing here knows or cares
+   * which way the generations run - the chart draws the same way for a page of rows and a page of
+   * columns, and the orientation lives in the one function that measured them.
+   */
+  strokeLinks(ctx, links, view, s, style) {
+    const dimming = Boolean(this.related);
+    const pad = style.pad ?? 80;
     ctx.save();
     ctx.lineCap = 'butt';
-    const dimming = Boolean(this.related);
     for (const pass of this.linkPasses) {
-      for (const link of this.layout.descents) {
+      for (const link of links) {
         if (this.linkLit(link) !== pass) continue;
-        if (link.busY < view.y0 - 200 || link.originY > view.y1 + 200) continue;
-        const xs = link.childXs;
-        const minX = Math.min(link.originX, ...xs);
-        const maxX = Math.max(link.originX, ...xs);
-        if (maxX < view.x0 - 200 || minX > view.x1 + 200) continue;
+        const b = link.bounds;
+        if (b.maxX < view.x0 - pad || b.minX > view.x1 + pad
+          || b.maxY < view.y0 - pad || b.minY > view.y1 + pad) continue;
 
         ctx.globalAlpha = !dimming || pass ? 1 : 0.28;
-        ctx.strokeStyle = pass ? c.forest : c.rule;
-        ctx.lineWidth = (pass ? 2.6 : 1.4) / s;
+        ctx.strokeStyle = pass ? style.lit : style.plain(link);
+        ctx.lineWidth = (pass ? 2.6 : style.width) / s;
+        ctx.setLineDash(style.dash ? style.dash(link, s) : []);
 
         ctx.beginPath();
-        // Down from between the parents, across the children, then down to each.
-        ctx.moveTo(link.originX, link.originY);
-        ctx.lineTo(link.originX, link.busY);
-        ctx.moveTo(minX, link.busY);
-        ctx.lineTo(maxX, link.busY);
-        for (let i = 0; i < xs.length; i++) {
-          ctx.moveTo(xs[i], link.busY);
-          ctx.lineTo(xs[i], link.childYs[i]);
+        for (const [x1, y1, x2, y2] of link.segments) {
+          ctx.moveTo(x1, y1);
+          ctx.lineTo(x2, y2);
         }
         ctx.stroke();
       }
     }
+    ctx.setLineDash([]);
     ctx.restore();
   }
 
+  drawDescents(ctx, c, view, s) {
+    this.strokeLinks(ctx, this.layout.descents, view, s,
+      { plain: () => c.rule, lit: c.forest, width: 1.4, pad: 200 });
+  }
+
   /*
-   * Siblings whose shared parents are unknown, bracketed above the pair. Dashed on purpose: what
+   * Siblings whose shared parents are unknown, bracketed beside the pair. Dashed on purpose: what
    * joins these two is exactly the part of the record nobody wrote down.
    */
   drawSiblings(ctx, c, view, s) {
     if (!this.layout.siblings?.length) return;
-    ctx.save();
-    ctx.setLineDash([6 / s, 5 / s]);
-    const dimming = Boolean(this.related);
-    const lift = 20;
-    for (const pass of this.linkPasses) {
-      for (const link of this.layout.siblings) {
-        if (this.linkLit(link) !== pass) continue;
-        if (link.y < view.y0 - 80 || link.y > view.y1 + 80
-          || link.x2 < view.x0 - 80 || link.x1 > view.x1 + 80) continue;
-        ctx.globalAlpha = !dimming || pass ? 1 : 0.28;
-        ctx.strokeStyle = pass ? c.forest : c.rule;
-        ctx.lineWidth = (pass ? 2.6 : 1.4) / s;
-        ctx.beginPath();
-        ctx.moveTo(link.x1, link.y);
-        ctx.lineTo(link.x1, link.y - lift);
-        ctx.lineTo(link.x2, link.y - lift);
-        ctx.lineTo(link.x2, link.y);
-        ctx.stroke();
-      }
-    }
-    ctx.setLineDash([]);
-    ctx.restore();
+    this.strokeLinks(ctx, this.layout.siblings, view, s,
+      { plain: () => c.rule, lit: c.forest, width: 1.4, dash: (_l, k) => [6 / k, 5 / k] });
   }
 
   drawCouples(ctx, c, view, s) {
-    ctx.save();
-    const dimming = Boolean(this.related);
-    const offset = 3;
-    for (const pass of this.linkPasses) {
-      for (const link of this.layout.couples) {
-        if (this.linkLit(link) !== pass) continue;
-        if (link.y < view.y0 - 40 || link.y > view.y1 + 40
-          || link.x2 < view.x0 - 40 || link.x1 > view.x1 + 40) continue;
-        ctx.globalAlpha = !dimming || pass ? 1 : 0.28;
-        ctx.strokeStyle = pass ? c.forest : c.spouseLink;
-        ctx.lineWidth = (pass ? 2.6 : 1.6) / s;
-        // A doubled rule, the app's notation for a marriage; dashed when it has ended.
-        ctx.setLineDash(link.subtype === 'DIVORCED' ? [5 / s, 4 / s] : []);
-        ctx.beginPath();
-        ctx.moveTo(link.x1, link.y - offset);
-        ctx.lineTo(link.x2, link.y - offset);
-        ctx.moveTo(link.x1, link.y + offset);
-        ctx.lineTo(link.x2, link.y + offset);
-        ctx.stroke();
-      }
-    }
-    ctx.setLineDash([]);
-    ctx.restore();
+    // A doubled rule, the app's notation for a marriage; dashed when it has ended.
+    this.strokeLinks(ctx, this.layout.couples, view, s, {
+      plain: () => c.spouseLink,
+      lit: c.forest,
+      width: 1.6,
+      pad: 40,
+      dash: (link, k) => (link.subtype === 'DIVORCED' ? [5 / k, 4 / k] : []),
+    });
   }
 
   drawNodes(ctx, c, view, s) {

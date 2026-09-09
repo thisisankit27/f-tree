@@ -119,7 +119,7 @@ async function openFile(file) {
     if (graph.people.size === 0) {
       throw new ArchiveError('That file parsed, but it has no people in it.');
     }
-    const layout = layoutArchive(graph);
+    const layout = layoutArchive(graph, { orientation: ORIENTATION });
 
     releasePhotos();
     state.graph = graph;
@@ -132,6 +132,8 @@ async function openFile(file) {
     state.trace = null;
 
     chart.load(graph, layout, archive);
+    // Which way the generations ended up running, said out loud so a test can read it.
+    document.body.dataset.orientation = layout.orientation;
     viewer.dataset.state = 'loaded';
     setView('chart');
     $('file-name').textContent = state.fileName;
@@ -824,6 +826,48 @@ function wireKeys() {
   });
 }
 
+/* ------------------------------------------------------------------ the desktop shell */
+
+/*
+ * The same viewer, in a window of its own.
+ *
+ * `window.ftreeDesktop` is present only when this page is running inside the Electron shell in
+ * `desktop/`, which exposes a short, named list of things a page is allowed to ask the machine
+ * for. Everything below is additive: with no shell there is no `desktop`, and the website behaves
+ * exactly as it did.
+ *
+ * The one thing that genuinely differs is which way the tree runs. On the web this is a landscape
+ * reader for a whole archive on a big screen, and generations read as rows. The desktop app is the
+ * Android app's sibling and follows the app: a generation is a column, ancestors at the left.
+ */
+const desktop = globalThis.ftreeDesktop ?? null;
+const ORIENTATION = desktop ? 'columns' : 'rows';
+
+function wireDesktop() {
+  if (!desktop) return;
+  document.body.dataset.shell = 'desktop';
+
+  // The picker belongs to the operating system here, not to a hidden <input type=file>.
+  $('choose').addEventListener('click', (e) => { e.stopImmediatePropagation(); desktop.chooseTree(); }, true);
+
+  const openBytes = ({ name, bytes }) => openFile(new File([bytes], name));
+  desktop.onOpenTree(openBytes);
+
+  desktop.onMenuCommand((command) => {
+    if (command === 'close') { desktop.forgetTree(); closeFile(); return; }
+    if (command === 'view:chart') return setView('chart');
+    if (command === 'view:index') return setView('index');
+    if (command === 'zoom:in') return chart.zoomBy(1.3);
+    if (command === 'zoom:out') return chart.zoomBy(1 / 1.3);
+    if (command === 'zoom:fit') { chart.fit(); updateZoomReadout(); return; }
+    if (command === 'search') return $('search').focus();
+    if (command === 'theme') return $('theme-btn').click();
+  });
+
+  // Start where the reader left off, so the app opens on their family rather than on a file picker.
+  desktop.lastTree().then((tree) => { if (tree) openBytes(tree); });
+}
+
 /* ------------------------------------------------------------------ start */
 
 if (!canDecompress) {
@@ -834,6 +878,7 @@ if (!canDecompress) {
 }
 
 wireChrome();
+wireDesktop();
 wireSearch();
 wireRelate();
 wireKeys();

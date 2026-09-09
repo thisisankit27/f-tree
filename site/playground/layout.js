@@ -36,7 +36,29 @@ export const METRICS = {
   MARGIN: 60,
 };
 
-const ROW_PITCH = METRICS.NODE_H + METRICS.LEVEL_GAP;
+/*
+ * Which way the generations run.
+ *
+ * The whole engine is written for one orientation - generations as rows, people spread along a
+ * row - and the other is got by running that same engine with the card turned on its side and
+ * transposing the answer at the end. Ordering, crossing reduction, packing and the shelf logic
+ * are all about *which* person sits where in a generation, which is the same question whichever
+ * way the page runs, so none of it is written twice.
+ *
+ * `across` is the axis a generation spreads along; `level` is the axis it advances down. For rows
+ * a card is NODE_W across and NODE_H deep; for columns those swap, and the finished coordinates
+ * are flipped back.
+ */
+function axesFor(orientation) {
+  const columns = orientation === 'columns';
+  return {
+    columns,
+    across: columns ? METRICS.NODE_H : METRICS.NODE_W,
+    level: columns ? METRICS.NODE_W : METRICS.NODE_H,
+  };
+}
+
+const pitchOf = (axes) => axes.level + METRICS.LEVEL_GAP;
 
 /* ------------------------------------------------------------------ generations */
 
@@ -266,8 +288,8 @@ function reduceCrossings(graph, rows, levels) {
 
 /* ------------------------------------------------------------------ x assignment */
 
-const blockWidth = (block) =>
-  block.members.length * METRICS.NODE_W + (block.members.length - 1) * METRICS.COUPLE_GAP;
+const blockWidth = (block, across) =>
+  block.members.length * across + (block.members.length - 1) * METRICS.COUPLE_GAP;
 
 /**
  * Places one row, pulling each block toward where it wants to be without letting blocks overlap.
@@ -275,8 +297,8 @@ const blockWidth = (block) =>
  * Run twice from opposite ends and averaged: a single left-to-right pass jams everything against
  * the left whenever a row is crowded, and averaging the two removes that bias.
  */
-function placeRow(blocks, desired) {
-  const widths = blocks.map(blockWidth);
+function placeRow(blocks, desired, across) {
+  const widths = blocks.map((b) => blockWidth(b, across));
   const gap = METRICS.SIBLING_GAP;
 
   // Left to right: every block as far left as its wish and its neighbour allow.
@@ -318,7 +340,7 @@ function placeRow(blocks, desired) {
   return out;
 }
 
-function assignX(graph, rows) {
+function assignX(graph, rows, across) {
   const keys = [...rows.keys()].sort((a, b) => a - b);
   const x = new Map();
   const blocksByLevel = new Map();
@@ -329,12 +351,12 @@ function assignX(graph, rows) {
     let cursor = 0;
     for (const block of blocks) {
       let bx = cursor;
-      for (const id of block.members) { x.set(id, bx); bx += METRICS.NODE_W + METRICS.COUPLE_GAP; }
-      cursor += blockWidth(block) + METRICS.SIBLING_GAP;
+      for (const id of block.members) { x.set(id, bx); bx += across + METRICS.COUPLE_GAP; }
+      cursor += blockWidth(block, across) + METRICS.SIBLING_GAP;
     }
   }
 
-  const centreOf = (id) => x.get(id) + METRICS.NODE_W / 2;
+  const centreOf = (id) => x.get(id) + across / 2;
   // Membership is tested once per edge per pass, so it has to be a set lookup rather than a scan
   // of the row - with a few thousand people the difference is seconds.
   const rowSets = new Map(keys.map((level) => [level, new Set(rows.get(level))]));
@@ -367,10 +389,10 @@ function assignX(graph, rows) {
         }
       }
 
-      const placed = placeRow(blocks, desired);
+      const placed = placeRow(blocks, desired, across);
       blocks.forEach((block, i) => {
         let bx = placed[i];
-        for (const id of block.members) { x.set(id, bx); bx += METRICS.NODE_W + METRICS.COUPLE_GAP; }
+        for (const id of block.members) { x.set(id, bx); bx += across + METRICS.COUPLE_GAP; }
       });
     }
   }
@@ -380,7 +402,7 @@ function assignX(graph, rows) {
 
 /* ------------------------------------------------------------------ components */
 
-function layoutComponent(graph, members, levels) {
+function layoutComponent(graph, members, levels, axes) {
   const local = new Map();
   let min = Infinity;
   for (const id of members) min = Math.min(min, levels.get(id));
@@ -388,24 +410,25 @@ function layoutComponent(graph, members, levels) {
 
   const rows = initialOrder(graph, members, local);
   reduceCrossings(graph, rows, local);
-  const x = assignX(graph, rows);
+  const x = assignX(graph, rows, axes.across);
 
   let minX = Infinity;
   let maxX = -Infinity;
   for (const id of members) {
     minX = Math.min(minX, x.get(id));
-    maxX = Math.max(maxX, x.get(id) + METRICS.NODE_W);
+    maxX = Math.max(maxX, x.get(id) + axes.across);
   }
 
+  const pitch = pitchOf(axes);
   const depth = Math.max(...members.map((id) => local.get(id))) + 1;
   const nodes = members.map((id) => ({
     id,
     level: local.get(id),
     x: x.get(id) - minX,
-    y: local.get(id) * ROW_PITCH,
+    y: local.get(id) * pitch,
   }));
 
-  return { nodes, width: maxX - minX, depth, height: depth * ROW_PITCH - METRICS.LEVEL_GAP };
+  return { nodes, width: maxX - minX, depth, height: depth * pitch - METRICS.LEVEL_GAP };
 }
 
 /* ------------------------------------------------------------------ the whole archive */
@@ -420,21 +443,23 @@ function layoutComponent(graph, members, levels) {
  */
 export function layoutArchive(graph, options = {}) {
   const aspect = options.aspect ?? 1.8;
+  const axes = axesFor(options.orientation);
+  const pitch = pitchOf(axes);
   const levels = assignLevels(graph);
 
   const connected = graph.components.filter((c) => c.members.length > 1);
   const isolated = graph.isolated;
 
   const laid = connected
-    .map((component) => ({ component, ...layoutComponent(graph, component.members, levels) }))
+    .map((component) => ({ component, ...layoutComponent(graph, component.members, levels, axes) }))
     .sort((a, b) => b.component.members.length - a.component.members.length
       || b.width - a.width);
 
   // A shelf width chosen from the total area, so the finished chart is about as wide as it is
   // tall times the aspect - roughly the shape of a screen rather than a ribbon.
   const area = laid.reduce((sum, l) => sum + (l.width + METRICS.GROUP_GAP) * (l.height + METRICS.GROUP_GAP), 0)
-    + isolated.length * (METRICS.NODE_W + METRICS.SIBLING_GAP) * (METRICS.NODE_H + METRICS.SIBLING_GAP);
-  const widest = laid.length ? Math.max(...laid.map((l) => l.width)) : METRICS.NODE_W;
+    + isolated.length * (axes.across + METRICS.SIBLING_GAP) * (axes.level + METRICS.SIBLING_GAP);
+  const widest = laid.length ? Math.max(...laid.map((l) => l.width)) : axes.across;
   const shelfWidth = Math.max(widest, Math.sqrt(Math.max(area, 1) * aspect));
 
   const nodes = [];
@@ -451,13 +476,13 @@ export function layoutArchive(graph, options = {}) {
     for (let level = 0; level < shelfDepth; level++) {
       bands.push({
         level,
-        y: shelfStartY + level * ROW_PITCH,
+        y: shelfStartY + level * pitch + axes.level / 2,
         x: 0,
         width: cursorX,
         shelf: shelfIndex,
       });
     }
-    cursorY = shelfStartY + shelfDepth * ROW_PITCH + METRICS.GROUP_GAP;
+    cursorY = shelfStartY + shelfDepth * pitch + METRICS.GROUP_GAP;
     cursorX = METRICS.GUTTER;
     shelfDepth = 0;
     shelfStartY = cursorY;
@@ -507,8 +532,8 @@ export function layoutArchive(graph, options = {}) {
       nodes.push({
         id,
         level: -1,
-        x: originX + (i % perRow) * (METRICS.NODE_W + METRICS.SIBLING_GAP),
-        y: originY + Math.floor(i / perRow) * (METRICS.NODE_H + METRICS.SIBLING_GAP),
+        x: originX + (i % perRow) * (axes.across + METRICS.SIBLING_GAP),
+        y: originY + Math.floor(i / perRow) * (axes.level + METRICS.SIBLING_GAP),
         group: groups.length,
         isolated: true,
       });
@@ -518,9 +543,9 @@ export function layoutArchive(graph, options = {}) {
       kind: 'isolated',
       x: originX - METRICS.GROUP_PAD,
       y: originY - METRICS.GROUP_PAD,
-      width: Math.min(isolated.length, perRow) * (METRICS.NODE_W + METRICS.SIBLING_GAP)
+      width: Math.min(isolated.length, perRow) * (axes.across + METRICS.SIBLING_GAP)
         - METRICS.SIBLING_GAP + METRICS.GROUP_PAD * 2,
-      height: rows * (METRICS.NODE_H + METRICS.SIBLING_GAP) - METRICS.SIBLING_GAP + METRICS.GROUP_PAD * 2,
+      height: rows * (axes.level + METRICS.SIBLING_GAP) - METRICS.SIBLING_GAP + METRICS.GROUP_PAD * 2,
       count: isolated.length,
       members: isolated,
     });
@@ -548,9 +573,29 @@ export function layoutArchive(graph, options = {}) {
    * the bracket pointed upwards. Deriving the geometry after the last thing that moves a card
    * makes that class of mistake impossible rather than merely fixed.
    */
-  const links = buildLinks(graph, byId);
+  /*
+   * Turn the page on its side, if that is the way this reader wants it.
+   *
+   * Everything above ran in one orientation with the card laid on whichever side made a generation
+   * a row. Swapping every coordinate now turns that answer into generations as columns, without a
+   * second copy of the ordering, the crossing reduction or the packing - which are about *which*
+   * person sits where in a generation, a question with no direction in it.
+   */
+  if (axes.columns) {
+    for (const n of nodes) { const t = n.x; n.x = n.y; n.y = t; }
+    for (const g of groups) {
+      const x = g.x, w = g.width;
+      g.x = g.y; g.y = x;
+      g.width = g.height; g.height = w;
+    }
+    for (const b of bands) { const t = b.x; b.x = b.y; b.y = t; }
+    const t = width; width = height; height = t;
+  }
+
+  const links = buildLinks(graph, byId, axes.columns);
 
   return {
+    orientation: axes.columns ? 'columns' : 'rows',
     nodes,
     byId,
     groups,
@@ -572,7 +617,31 @@ export function layoutArchive(graph, options = {}) {
  * single bar and hangs a half-sibling from their own - the difference between a second marriage
  * you can read and a tangle of crossing lines.
  */
-function buildLinks(graph, byId) {
+function buildLinks(graph, byId, columns = false) {
+  /*
+   * One geometry, read along two named axes.
+   *
+   * `across` is the axis a generation spreads along and `level` the axis it advances down, so a
+   * parent always leaves by its level-end edge and a child is always entered at its level-start
+   * edge - whichever way round the page happens to run. `pt` puts a point back into screen
+   * coordinates, and is the only place in this function that knows which orientation it is.
+   */
+  const NW = METRICS.NODE_W;
+  const NH = METRICS.NODE_H;
+  const acrossSize = columns ? NH : NW;
+  const levelSize = columns ? NW : NH;
+  const acrossOf = (n) => (columns ? n.y : n.x);
+  const levelOf = (n) => (columns ? n.x : n.y);
+  const acrossMid = (n) => acrossOf(n) + acrossSize / 2;
+  const levelMid = (n) => levelOf(n) + levelSize / 2;
+  const pt = (across, level) => (columns ? [level, across] : [across, level]);
+  const seg = (a1, l1, a2, l2) => [...pt(a1, l1), ...pt(a2, l2)];
+  const bounds = (segments) => {
+    const xs = segments.flatMap((g) => [g[0], g[2]]);
+    const ys = segments.flatMap((g) => [g[1], g[3]]);
+    return { minX: Math.min(...xs), maxX: Math.max(...xs), minY: Math.min(...ys), maxY: Math.max(...ys) };
+  };
+
   const couples = [];
   const seen = new Set();
   for (const id of graph.order) {
@@ -583,18 +652,20 @@ function buildLinks(graph, byId) {
       if (seen.has(key)) continue;
       seen.add(key);
       const b = byId.get(s.id);
-      if (!b || a.y !== b.y) continue;   // drawn only when they actually share a row
-      const left = a.x < b.x ? a : b;
-      const right = a.x < b.x ? b : a;
-      if (right.x - (left.x + METRICS.NODE_W) > METRICS.SIBLING_GAP * 2.5) continue;
-      couples.push({
-        x1: left.x + METRICS.NODE_W,
-        x2: right.x,
-        y: left.y + METRICS.NODE_H / 2,
-        subtype: s.subtype,
-        a: left.id,
-        b: right.id,
-      });
+      // Drawn only when they actually share a generation.
+      if (!b || levelOf(a) !== levelOf(b)) continue;
+      const first = acrossOf(a) < acrossOf(b) ? a : b;
+      const second = acrossOf(a) < acrossOf(b) ? b : a;
+      const gap = acrossOf(second) - (acrossOf(first) + acrossSize);
+      if (gap > METRICS.SIBLING_GAP * 2.5) continue;
+      // A doubled rule: two lines along the across axis, a little either side of the card's middle.
+      const offset = 3;
+      const mid = levelMid(first);
+      const segments = [
+        seg(acrossOf(first) + acrossSize, mid - offset, acrossOf(second), mid - offset),
+        seg(acrossOf(first) + acrossSize, mid + offset, acrossOf(second), mid + offset),
+      ];
+      couples.push({ segments, bounds: bounds(segments), gap, subtype: s.subtype, a: first.id, b: second.id });
     }
   }
 
@@ -605,23 +676,34 @@ function buildLinks(graph, byId) {
     const children = fam.children.map((c) => byId.get(c)).filter(Boolean);
     if (!parents.length || !children.length) continue;
 
-    const originX = parents.reduce((sum, p) => sum + p.x + METRICS.NODE_W / 2, 0) / parents.length;
-    const originY = Math.max(...parents.map((p) => p.y)) + METRICS.NODE_H;
-    const childTopY = Math.min(...children.map((c) => c.y));
-    // The bus sits just above the shallowest child, so a child placed further down simply gets a
-    // longer drop instead of dragging the whole bar out of place.
-    const busY = childTopY - METRICS.LEVEL_GAP * 0.42;
+    const originAcross = parents.reduce((sum, p) => sum + acrossMid(p), 0) / parents.length;
+    const originLevel = Math.max(...parents.map((p) => levelOf(p) + levelSize));
+    const entryLevel = Math.min(...children.map((c) => levelOf(c)));
+    // The bar sits just short of the nearest child, so a child placed further along simply gets a
+    // longer run instead of dragging the whole bar out of place.
+    const busLevel = Math.max(entryLevel - METRICS.LEVEL_GAP * 0.42, originLevel + 12);
+
+    const childAcross = children.map(acrossMid);
+    const minAcross = Math.min(originAcross, ...childAcross);
+    const maxAcross = Math.max(originAcross, ...childAcross);
+
+    const segments = [
+      seg(originAcross, originLevel, originAcross, busLevel),
+      seg(minAcross, busLevel, maxAcross, busLevel),
+      ...children.map((c, i) => seg(childAcross[i], busLevel, childAcross[i], levelOf(c))),
+    ];
 
     descents.push({
-      originX,
-      originY,
-      busY: Math.max(busY, originY + 12),
-      childTopY,
-      // Drawn from the cards that were actually placed, and named by the same list, so the three
-      // arrays stay parallel even if the family names somebody the chart has nowhere to put.
+      segments,
+      bounds: bounds(segments),
+      // Named by the same list the coordinates came from, so the two stay parallel even if the
+      // family names somebody the chart has nowhere to put.
       childIds: children.map((c) => c.id),
-      childXs: children.map((c) => c.x + METRICS.NODE_W / 2),
-      childYs: children.map((c) => c.y),
+      // Where each run meets its child, which is the invariant the layout checker asserts.
+      childPoints: children.map((c, i) => {
+        const [x, y] = pt(childAcross[i], levelOf(c));
+        return { id: c.id, x, y };
+      }),
       parents: fam.parents,
       children: fam.children,
     });
@@ -629,11 +711,12 @@ function buildLinks(graph, byId) {
 
   /*
    * Explicit sibling edges exist only where the shared parents are unknown, so there is no descent
-   * bar to hang the pair from. They get their own notation: a bracket over the two cards, dashed
+   * bar to hang the pair from. They get their own notation: a bracket before the two cards, dashed
    * because what joins them is precisely the part of the record that is missing.
    */
   const siblings = [];
   const drawn = new Set();
+  const lift = 20;
   for (const [id, others] of graph.explicitSiblings) {
     const a = byId.get(id);
     if (!a) continue;
@@ -642,16 +725,16 @@ function buildLinks(graph, byId) {
       if (drawn.has(key)) continue;
       drawn.add(key);
       const b = byId.get(other.id);
-      if (!b || a.y !== b.y) continue;
-      const left = a.x < b.x ? a : b;
-      const right = a.x < b.x ? b : a;
-      siblings.push({
-        x1: left.x + METRICS.NODE_W / 2,
-        x2: right.x + METRICS.NODE_W / 2,
-        y: left.y,
-        a: left.id,
-        b: right.id,
-      });
+      if (!b || levelOf(a) !== levelOf(b)) continue;
+      const first = acrossOf(a) < acrossOf(b) ? a : b;
+      const second = acrossOf(a) < acrossOf(b) ? b : a;
+      const edge = levelOf(first);
+      const segments = [
+        seg(acrossMid(first), edge, acrossMid(first), edge - lift),
+        seg(acrossMid(first), edge - lift, acrossMid(second), edge - lift),
+        seg(acrossMid(second), edge - lift, acrossMid(second), edge),
+      ];
+      siblings.push({ segments, bounds: bounds(segments), a: first.id, b: second.id });
     }
   }
 

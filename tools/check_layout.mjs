@@ -29,14 +29,15 @@ async function load(path) {
   return { archive, doc };
 }
 
-async function run(name, { expectPhotos = false } = {}) {
+async function run(name, { expectPhotos = false, orientation = 'rows' } = {}) {
   const path = `${FIXTURES}/${name}`;
-  console.log(`\n=== ${path}`);
+  console.log(`\n=== ${path}  [${orientation}]`);
   const started = Date.now();
   const { archive, doc } = await load(path);
   const graph = buildGraph(doc);
   const parsed = Date.now();
-  const layout = layoutArchive(graph);
+  const columns = orientation === 'columns';
+  const layout = layoutArchive(graph, { orientation });
   const done = Date.now();
 
   console.log(`     ${doc.people.length} people, ${doc.relationships.length} relationships, ` +
@@ -48,30 +49,35 @@ async function run(name, { expectPhotos = false } = {}) {
     layout.nodes.length === graph.people.size && layout.byId.size === graph.people.size,
     `${layout.nodes.length} nodes for ${graph.people.size} people`);
 
-  // Nobody may overlap anybody sharing their row.
-  const rows = new Map();
+  /*
+   * Nobody may overlap anybody in their own generation - a row one way round, a column the other.
+   * `along` is the axis the generation spreads on and `size` the card's extent on it.
+   */
+  const along = (n) => (columns ? n.y : n.x);
+  const size = columns ? METRICS.NODE_H : METRICS.NODE_W;
+  const lanes = new Map();
   for (const n of layout.nodes) {
-    const key = Math.round(n.y);
-    if (!rows.has(key)) rows.set(key, []);
-    rows.get(key).push(n);
+    const key = Math.round(columns ? n.x : n.y);
+    if (!lanes.has(key)) lanes.set(key, []);
+    lanes.get(key).push(n);
   }
   let overlaps = 0;
   let tightest = Infinity;
-  for (const row of rows.values()) {
-    row.sort((a, b) => a.x - b.x);
-    for (let i = 1; i < row.length; i++) {
-      const gap = row[i].x - (row[i - 1].x + METRICS.NODE_W);
+  for (const lane of lanes.values()) {
+    lane.sort((a, b) => along(a) - along(b));
+    for (let i = 1; i < lane.length; i++) {
+      const gap = along(lane[i]) - (along(lane[i - 1]) + size);
       if (gap < -0.5) overlaps++;
       tightest = Math.min(tightest, gap);
     }
   }
-  check('no two people overlap on a row', overlaps === 0,
+  check('no two people overlap in a generation', overlaps === 0,
     `${overlaps} overlaps, tightest gap ${tightest === Infinity ? 'n/a' : tightest.toFixed(1)}`);
 
   // Couples must be closer than strangers, or the notation says nothing.
   let coupleGapsOk = true;
   for (const link of layout.couples) {
-    if (link.x2 - link.x1 > METRICS.SIBLING_GAP) coupleGapsOk = false;
+    if (link.gap > METRICS.SIBLING_GAP) coupleGapsOk = false;
   }
   check('partners sit closer than neighbours', coupleGapsOk, `${layout.couples.length} couple links`);
 
@@ -89,20 +95,29 @@ async function run(name, { expectPhotos = false } = {}) {
    * only the geometry was wrong. Assert the drawing, not the bookkeeping.
    */
   let misdrawn = 0;
-  let upward = 0;
   for (const d of layout.descents) {
-    for (let i = 0; i < d.childIds.length; i++) {
-      const node = layout.byId.get(d.childIds[i]);
+    for (const point of d.childPoints) {
+      const node = layout.byId.get(point.id);
       if (!node) { misdrawn++; continue; }
-      if (Math.abs(d.childXs[i] - (node.x + METRICS.NODE_W / 2)) > 0.5) misdrawn++;
-      else if (Math.abs(d.childYs[i] - node.y) > 0.5) misdrawn++;
-      if (d.childYs[i] < d.busY) upward++;
+      // The run must end on the child's entry edge: its top in rows, its left in columns, and
+      // centred on the card along the other axis.
+      const wantX = columns ? node.x : node.x + METRICS.NODE_W / 2;
+      const wantY = columns ? node.y + METRICS.NODE_H / 2 : node.y;
+      if (Math.abs(point.x - wantX) > 0.5 || Math.abs(point.y - wantY) > 0.5) misdrawn++;
     }
   }
-  check('every descent drop ends on the top edge of its child', misdrawn === 0,
-    `${misdrawn} drops land somewhere other than the card they name`);
-  check('every descent drop runs downward, from the bar to the child', upward === 0,
-    `${upward} drops point back up at the parents`);
+  check('every descent run ends on the entry edge of its child', misdrawn === 0,
+    `${misdrawn} runs land somewhere other than the card they name`);
+
+  // And it must run from the parents towards the children, never back at them.
+  let backwards = 0;
+  for (const d of layout.descents) {
+    for (const [x1, y1, x2, y2] of d.segments) {
+      if (columns ? x2 < x1 : y2 < y1) backwards++;
+    }
+  }
+  check('every descent runs towards the children', backwards === 0,
+    `${backwards} segments point back at the parents`);
 
   // A child must be drawn below its parents, or the chart is lying about direction.
   let inverted = 0;
@@ -110,10 +125,13 @@ async function run(name, { expectPhotos = false } = {}) {
     const child = layout.byId.get(id);
     for (const p of graph.parents(id)) {
       const parent = layout.byId.get(p.id);
-      if (parent && child && parent.y >= child.y) inverted++;
+      if (!parent || !child) continue;
+      const ahead = columns ? parent.x < child.x : parent.y < child.y;
+      if (!ahead) inverted++;
     }
   }
-  check('children are drawn below their parents', inverted === 0, `${inverted} inverted`);
+  check(columns ? 'children are drawn right of their parents' : 'children are drawn below their parents',
+    inverted === 0, `${inverted} inverted`);
 
   /*
    * Stronger than "below": a child belongs exactly one row below each parent, and siblings belong
@@ -210,6 +228,16 @@ const { graph } = await run('sample-family.ftree', { expectPhotos: true });
 // fails this one.
 await run('sample-streamed.ftree', { expectPhotos: true });
 await run('large-tree.ftree');
+
+/*
+ * And again with the page turned on its side.
+ *
+ * The desktop app draws a generation as a column, as the Android app does, and it runs the same
+ * engine through the same invariants - so a rotation that quietly stopped connecting people, or
+ * started overlapping them, fails here rather than on somebody's laptop.
+ */
+await run('sample-family.ftree', { expectPhotos: true, orientation: 'columns' });
+await run('large-tree.ftree', { orientation: 'columns' });
 checkKinship();
 
 console.log('\n=== relating two people');

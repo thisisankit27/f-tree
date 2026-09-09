@@ -23,3 +23,7 @@ temp/
 
 # Kotlin build-tool scratch directory.
 .kotlin/
+
+# The desktop app's dependencies and installers
+/desktop/node_modules/
+/desktop/dist/

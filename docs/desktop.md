@@ -1,0 +1,100 @@
+# The desktop app
+
+f-tree on Windows and Ubuntu. It reads a `.ftree` exported from the Android app and draws it the
+way the app does — a generation is a column, ancestors at the left — with the people index, the
+search and the relation finder.
+
+`desktop/` is an Electron shell around `site/playground/`. **One viewer, two shells**: the chart,
+the index, the search, the relation finder and the themes are the same files the website serves,
+so a fix to the chart is a fix in both places rather than a fix and a note to remember the other
+one. What the shell adds is what a browser tab cannot have — a real file picker, a native menu,
+and a memory of which tree you were reading.
+
+## Why Electron and not the app's own code
+
+Compose Multiplatform would reuse the app's Kotlin, which is the better answer on paper. It is the
+wrong one here: the app is `com.android.application` with Room, `Context`, `Intent` and Coil across
+97 source files, and moving it into a multiplatform source set restructures the Gradle build of a
+release that has live users on it.
+
+The cost of the choice, stated plainly: this is a **second implementation of the app's behaviour**,
+in a second language, kept in step by hand. Anything ported from Kotlin should come with the
+Kotlin's own test cases so a divergence fails a test rather than surprising somebody's grandmother.
+
+Installers are around 100MB. That is what Electron costs.
+
+## Layout
+
+| | |
+|---|---|
+| `desktop/main.js` | the shell: window, menu, file dialogs, the session file, the smoke test |
+| `desktop/preload.js` | the only bridge between page and machine, and a deliberately short one |
+| `desktop/build/icon.png` | the mark from the website, at 512px |
+| `site/playground/*` | the viewer, carried into the package as a resource |
+
+The page reaches the machine only through the names in `preload.js`. A tree is somebody's family,
+and the reason the app never uploads it is the reason that list is short and explicit rather than
+a general-purpose `fs`.
+
+## Which way the generations run
+
+`layoutArchive(graph, { orientation })` takes `'rows'` (the website — a landscape reader for a
+whole archive on a big screen) or `'columns'` (the desktop, and the Android app).
+
+Only one engine exists. The ordering, the crossing reduction and the packing are about *which*
+person sits where in a generation, a question with no direction in it, so the column layout is the
+same engine run with the card turned on its side and the answer transposed at the end. The
+connectors are measured last, in finished screen coordinates, from a single orientation-agnostic
+routine — which is why the renderer draws plain segments and knows nothing about which way the
+page runs.
+
+`tools/check_layout.mjs` runs its invariants in **both** orientations.
+
+## Running it
+
+```sh
+cd desktop
+npm install
+npm start
+```
+
+The smoke test starts the real app, opens a real `.ftree`, and asserts the bridge is reachable, the
+tree arrived, and the generations run in columns:
+
+```sh
+FTREE_SMOKE=/path/to/tree.ftree npm run smoke
+# FTREE_SMOKE_SHOT=/tmp/shot.png also writes a screenshot
+```
+
+A desktop app is the one thing in this repository that cannot be checked by reading it: the shell,
+the preload bridge and the viewer only meet each other once a window exists.
+
+## Building installers
+
+```sh
+npm run pack:linux   # AppImage + deb
+npm run pack:win     # NSIS installer, on Windows
+```
+
+CI does both, on `ubuntu-latest` and `windows-latest`, for every change to `desktop/` or to the
+viewer.
+
+## Releases, and why they are pre-releases
+
+A desktop release is tagged `desktop-v<version>` and published as a **pre-release**. Neither is
+cosmetic.
+
+The Android updater reads this repository's releases and parses each tag with
+`^v?(\d+(?:\.\d+)*)(?:-(.+))?$`. `desktop-v0.1.0` cannot match, so a desktop release is invisible
+to the ordinary channel and to the beta channel alike. The pre-release flag is the second,
+independent guard: `releases/latest` — the endpoint the ordinary channel reads — skips
+pre-releases, so it goes on answering with the newest *app* release.
+
+Publishing a desktop build as an ordinary release would make `releases/latest` return something
+with no APK on it, and every phone checking for updates would quietly stop being offered any. Two
+guards, because there are live users on the app.
+
+## Not yet
+
+The desktop app currently **reads** a tree. Editing, the settings screen, Hindi kinship, photos and
+the updater are tracked in [#89](https://github.com/thisisankit27/f-tree/issues/89).
