@@ -102,6 +102,11 @@ export class Tree {
     return this.state.relationships.map((r) => Object.freeze({ ...r }));
   }
 
+  /** The tree this file claims to be, in the sense the importer means. See the constructor. */
+  get sourceTreeId() {
+    return this.state.sourceTreeId;
+  }
+
   person(id) {
     const found = this.state.people.find((p) => p.id === id);
     return found ? Object.freeze({ ...found }) : null;
@@ -164,11 +169,15 @@ export class Tree {
    * The snapshot is taken before and only kept if something actually changed, so an edit that
    * sets a name to the name it already had does not put a no-op on the undo stack for somebody
    * to wonder about later.
+   *
+   * `change` is handed the live state as well as closing over it. The methods here predate that
+   * and reach through `this`; an import is written in another file and would otherwise have to
+   * reach into these internals to say what it changed.
    */
   edit(label, change) {
     const before = clone(this.state);
     const beforeSignature = this.signature();
-    const result = change();
+    const result = change(this.state);
     if (result?.ok === false) {
       this.state = before;
       return result;

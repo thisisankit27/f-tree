@@ -417,6 +417,8 @@ function buildMenu(win) {
         { label: 'New tree', accelerator: 'CmdOrCtrl+N',
           click: () => win.webContents.send('menu:command', 'file:new') },
         { label: 'Open tree…', accelerator: 'CmdOrCtrl+O', click: () => chooseInto(win) },
+      { label: 'Import into this tree…', accelerator: 'CmdOrCtrl+I',
+        click: () => win.webContents.send('menu:command', 'file:import') },
         { type: 'separator' },
         /*
          * Saving is asked of the page, not done here. The page holds the tree, the writer and the
@@ -676,6 +678,47 @@ ipcMain.handle('tree:choose', async (event) => {
   const win = BrowserWindow.fromWebContents(event.sender);
   return chooseInto(win);
 });
+/*
+ * A file to merge in, which is not the same act as opening one.
+ *
+ * Deliberately does not touch the session: the tree being edited is still the tree that was
+ * opened, and recording a cousin's file as "the last tree" would reopen theirs on the next launch.
+ * Nothing is decided here either -- the page reads the archive, works out what the merge would
+ * mean, and shows it before a single person is changed.
+ */
+ipcMain.handle('tree:chooseImport', async (event) => {
+  const win = BrowserWindow.fromWebContents(event.sender);
+
+  // The same narrow seam the save test uses, and gated the same way: a native picker cannot be
+  // clicked from a test, and stubbing the import itself would leave the real path unexercised.
+  if (process.env.FTREE_SMOKE && process.env.FTREE_SMOKE_IMPORT) {
+    const { name, bytes } = await readTree(path.resolve(process.env.FTREE_SMOKE_IMPORT));
+    return { name, bytes };
+  }
+
+  const picked = await dialog.showOpenDialog(win, {
+    title: 'Choose a family tree to import',
+    buttonLabel: 'Import',
+    filters: [{ name: 'f-tree export', extensions: ['ftree'] },
+      { name: 'All files', extensions: ['*'] }],
+    properties: ['openFile'],
+  });
+  if (picked.canceled || !picked.filePaths.length) return null;
+
+  try {
+    const { name, bytes } = await readTree(picked.filePaths[0]);
+    return { name, bytes };
+  } catch (error) {
+    await dialog.showMessageBox(win, {
+      type: 'warning',
+      message: 'That file could not be read.',
+      detail: `${picked.filePaths[0]}\n\n${error.message}`,
+      buttons: ['OK'],
+    });
+    return null;
+  }
+});
+
 ipcMain.handle('tree:forget', async () => { await writeSession({}); });
 
 /*
@@ -785,6 +828,17 @@ async function runEditSmoke(win, check) {
   });
   await settle();
 
+  // A date and a note as well as a name. The import step later needs two records that agree on
+  // enough to be a candidate and disagree on something that cannot rule the pairing out.
+  await page(() => {
+    for (const [id, value] of [['f-birth', '1938'], ['f-notes', 'Grandfather. Born in Ballia.']]) {
+      const input = document.getElementById(id);
+      input.value = value;
+      input.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+  });
+  await settle();
+
   // Add a child, by name, as a new person.
   await page(() => {
     [...document.querySelectorAll('.kinds button')].find((b) => b.textContent === 'Child').click();
@@ -858,6 +912,87 @@ async function runEditSmoke(win, check) {
   }));
   check('the saved file reopens with both people and the connection',
     /2 people/.test(seen.counts) && /1 connection/.test(seen.counts), seen.counts);
+}
+
+/*
+ * Merging a second file into the tree on screen.
+ *
+ * The review dialog is the one screen where confirming does something that cannot be put right by
+ * hand, so what is asserted here is not "it worked" but "it asked first": the dialog opens, it
+ * names the evidence, and the tree is untouched until the button is pressed.
+ */
+async function runImportSmoke(win, check) {
+  const page = (fn, ...args) => win.webContents.executeJavaScript(
+    `(${fn.toString()})(${args.map((a) => JSON.stringify(a)).join(',')})`);
+  const settle = (ms = 400) => new Promise((r) => setTimeout(r, ms));
+
+  console.log('\n  -- merging in a second file --');
+
+  const before = await page(() => ({
+    people: window.__ftreePeopleCount?.() ?? document.getElementById('counts').textContent,
+  }));
+
+  win.webContents.send('menu:command', 'file:import');
+  await settle(900);
+
+  const asked = await page(() => {
+    const dialog = document.getElementById('review');
+    const cards = [...dialog.querySelectorAll('.pair')];
+    return {
+      open: dialog.open === true,
+      title: document.getElementById('review-title').textContent,
+      lead: document.getElementById('review-lead').textContent,
+      outcome: document.getElementById('review-outcome').textContent,
+      confirm: document.getElementById('review-confirm').textContent,
+      cards: cards.length,
+      why: cards[0]?.querySelector('.pair-why')?.textContent ?? '',
+      sides: cards[0]?.querySelectorAll('.side').length ?? 0,
+      counts: document.getElementById('counts').textContent,
+    };
+  });
+
+  check('importing asks before it merges', asked.open, asked.title);
+  check('the button says exactly what pressing it will do',
+    /^(Add|Merge) \d+ /.test(asked.confirm), asked.confirm);
+  check('the dialog says the work is not on disk yet', /until you save/.test(asked.outcome),
+    asked.outcome);
+  check('the tree is untouched while the question is open', asked.counts === before.people,
+    asked.counts);
+
+  if (asked.cards) {
+    check('a proposed match shows both records side by side', asked.sides === 2,
+      `${asked.sides} sides`);
+    check('a proposed match says why it thinks so', asked.why.length > 0, asked.why.trim());
+  }
+
+  // Both themes, because this screen is read in whichever one somebody happens to use and a
+  // token that only exists in one of them looks fine right up until it does not.
+  if (process.env.FTREE_SMOKE_SHOT_REVIEW) {
+    const shot = process.env.FTREE_SMOKE_SHOT_REVIEW;
+    await fs.writeFile(shot, (await win.webContents.capturePage()).toPNG());
+    console.log(`       wrote ${shot}`);
+
+    await page(() => document.getElementById('theme-btn').click());
+    await settle(300);
+    const other = shot.replace(/(\.png)?$/, '-other-theme.png');
+    await fs.writeFile(other, (await win.webContents.capturePage()).toPNG());
+    console.log(`       wrote ${other}`);
+    await page(() => document.getElementById('theme-btn').click());
+    await settle(200);
+  }
+
+  await page(() => document.getElementById('review-confirm').click());
+  await settle(600);
+
+  const after = await page(() => ({
+    counts: document.getElementById('counts').textContent,
+    open: document.getElementById('review').open === true,
+    undo: document.getElementById('undo')?.disabled === false,
+  }));
+
+  check('confirming closes the question', !after.open, String(after.open));
+  check('the tree grew once it was confirmed', after.counts !== before.people, after.counts);
+  check('the whole import can be undone', after.undo, 'undo is available');
 }
 
 async function runSmoke(win, file) {
@@ -991,6 +1126,8 @@ async function runSmoke(win, file) {
   }
 
   if (process.env.FTREE_SMOKE_SAVE_TO) await runEditSmoke(win, check);
+
+  if (process.env.FTREE_SMOKE_IMPORT) await runImportSmoke(win, check);
 
   if (process.env.FTREE_SMOKE_SHOT) {
     const image = await win.webContents.capturePage();

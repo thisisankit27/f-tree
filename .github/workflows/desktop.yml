@@ -83,6 +83,10 @@ jobs:
           # naming somebody, adding a child, being refused a contradictory relationship, saving to
           # this path and reading it back. Everything but the native save dialog is the real path.
           FTREE_SMOKE_SAVE_TO: ${{ runner.temp }}/built-here.ftree
+          # And the third: merging a relative's file into the tree just built. The matcher is
+          # unit-tested, but the thing that must not regress is that it *asks* -- a strong match
+          # merges unless it is refused, and a merge is the one act here nobody can undo by hand.
+          FTREE_SMOKE_IMPORT: ${{ runner.temp }}/fixtures/a-cousins-tree.ftree
         run: xvfb-run -a npx electron . --no-sandbox
 
   package:
@@ -135,6 +139,7 @@ jobs:
         env:
           FTREE_SMOKE: ${{ runner.temp }}/fixtures/sample-family.ftree
           FTREE_SMOKE_SAVE_TO: ${{ runner.temp }}/built-in-the-package.ftree
+          FTREE_SMOKE_IMPORT: ${{ runner.temp }}/fixtures/a-cousins-tree.ftree
         run: |
           python3 ../tools/make_sample_tree.py "$RUNNER_TEMP/fixtures"
           xvfb-run -a ./dist/linux-unpacked/f-tree-desktop --no-sandbox

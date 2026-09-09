@@ -269,6 +269,36 @@ def large(count=2000):
     return t, {}
 
 
+def cousins():
+    """
+    A relative's file that overlaps the tree the desktop smoke test builds by hand.
+
+    It has to overlap on *names* and not on provenance: this is the ordinary case, where two people
+    recorded the same family on two machines that have never met. Shyam Lal matches on his name
+    alone, which is only a weak claim; Ravi matches on his name *and* on having Shyam as a parent
+    in both files, which is what makes a strong one. One of each is what the review dialog exists
+    to tell apart, so the fixture produces one of each on purpose.
+
+    The birth years *agree* deliberately, and the notes disagree. Two different birth years are not
+    a weak signal, they are a veto -- the matcher rules the pairing out entirely, which is the whole
+    point of PartialDate.isCompatibleWith. So the field that differs here has to be one that cannot
+    rule anything out, because a merge keeps the local value and the screen has to be able to show
+    which of theirs is being set aside.
+    """
+    t = Tree(pid("a-cousins-tree"))
+    shyam = t.person("cousin-shyam", "Shyam Lal", "MALE", birth="1938",
+                     notes="Moved to Kanpur in 1961. Worked on the railways.")
+    ravi = t.person("cousin-ravi", "Ravi", "MALE", birth="1962")
+    meena = t.person("cousin-meena", "Meena Devi", "FEMALE", birth="1965")
+    asha = t.person("cousin-asha", "Asha Lal", "FEMALE", birth="1990")
+
+    t.rel(shyam, ravi, "PARENT")
+    t.rel(ravi, meena, "SPOUSE")
+    t.rel(ravi, asha, "PARENT")
+    t.rel(meena, asha, "PARENT")
+    return t, {}
+
+
 if __name__ == "__main__":
     out = Path(sys.argv[1] if len(sys.argv) > 1 else ".")
     out.mkdir(parents=True, exist_ok=True)
@@ -276,6 +306,9 @@ if __name__ == "__main__":
     tree, photos = sample()
     write_archive(out / "sample-family.ftree", tree, photos)
     write_archive(out / "sample-streamed.ftree", tree, photos, streamed=True)
+
+    kin, _ = cousins()
+    write_archive(out / "a-cousins-tree.ftree", kin, {})
 
     big, _ = large()
     write_archive(out / "large-tree.ftree", big, {})
