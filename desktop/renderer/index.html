@@ -1,0 +1,156 @@
+<meta charset="utf-8">
+<title>f-tree</title>
+
+<!--
+  The desktop app's own page.
+
+  Not the website's viewer. That is a reader and stays one; this builds and changes a tree, and the
+  two want different chrome for the same canvas. What they share is the engine underneath -- the
+  reader, the writer, the graph model, the layout and the chart -- imported from site/playground/
+  rather than copied, so a fix to how a family is drawn lands in both.
+
+  No <link> to Google Fonts, unlike the viewer. The shell refuses this window the network outright
+  and injects the same two typefaces from disk, so asking would only produce a refused request in
+  the log. Nothing here reaches outside the machine.
+-->
+<link rel="stylesheet" href="../../site/playground/playground.css">
+<link rel="stylesheet" href="editor.css">
+
+<script>
+/*
+ * The theme, before the first paint. app.js is a module and therefore deferred, so leaving this
+ * to it would flash a bone-white screen at somebody who asked for dark.
+ */
+(function () {
+  var theme = null;
+  try { theme = (JSON.parse(localStorage.getItem('ftree.desktop') || '{}') || {}).theme; }
+  catch (e) { /* blocked storage lands here; the system decides */ }
+  if (theme !== 'dark' && theme !== 'light') {
+    theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  }
+  document.documentElement.setAttribute('data-theme', theme);
+})();
+</script>
+
+<div class="viewer editor" id="viewer" data-state="empty">
+
+  <header class="bar">
+    <span class="wordmark" title="f-tree">
+      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+        <rect x="3" y="3" width="18" height="18" rx="5"/>
+        <circle cx="9" cy="9" r="1.9"/><circle cx="15" cy="9" r="1.9"/><circle cx="12" cy="16" r="1.9"/>
+        <path d="M9 11v1.6h6V11M12 12.6V14"/>
+      </svg>
+      <b>f-tree</b>
+    </span>
+
+    <div class="bar-file" data-when="loaded">
+      <span class="file-name" id="file-name"></span>
+      <!-- Shown only while there is work not on disk. Quiet, and never a nag. -->
+      <span class="unsaved" id="unsaved" hidden title="Not saved yet">&bull;</span>
+    </div>
+
+    <div class="bar-spacer"></div>
+
+    <button type="button" class="icon theme-btn" id="theme-btn" aria-label="Switch theme">
+      <svg class="i-moon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M20.5 14.3A8.5 8.5 0 0 1 9.7 3.5a8.5 8.5 0 1 0 10.8 10.8z"/>
+      </svg>
+      <svg class="i-sun" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <circle cx="12" cy="12" r="4.1"/>
+        <path d="M12 2.6v2.2M12 19.2v2.2M4.35 4.35l1.55 1.55M18.1 18.1l1.55 1.55M2.6 12h2.2M19.2 12h2.2M4.35 19.65 5.9 18.1M18.1 5.9l1.55-1.55"/>
+      </svg>
+    </button>
+
+    <div class="bar-tools" data-when="loaded">
+      <div class="search" role="search">
+        <label class="sr-only" for="search">Search people</label>
+        <input type="search" id="search" placeholder="Search people" autocomplete="off"
+               spellcheck="false" aria-expanded="false" aria-controls="search-results">
+        <ul class="search-results" id="search-results" role="listbox" hidden></ul>
+      </div>
+
+      <button type="button" class="tool primary-tool" id="add-person">Add a person</button>
+
+      <div class="undo-pair" role="group" aria-label="Undo and redo">
+        <button type="button" class="icon" id="undo" aria-label="Undo" disabled>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M9 7 4 12l5 5"/><path d="M4 12h9a6 6 0 0 1 0 12h-1"/>
+          </svg>
+        </button>
+        <button type="button" class="icon" id="redo" aria-label="Redo" disabled>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="m15 7 5 5-5 5"/><path d="M20 12h-9a6 6 0 0 0 0 12h1"/>
+          </svg>
+        </button>
+      </div>
+
+      <div class="zoom">
+        <button type="button" class="icon" id="zoom-out" aria-label="Zoom out">&minus;</button>
+        <output class="zoom-level" id="zoom-level" aria-live="off">100%</output>
+        <button type="button" class="icon" id="zoom-in" aria-label="Zoom in">+</button>
+        <button type="button" class="tool" id="fit">Fit</button>
+      </div>
+
+      <button type="button" class="tool save-btn" id="save">Save</button>
+    </div>
+  </header>
+
+  <main class="stage" id="stage">
+
+    <!-- ------------------------------------------------------------ nothing open yet -->
+    <section class="opener" id="opener" data-when="empty">
+      <div class="opener-inner">
+        <h1>A family tree, on this machine.</h1>
+        <p class="lede">
+          Start one here and build it person by person, or open a <b>.ftree</b> you already have.
+          Nothing is uploaded, there is nothing to sign into, and it works with the network off.
+        </p>
+
+        <div class="drop" id="drop">
+          <input type="file" id="file" accept=".ftree,.zip,.json" hidden>
+          <!--
+            New first, and not out of politeness. Somebody may have installed this having never
+            owned the phone app, and for them "open a file" is a dead end.
+          -->
+          <button type="button" class="btn primary" id="start-new">Start a new tree</button>
+          <p class="drop-or">or</p>
+          <button type="button" class="btn quiet" id="choose">Open a .ftree file</button>
+        </div>
+
+        <p class="opener-error" id="opener-error" hidden role="alert"></p>
+      </div>
+    </section>
+
+    <!-- ------------------------------------------------------------ the chart -->
+    <canvas id="canvas" tabindex="0" role="img"
+            aria-label="Family chart. Select a person to edit them."></canvas>
+
+    <p class="hint" id="hint" hidden></p>
+
+    <!-- ------------------------------------------------------------ one person, editable -->
+    <aside class="panel edit-panel" id="panel" hidden aria-label="Edit this person">
+      <button type="button" class="panel-close" id="panel-close" aria-label="Close">&times;</button>
+      <div class="panel-body" id="panel-body"></div>
+    </aside>
+
+    <div class="busy" id="busy" hidden><span></span> Reading the file&hellip;</div>
+  </main>
+
+  <footer class="status" data-when="loaded">
+    <div class="counts" id="counts"></div>
+    <div class="legend" aria-hidden="true">
+      <span class="key"><i class="k-unknown"></i>name not known</span>
+      <span class="key"><i class="k-couple"></i>partners</span>
+      <span class="key"><i class="k-descent"></i>parent to child</span>
+      <span class="key"><i class="k-died"></i>no longer living</span>
+      <span class="key"><i class="k-sib"></i>siblings, parents unknown</span>
+      <span class="key"><i class="k-alone"></i>no recorded relatives</span>
+    </div>
+  </footer>
+
+  <!-- Said once, where the eye already is, and gone again. Never a dialog for a saved file. -->
+  <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+</div>
+
+<script type="module" src="app.js"></script>

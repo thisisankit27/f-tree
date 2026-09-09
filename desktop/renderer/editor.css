@@ -1,0 +1,368 @@
+/*
+ * What the desktop app adds to the viewer's look.
+ *
+ * playground.css carries the shared visual language -- the bar, the canvas, the panel, the palette,
+ * the type. This file is only the parts that exist because this app can change a tree: the form,
+ * the relatives list, the refusal messages, and the quiet mark that says there is work not on disk.
+ *
+ * Everything here is scoped under `.editor` so nothing can leak back into the website's viewer if
+ * the two stylesheets are ever loaded together.
+ */
+
+/* ------------------------------------------------------------------ the bar */
+
+.editor .wordmark {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: inherit;
+  text-decoration: none;
+}
+
+/*
+ * Unsaved work, said with a dot.
+ *
+ * The alternative -- a word, or an asterisk on the file name -- is louder than the fact deserves.
+ * Somebody mid-edit knows they are mid-edit; the dot is for coming back to a window after lunch.
+ */
+.editor .unsaved {
+  color: var(--accent, #c56a3a);
+  font-size: 20px;
+  line-height: 1;
+  margin-left: 2px;
+}
+
+.editor .undo-pair {
+  display: inline-flex;
+  gap: 2px;
+}
+
+.editor .icon[disabled] {
+  opacity: 0.32;
+  cursor: default;
+}
+
+.editor .primary-tool {
+  font-weight: 600;
+}
+
+.editor .save-btn[data-dirty='true'] {
+  font-weight: 600;
+}
+
+/* ------------------------------------------------------------------ the person form */
+
+.editor .edit-panel {
+  --field-gap: 12px;
+}
+
+.editor .form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--field-gap);
+  margin: 16px 0 4px;
+}
+
+.editor .field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+}
+
+/* A name deserves the whole width; two dates sit happily side by side. */
+.editor .field.wide {
+  grid-column: 1 / -1;
+}
+
+.editor .field > label {
+  font-size: 11.5px;
+  letter-spacing: 0.02em;
+  opacity: 0.68;
+}
+
+.editor .field input[type='text'],
+.editor .field select,
+.editor .field textarea {
+  font: inherit;
+  font-size: 13.5px;
+  color: inherit;
+  background: var(--sunk, rgba(0, 0, 0, 0.04));
+  border: 1px solid var(--rule, rgba(0, 0, 0, 0.14));
+  border-radius: 8px;
+  padding: 7px 9px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.editor .field textarea {
+  resize: vertical;
+  min-height: 62px;
+  line-height: 1.45;
+}
+
+.editor .field input:focus-visible,
+.editor .field select:focus-visible,
+.editor .field textarea:focus-visible {
+  outline: 2px solid var(--accent, #c56a3a);
+  outline-offset: 1px;
+}
+
+/*
+ * A hint under a date field, because "1962" is a perfectly good answer.
+ *
+ * The format takes partial dates on purpose -- a year alone, or a year and month -- and somebody
+ * who does not know the day should not be made to invent one.
+ */
+.editor .field-hint {
+  font-size: 11px;
+  opacity: 0.55;
+}
+
+.editor .check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  grid-column: 1 / -1;
+}
+
+.editor .check input {
+  width: 15px;
+  height: 15px;
+  accent-color: var(--accent, #c56a3a);
+}
+
+/* ------------------------------------------------------------------ relatives */
+
+.editor .rel-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 22px 0 8px;
+}
+
+.editor .rel-heading h3 {
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  text-transform: none;
+  opacity: 0.7;
+  margin: 0;
+}
+
+.editor .rel-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.editor .rel-list li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 6px 5px 8px;
+  border-radius: 8px;
+}
+
+.editor .rel-list li:hover {
+  background: var(--sunk, rgba(0, 0, 0, 0.04));
+}
+
+.editor .rel-go {
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+  font: inherit;
+  font-size: 13.5px;
+  color: inherit;
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.editor .rel-role {
+  font-size: 11.5px;
+  opacity: 0.6;
+  flex-shrink: 0;
+}
+
+/*
+ * Removing a relationship is not removing a person, and the two must never be confused. This is
+ * the quieter of the two controls and says what it does when hovered.
+ */
+.editor .rel-cut {
+  flex-shrink: 0;
+  font: inherit;
+  font-size: 15px;
+  line-height: 1;
+  color: inherit;
+  opacity: 0;
+  background: none;
+  border: 0;
+  border-radius: 6px;
+  padding: 2px 5px;
+  cursor: pointer;
+}
+
+.editor .rel-list li:hover .rel-cut,
+.editor .rel-cut:focus-visible {
+  opacity: 0.65;
+}
+
+.editor .rel-cut:hover {
+  opacity: 1;
+  color: var(--danger, #b3402f);
+}
+
+.editor .rel-empty {
+  font-size: 13px;
+  opacity: 0.6;
+  margin: 4px 0 0;
+}
+
+/* ------------------------------------------------------------------ adding a relative */
+
+.editor .add-rel {
+  margin-top: 10px;
+  border: 1px dashed var(--rule, rgba(0, 0, 0, 0.18));
+  border-radius: 10px;
+  padding: 12px;
+}
+
+.editor .kinds {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
+  margin-bottom: 10px;
+}
+
+.editor .kinds button {
+  font: inherit;
+  font-size: 12.5px;
+  color: inherit;
+  background: var(--sunk, rgba(0, 0, 0, 0.04));
+  border: 1px solid transparent;
+  border-radius: 7px;
+  padding: 6px 4px;
+  cursor: pointer;
+}
+
+.editor .kinds button[aria-pressed='true'] {
+  border-color: var(--accent, #c56a3a);
+  font-weight: 600;
+}
+
+.editor .add-rel .search-results {
+  position: static;
+  margin-top: 6px;
+  max-height: 168px;
+}
+
+/* ------------------------------------------------------------------ saying no */
+
+/*
+ * A refusal from the relationship rules.
+ *
+ * It appears where the action was, not in a dialog: the person is mid-thought and the answer is
+ * one sentence. It also says what the rule is protecting rather than only that something failed,
+ * because "that would make him his own grandfather" is the useful half.
+ */
+.editor .refusal {
+  margin: 10px 0 0;
+  padding: 9px 11px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--danger, #b3402f) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--danger, #b3402f) 34%, transparent);
+  font-size: 12.5px;
+  line-height: 1.45;
+}
+
+.editor .danger-row {
+  margin-top: 26px;
+  padding-top: 14px;
+  border-top: 1px solid var(--rule, rgba(0, 0, 0, 0.12));
+}
+
+.editor .btn-danger {
+  font: inherit;
+  font-size: 12.5px;
+  color: var(--danger, #b3402f);
+  background: none;
+  border: 1px solid color-mix(in srgb, var(--danger, #b3402f) 40%, transparent);
+  border-radius: 8px;
+  padding: 6px 11px;
+  cursor: pointer;
+}
+
+.editor .btn-danger:hover {
+  background: color-mix(in srgb, var(--danger, #b3402f) 12%, transparent);
+}
+
+/* ------------------------------------------------------------------ toast */
+
+.editor .toast {
+  position: fixed;
+  left: 50%;
+  bottom: 62px;
+  transform: translateX(-50%);
+  z-index: 40;
+  max-width: min(560px, 88vw);
+  padding: 10px 16px;
+  border-radius: 999px;
+  background: var(--ink, #1b1f1a);
+  color: var(--paper, #f7f6f1);
+  font-size: 13px;
+  box-shadow: 0 6px 26px rgba(0, 0, 0, 0.22);
+}
+
+.editor .toast[data-tone='bad'] {
+  background: var(--danger, #b3402f);
+  border-radius: 12px;
+  white-space: pre-line;
+  text-align: left;
+  line-height: 1.5;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .editor .toast { animation: toast-in 160ms ease-out; }
+  @keyframes toast-in {
+    from { opacity: 0; transform: translate(-50%, 6px); }
+    to   { opacity: 1; transform: translate(-50%, 0); }
+  }
+}
+
+/* ------------------------------------------------------------------ the empty tree */
+
+/*
+ * A tree with nobody in it is a real state, not an error: it is where every tree starts. It gets
+ * an invitation rather than the "nothing loaded" screen, which would be a lie -- a file is open.
+ */
+.editor .first-person {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  text-align: center;
+  gap: 14px;
+  padding: 24px;
+  pointer-events: none;
+}
+
+.editor .first-person p {
+  margin: 0;
+  font-size: 15px;
+  opacity: 0.72;
+}
+
+.editor .first-person .btn {
+  pointer-events: auto;
+  justify-self: center;
+}

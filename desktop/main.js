@@ -41,9 +41,22 @@ if (process.platform === 'linux' && !process.env.DISPLAY && !process.env.WAYLAND
  * index, the search and the relation finder - a fix to any of them is a fix in both places rather
  * than a fix and a note to remember the other one.
  */
+/*
+ * The page this shell shows.
+ *
+ * The desktop app's own, not the website's viewer: that one reads a tree and stays a reader, and
+ * this one builds and changes one. They share the engine underneath -- reader, writer, model,
+ * layout, chart -- which `renderer/index.html` imports from `../../site/playground/`.
+ *
+ * That relative path is why packaging reproduces the repository's shape rather than flattening it:
+ * in development the import already resolves against the working tree, so there is no assembly
+ * step to keep in step with anything. The staged directory is called `page` and not `app` on
+ * purpose -- `resources/app` is where Electron looks for an unpacked application, and putting a
+ * package.json there would make it try to run this as one.
+ */
 const VIEWER = app.isPackaged
-  ? path.join(process.resourcesPath, 'viewer', 'index.html')
-  : path.join(__dirname, '..', 'site', 'playground', 'index.html');
+  ? path.join(process.resourcesPath, 'page', 'renderer', 'index.html')
+  : path.join(__dirname, 'renderer', 'index.html');
 
 /*
  * Where the app remembers what it was reading.
@@ -673,6 +686,19 @@ ipcMain.handle('tree:save', async (event, { bytes, path: target }) => {
 
 ipcMain.handle('tree:saveAs', async (event, { bytes, suggest }) => {
   const win = BrowserWindow.fromWebContents(event.sender);
+
+  /*
+   * The one seam the smoke test needs, and it is deliberately narrow.
+   *
+   * A native save dialog cannot be driven from a test, and stubbing the whole save would leave
+   * the part that actually writes to a disk unexercised -- which is the part worth exercising.
+   * So the destination is supplied and everything after it is the real code path. Guarded on
+   * FTREE_SMOKE, so it cannot be reached in a build somebody is using.
+   */
+  if (process.env.FTREE_SMOKE && process.env.FTREE_SMOKE_SAVE_TO) {
+    return saveInto(win, process.env.FTREE_SMOKE_SAVE_TO, bytes);
+  }
+
   const picked = await dialog.showSaveDialog(win, {
     title: 'Save the family tree',
     defaultPath: suggest || 'family-tree.ftree',
@@ -715,6 +741,118 @@ ipcMain.handle('tree:last', async () => {
  * would actually be broken if the wiring came apart: the bridge is reachable, the tree arrived,
  * every person was drawn, and the layout ran.
  */
+/*
+ * Building a tree from nothing, the way somebody who has never owned the phone app would.
+ *
+ * The assertions above prove the app can read. These prove it can do the thing it exists for, and
+ * they use the real path all the way down: the real buttons, the real relationship rules, the real
+ * writer, the real atomic save onto a real disk, and then the file read back. Nothing is stubbed
+ * but the native save dialog, which cannot be clicked from here.
+ *
+ * The order matters. Each step depends on the one before, so a failure early stops the rest rather
+ * than reporting six confusing consequences of one cause.
+ */
+async function runEditSmoke(win, check) {
+  const page = (fn, ...args) => win.webContents.executeJavaScript(
+    `(${fn.toString()})(${args.map((a) => JSON.stringify(a)).join(',')})`);
+  const settle = (ms = 350) => new Promise((r) => setTimeout(r, ms));
+
+  console.log('\n  -- building a tree from nothing --');
+
+  await page(() => document.getElementById('start-new').click());
+  await settle();
+
+  let seen = await page(() => ({
+    counts: document.getElementById('counts')?.textContent ?? '',
+    panelOpen: document.getElementById('panel')?.hidden === false,
+    nameField: Boolean(document.getElementById('f-name')),
+  }));
+  check('a new tree starts with somebody to name', seen.panelOpen && seen.nameField,
+    seen.counts);
+
+  // Typing a name and leaving the field: one edit, one undo step.
+  await page(() => {
+    const input = document.getElementById('f-name');
+    input.value = 'Shyam Lal';
+    input.dispatchEvent(new Event('change', { bubbles: true }));
+  });
+  await settle();
+
+  // Add a child, by name, as a new person.
+  await page(() => {
+    [...document.querySelectorAll('.kinds button')].find((b) => b.textContent === 'Child').click();
+  });
+  await settle(200);
+  await page(() => {
+    document.getElementById('add-name').value = 'Ravi';
+    [...document.querySelectorAll('.add-rel .btn')].find((b) => b.textContent.includes('new person')).click();
+  });
+  await settle();
+
+  seen = await page(() => ({
+    counts: document.getElementById('counts')?.textContent ?? '',
+    unsaved: document.getElementById('unsaved')?.hidden === false,
+    canUndo: document.getElementById('undo')?.disabled === false,
+  }));
+  check('a person and a child are recorded', /2 people/.test(seen.counts) && /1 connection/.test(seen.counts),
+    seen.counts);
+  check('the window knows there is work not on disk', seen.unsaved === true);
+  check('there is something to undo', seen.canUndo === true);
+
+  // The rules, through the interface rather than around it: a child cannot also be a partner.
+  await page(() => {
+    [...document.querySelectorAll('.kinds button')].find((b) => b.textContent === 'Partner').click();
+  });
+  await settle(200);
+  const refused = await page(() => {
+    const list = [...document.querySelectorAll('.add-rel .search-results li button')];
+    document.getElementById('add-name').value = 'Ravi';
+    document.getElementById('add-name').dispatchEvent(new Event('input', { bubbles: true }));
+    return list.length;
+  });
+  await settle(200);
+  await page(() => {
+    const first = document.querySelector('.add-rel .search-results li button');
+    if (first) first.click();
+  });
+  await settle();
+  seen = await page(() => ({
+    counts: document.getElementById('counts')?.textContent ?? '',
+    toast: document.getElementById('toast')?.hidden === false
+      ? document.getElementById('toast').textContent : null,
+  }));
+  check('the rules refuse a partner who is already a child, and say why',
+    /1 connection/.test(seen.counts) && /already parent and child/i.test(seen.toast ?? ''),
+    `${seen.counts} — ${seen.toast}`);
+
+  // Save, through the real writer and the real atomic write.
+  await page(() => document.getElementById('save').click());
+  await settle(1200);
+
+  const target = process.env.FTREE_SMOKE_SAVE_TO;
+  const wrote = await fs.stat(target).then((s) => s.size, () => 0);
+  check('the tree was written to disk', wrote > 0, `${wrote} bytes at ${target}`);
+
+  seen = await page(() => ({
+    unsaved: document.getElementById('unsaved')?.hidden === false,
+    toast: document.getElementById('toast')?.textContent ?? '',
+  }));
+  check('saving clears the unsaved mark', seen.unsaved === false, seen.toast);
+
+  /*
+   * Read back through the app itself. A file the writer can produce and the reader cannot open
+   * would pass every check above and be useless.
+   */
+  await openInto(win, target);
+  await settle(900);
+  seen = await page(() => ({
+    counts: document.getElementById('counts')?.textContent ?? '',
+    names: [...document.querySelectorAll('.rel-go')].map((b) => b.textContent).join(','),
+  }));
+  check('the saved file reopens with both people and the connection',
+    /2 people/.test(seen.counts) && /1 connection/.test(seen.counts), seen.counts);
+}
+
 async function runSmoke(win, file) {
   const failures = [];
   const iconExists = await fs.access(ICON_FOR_WINDOW).then(() => true, () => false);
@@ -738,6 +876,17 @@ async function runSmoke(win, file) {
     return;
   }
 
+  /*
+   * The page's own errors, in this log.
+   *
+   * Without this a thrown exception in the renderer is invisible from here: the assertions simply
+   * report the consequence -- a panel that did not open, a count that did not change -- and the
+   * cause stays in a console nobody is looking at. It cost an afternoon once.
+   */
+  win.webContents.on('console-message', (_event, level, message, line, source) => {
+    if (level >= 2) console.log(`       page: ${message}  (${source}:${line})`);
+  });
+
   await openInto(win, file);
   // The page reads the file, lays it out and paints; give it room on a slow runner.
   await new Promise((r) => setTimeout(r, 2500));
@@ -753,8 +902,11 @@ async function runSmoke(win, file) {
     hint: document.getElementById('hint')?.textContent ?? null,
     literata: document.fonts.check('16px Literata'),
     mono: document.fonts.check('13px "JetBrains Mono"'),
-    people: document.querySelectorAll('#index-list li, #index-list button, #index-list tr').length,
-    status: document.querySelector('#status')?.textContent?.trim().slice(0, 90) ?? null,
+    counts: document.getElementById('counts')?.textContent?.trim() ?? null,
+    // The editor's own surface. A page that reads a tree but cannot change one is not this app.
+    canEdit: Boolean(document.getElementById('add-person') && document.getElementById('save')),
+    undoPresent: Boolean(document.getElementById('undo') && document.getElementById('redo')),
+    panelExists: Boolean(document.getElementById('panel')),
   })).toString()})()`);
 
   check('the preload bridge is reachable from the page', seen.bridge === true);
@@ -779,7 +931,10 @@ async function runSmoke(win, file) {
     check(`the page can ask to ${name}`, String(seen.bridgeNames).split(',').includes(name),
       String(seen.bridgeNames));
   }
-  check('the archive was read and counted', /\d+ people/.test(seen.status ?? ''), String(seen.status));
+  check('the archive was read and counted', /\d+ people/.test(seen.counts ?? ''), String(seen.counts));
+  check('the page can change a tree, not only read one', seen.canEdit === true);
+  check('undo and redo are there', seen.undoPresent === true);
+  check('a person can be opened for editing', seen.panelExists === true);
   // Refusing the network must not quietly cost the app its typography.
   check('the bundled typefaces loaded without the network', seen.literata && seen.mono,
     `Literata ${seen.literata}, JetBrains Mono ${seen.mono}`);
@@ -815,6 +970,8 @@ async function runSmoke(win, file) {
     }
     check('the updater can reach GitHub through the page-level refusal', reachable, detail);
   }
+
+  if (process.env.FTREE_SMOKE_SAVE_TO) await runEditSmoke(win, check);
 
   if (process.env.FTREE_SMOKE_SHOT) {
     const image = await win.webContents.capturePage();

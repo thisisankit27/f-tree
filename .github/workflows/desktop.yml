@@ -78,6 +78,10 @@ jobs:
           # Asserts the updater is not blocked by the page's own network refusal - the regression
           # that shipped in 0.2.0 and reported itself as ERR_BLOCKED_BY_CLIENT.
           FTREE_SMOKE_NETWORK: '1'
+          # Setting this turns on the second half of the smoke test: starting a tree from nothing,
+          # naming somebody, adding a child, being refused a contradictory relationship, saving to
+          # this path and reading it back. Everything but the native save dialog is the real path.
+          FTREE_SMOKE_SAVE_TO: ${{ runner.temp }}/built-here.ftree
         run: xvfb-run -a npx electron . --no-sandbox
 
   package:
