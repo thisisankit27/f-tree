@@ -27,6 +27,8 @@ import { Chart } from '../../site/playground/chart.js';
 
 import { Tree, RelationshipType, Rejection } from './document.js';
 import { bytesForTree, SaveRefused } from './save.js';
+import { planImport, applyImport, ImportRefused } from './import.js';
+import { MatchTier } from './matching.js';
 
 const { PARENT, SPOUSE, SIBLING } = RelationshipType;
 
@@ -68,7 +70,8 @@ function toast(message, tone = 'good') {
   box.hidden = false;
   clearTimeout(toastTimer);
   // A refusal is longer and worth reading twice; a confirmation is not.
-  toastTimer = setTimeout(() => { box.hidden = true; }, tone === 'bad' ? 9000 : 2600);
+  const linger = { bad: 9000, warn: 9000 }[tone] ?? 2600;
+  toastTimer = setTimeout(() => { box.hidden = true; }, linger);
 }
 
 /** Keeps the window, the menu and the dot in step with whether there is work not on disk. */
@@ -722,6 +725,223 @@ async function openBytes(bytes, name, filePath) {
   }
 }
 
+/* ------------------------------------------------------------------ importing */
+
+/**
+ * Merging somebody else's file into this tree.
+ *
+ * Nothing is decided here. The file is read, the matcher works out what it would mean, and the
+ * review dialog asks -- because a strong match merges unless it is refused, and a merge is the one
+ * act in this app that cannot be put right by hand afterwards.
+ */
+async function importTree() {
+  if (!shell) return;
+
+  // With nothing open there is no tree to import into, and opening the file is plainly what was
+  // meant. Refusing on a technicality would be correct and useless.
+  if (!state.tree) { await shell.chooseTree(); return; }
+
+  const chosen = await shell.chooseImportTree();
+  if (!chosen) return;
+
+  $('busy').hidden = false;
+  try {
+    const buffer = chosen.bytes instanceof ArrayBuffer ? chosen.bytes : chosen.bytes.buffer;
+    const archive = await openArchive(buffer);
+    if (!archive.has('tree.json')) {
+      throw new ArchiveError('That ZIP has no tree.json, so it is not a .ftree export.');
+    }
+    const doc = parseDocument(await archive.readText('tree.json'));
+
+    const importedPhotos = new Map();
+    for (const entry of archive.names()) {
+      if (entry.startsWith('photos/') && !entry.endsWith('/')) {
+        importedPhotos.set(entry, await archive.read(entry));
+      }
+    }
+
+    openReview(planImport({ document: doc, tree: state.tree, ownTreeId: state.ownTreeId }),
+      chosen.name, importedPhotos);
+  } catch (error) {
+    const known = error instanceof ArchiveError || error instanceof ImportRefused;
+    toast(known ? error.message : `That file could not be read. ${error.message}`, 'bad');
+  } finally {
+    $('busy').hidden = true;
+  }
+}
+
+const RELATIVE_LIST = (names) => {
+  if (names.length === 1) return names[0];
+  if (names.length === 2) return `${names[0]} and ${names[1]}`;
+  return `${names.slice(0, -1).join(', ')} and ${names.at(-1)}`;
+};
+
+/** The case for a proposed match, in words somebody can agree or disagree with. */
+function whyMatched(match) {
+  const parts = ['The name is the same'];
+  if (match.evidence.datesAgree) parts.push('the dates fit');
+  if (match.shared.length) {
+    parts.push(`you both have ${RELATIVE_LIST(match.shared.slice(0, 3))}`
+      + (match.shared.length > 3 ? ` and ${match.shared.length - 3} more` : ''));
+  }
+  const sentence = parts.length === 1
+    ? parts[0]
+    : `${parts.slice(0, -1).join(', ')}, and ${parts.at(-1)}`;
+  return match.shared.length
+    ? `${sentence}.`
+    : `${sentence} — but nothing else here says they are the same person.`;
+}
+
+const FIELDS = [['birthDate', 'Born'], ['deathDate', 'Died'], ['notes', 'Notes']];
+
+function sideOf(heading, person, other, fields) {
+  if (!fields.length) {
+    return `<div class="side"><p class="side-of">${heading}</p>`
+      + '<p class="side-bare">Only a name recorded.</p></div>';
+  }
+  const rows = fields.map(([key, label]) => {
+    const mine = person?.[key];
+    const theirs = other?.[key];
+    if (!mine) return `<dt>${label}</dt><dd class="empty">not recorded</dd>`;
+    // Marked where the two disagree: a merge keeps what is already here, so this is also the only
+    // place somebody is told which of theirs is about to be set aside.
+    const differs = theirs && String(theirs) !== String(mine) ? 'differs' : '';
+    return `<dt>${label}</dt><dd class="${differs}">${escapeHtml(String(mine))}</dd>`;
+  }).join('');
+  return `<div class="side"><p class="side-of">${heading}</p><dl>${rows}</dl></div>`;
+}
+
+function pairCard(match) {
+  const name = escapeHtml(match.theirs?.name ?? 'Someone unnamed');
+  const tier = match.tier === MatchTier.STRONG ? 'Likely the same person' : 'Possibly the same person';
+  const merging = match.tier === MatchTier.STRONG;
+  // A row neither record has says nothing twice, and pushes the evidence below the fold.
+  const fields = FIELDS.filter(([key]) => match.theirs?.[key] || match.mine?.[key]);
+  return `
+    <article class="pair" data-id="${escapeHtml(match.importedId)}" data-tier="${match.tier}">
+      <div class="pair-head">
+        <h3 class="pair-name">${name}</h3>
+        <span class="pair-tier">${tier}</span>
+      </div>
+      <div class="pair-sides">
+        ${sideOf('In their file', match.theirs, match.mine, fields)}
+        ${sideOf('In your tree', match.mine, match.theirs, fields)}
+      </div>
+      <p class="pair-why">${escapeHtml(whyMatched(match))}</p>
+      <div class="pair-choice" role="group" aria-label="Is this the same person?">
+        <button type="button" data-merge="yes" aria-pressed="${merging}">Same person</button>
+        <button type="button" data-merge="no" aria-pressed="${!merging}">Two different people</button>
+      </div>
+    </article>`;
+}
+
+function openReview(plan, fileName, importedPhotos) {
+  const decisions = new Map(plan.defaultDecisions);
+  const dialog = $('review');
+  const total = plan.matches.length;
+  const asked = plan.reviewable;
+
+  $('review-title').textContent = fileName;
+  $('review-lead').textContent = asked.length
+    ? `Their file has ${count(total, 'person', 'people')}. `
+      + `${asked.length} of them ${asked.length === 1 ? 'looks' : 'look'} like someone already in `
+      + 'your tree, so they are worth a look before anything is joined up.'
+    : `Their file has ${count(total, 'person', 'people')}, and none of them need a decision.`;
+
+  const settled = plan.certainMatches
+    ? `<p class="review-settled">${count(plan.certainMatches, 'person is', 'people are')} `
+      + 'recognised outright — their file records where they came from, and it is somebody you '
+      + 'already hold. Those are matched without asking.</p>'
+    : '';
+
+  // Strong first: those merge unless refused, so they are the ones worth reading.
+  const order = { [MatchTier.STRONG]: 0, [MatchTier.WEAK]: 1 };
+  const cards = [...asked]
+    .sort((a, b) => order[a.tier] - order[b.tier])
+    .map(pairCard).join('');
+
+  $('review-body').innerHTML = settled + cards;
+
+  const outcome = () => {
+    const { added, merged } = plan.outcomeUnder(decisions);
+    const parts = [];
+    if (added) parts.push(`add ${count(added, 'person', 'people')}`);
+    if (merged) parts.push(`merge ${count(merged, 'person', 'people')}`);
+    const said = parts.length ? parts.join(' and ') : 'change nothing';
+    $('review-confirm').textContent = parts.length
+      ? said.charAt(0).toUpperCase() + said.slice(1)
+      : 'Close';
+  };
+
+  $('review-body').onclick = (event) => {
+    const button = event.target.closest('button[data-merge]');
+    if (!button) return;
+    const card = button.closest('.pair');
+    const merge = button.dataset.merge === 'yes';
+    decisions.set(card.dataset.id, merge);
+    for (const other of card.querySelectorAll('button[data-merge]')) {
+      other.setAttribute('aria-pressed', String((other.dataset.merge === 'yes') === merge));
+    }
+    outcome();
+  };
+
+  outcome();
+
+  const close = () => { $('review-body').onclick = null; dialog.close(); };
+  $('review-cancel').onclick = close;
+  $('review-confirm').onclick = () => {
+    close();
+    commitImport(plan, decisions, importedPhotos, fileName);
+  };
+
+  $('review-outcome').textContent =
+    'Nothing is written to your file until you save. Undo puts all of it back.';
+
+  dialog.showModal();
+  /*
+   * A dialog focuses its first focusable child, which here is a button inside the first card --
+   * and the browser scrolls it into view, opening the screen already scrolled past the name of
+   * the person being asked about. Focus the heading instead, and start at the top.
+   */
+  $('review-body').scrollTop = 0;
+  $('review-head').focus();
+}
+
+function commitImport(plan, decisions, importedPhotos, fileName) {
+  const result = applyImport({
+    tree: state.tree,
+    plan,
+    decisions,
+    photos: state.photos,
+    importedPhotos,
+    label: `Import ${fileName}`,
+  });
+
+  rebuild({ refit: true });
+  renderPanel();
+
+  const said = [];
+  if (result.peopleAdded) said.push(`Added ${count(result.peopleAdded, 'person', 'people')}`);
+  if (result.peopleMerged) said.push(`merged ${count(result.peopleMerged, 'person', 'people')}`);
+  if (result.relationshipsAdded) {
+    said.push(`added ${count(result.relationshipsAdded, 'connection', 'connections')}`);
+  }
+  if (!said.length) said.push('Nothing changed — everything in that file was already here');
+
+  // Conflicts are not a failure, but they are the one thing somebody might want to go and look
+  // at, so they are said plainly rather than buried in a count.
+  const extra = result.conflicts.length
+    ? `\n${count(result.conflicts.length, 'detail', 'details')} differed and yours were kept.`
+    : '';
+  const refused = result.relationshipsRefused.length
+    ? `\n${count(result.relationshipsRefused.length, 'connection', 'connections')} could not be `
+      + 'added without contradicting your tree.'
+    : '';
+
+  toast(`${said.join(', ')}.${extra}${refused}\nUndo puts this back.`,
+    result.conflicts.length || result.relationshipsRefused.length ? 'warn' : 'good');
+}
+
 /**
  * Only the photos somebody is still referenced by.
  *
@@ -844,6 +1064,7 @@ function wireShell() {
 
   shell.onMenuCommand((command) => {
     if (command === 'file:new') { startNewTree(); return; }
+    if (command === 'file:import') { importTree(); return; }
     if (command === 'file:save') { save(); return; }
     if (command === 'file:saveAs') { save({ as: true }); return; }
     if (command === 'edit:undo') { undo(); return; }

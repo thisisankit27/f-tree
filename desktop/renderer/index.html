@@ -175,6 +175,28 @@
     </div>
   </footer>
 
+  <!--
+    Deciding which people in two files are the same person.
+
+    A dialog and not a panel: this is the one moment in the app where confirming does something
+    that cannot be put right by hand, so it takes the screen and asks. Native <dialog>, for the
+    focus trap and Escape that a div would have to reimplement and get wrong.
+  -->
+  <dialog class="review" id="review" aria-labelledby="review-title">
+    <div class="review-head" id="review-head" tabindex="-1">
+      <h2 class="review-title" id="review-title"></h2>
+      <p class="review-lead" id="review-lead"></p>
+    </div>
+    <div class="review-body" id="review-body"></div>
+    <div class="review-foot">
+      <p class="review-outcome" id="review-outcome" aria-live="polite"></p>
+      <div class="review-actions">
+        <button type="button" class="btn quiet" id="review-cancel">Cancel</button>
+        <button type="button" class="btn primary" id="review-confirm">Import</button>
+      </div>
+    </div>
+  </dialog>
+
   <!-- Said once, where the eye already is, and gone again. Never a dialog for a saved file. -->
   <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
 </div>

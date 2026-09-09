@@ -398,3 +398,255 @@
 .editor .index {
   overflow-y: auto;
 }
+
+/* ------------------------------------------------------------------ the import review
+
+   The one screen in the app where confirming does something a person cannot put right by hand.
+   Two records merge into one and the fact that they were ever two is gone, so the design's whole
+   job is to make the judgement checkable before it is taken.
+
+   Hence the card is a *comparison*, not a checkbox beside a name. The decision being asked is
+   "are these two the same person", so the two records are set side by side and the fields that
+   disagree are marked. A list of ticked names would be asking the same question while hiding
+   the evidence needed to answer it. */
+
+.editor .review {
+  width: min(760px, calc(100vw - 48px));
+  max-height: min(84vh, 760px);
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  color: var(--ink);
+  background: var(--raised);
+  border: 1px solid var(--rule);
+  border-radius: 14px;
+  box-shadow: var(--shadow);
+}
+
+/* One wash, literal rather than tokenised, because it is doing the same job in both themes: it
+   is not the surface's colour, it is the distance between this question and the tree behind it.
+   (Note for anyone checking this in a screenshot: capturePage does not composite the top layer,
+   so the backdrop is absent from captures while being present on screen.) */
+.editor .review::backdrop {
+  background: rgba(10, 28, 18, 0.58);
+  backdrop-filter: blur(2px);
+}
+
+.editor .review-head {
+  padding: 22px 26px 16px;
+  border-bottom: 1px solid var(--rule);
+}
+
+.editor .review-title {
+  margin: 0;
+  font-family: var(--serif);
+  font-size: 21px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.editor .review-lead {
+  margin: 7px 0 0;
+  max-width: 62ch;
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: var(--ink-soft);
+}
+
+.editor .review-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 18px 26px 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* A flex child shrinks to fit before its container will scroll, which sliced every card off
+   mid-row -- the evidence and the choice both below the cut. Cards keep their height; the body
+   scrolls instead. */
+.editor .review-body > * { flex: 0 0 auto; }
+
+/* A settled fact, stated once. Not a question, so it does not get a card. */
+.editor .review-settled {
+  margin: 0;
+  padding: 11px 14px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--ink-soft);
+  background: var(--sage-container);
+  border-radius: 9px;
+}
+
+.editor .pair {
+  border: 1px solid var(--rule);
+  border-radius: 11px;
+  overflow: hidden;
+}
+
+/* Strong matches merge unless refused, so they carry the weight the default deserves. */
+.editor .pair[data-tier='STRONG'] { border-color: var(--rule-strong); }
+
+.editor .pair-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 13px 16px 11px;
+  background: var(--bone-dim);
+  border-bottom: 1px solid var(--rule);
+}
+
+.editor .pair-name {
+  margin: 0;
+  font-family: var(--serif);
+  font-size: 17px;
+  font-weight: 600;
+}
+
+.editor .pair-tier {
+  font-size: 12px;
+  color: var(--ink-faint);
+  white-space: nowrap;
+}
+
+.editor .pair-sides {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1px;
+  background: var(--rule);
+}
+
+.editor .side {
+  padding: 13px 16px 14px;
+  background: var(--raised);
+  min-width: 0;
+}
+
+.editor .side-of {
+  margin: 0 0 9px;
+  font-size: 11.5px;
+  letter-spacing: 0.02em;
+  color: var(--ink-faint);
+}
+
+.editor .side dl {
+  margin: 0;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 4px 12px;
+  font-size: 13px;
+}
+
+.editor .side dt { color: var(--ink-faint); }
+.editor .side dd { margin: 0; min-width: 0; overflow-wrap: anywhere; }
+.editor .side dd.empty { color: var(--ink-faint); font-style: italic; }
+
+/* Where the two records disagree. Marked because it is the reason to look twice, and because a
+   merge keeps the local value -- so this is also the only warning that theirs will be set aside. */
+.editor .side dd.differs {
+  color: var(--brass);
+  font-weight: 600;
+}
+
+.editor .pair-why {
+  margin: 0;
+  padding: 11px 16px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--ink-soft);
+  background: var(--raised);
+  border-top: 1px solid var(--rule);
+}
+
+.editor .pair-choice {
+  display: flex;
+  gap: 8px;
+  padding: 0 16px 14px;
+  background: var(--raised);
+}
+
+.editor .pair-choice button {
+  font: inherit;
+  font-size: 13px;
+  padding: 7px 14px;
+  color: var(--ink-soft);
+  background: none;
+  border: 1px solid var(--rule-strong);
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.editor .pair-choice button:hover { background: var(--bone-dim); }
+
+.editor .pair-choice button[aria-pressed='true'] {
+  color: var(--on-forest);
+  background: var(--forest);
+  border-color: var(--forest);
+}
+
+.editor .pair-choice button:focus-visible {
+  outline: 2px solid var(--accent, #c56a3a);
+  outline-offset: 2px;
+}
+
+.editor .review-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 26px;
+  border-top: 1px solid var(--rule);
+  background: var(--bone-dim);
+  border-radius: 0 0 13px 13px;
+}
+
+/* What the button is about to do, in the same words the button uses. */
+.editor .review-outcome {
+  margin: 0;
+  font-size: 13px;
+  color: var(--ink-soft);
+}
+
+.editor .review-actions { display: flex; gap: 10px; }
+
+@media (max-width: 620px) {
+  .editor .pair-sides { grid-template-columns: 1fr; }
+  .editor .review-foot { flex-direction: column; align-items: stretch; }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .editor .review[open] { animation: review-in 140ms ease-out; }
+}
+
+@keyframes review-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+
+/* Something worth reading, that is not a failure. An import whose details disagreed did the job
+   it was asked to do, so it is told in brass rather than in the colour of a refusal. */
+.editor .toast[data-tone='warn'] {
+  color: var(--ink);
+  background: var(--brass-surface);
+  border: 1px solid var(--brass);
+  border-radius: 12px;
+  white-space: pre-line;
+  text-align: left;
+  line-height: 1.5;
+}
+
+/* Mono is right for the chrome's short labels -- Fit, Save, 100% -- and wrong for a button that
+   states a sentence. These two say what is about to happen, so they are set in the reading face. */
+.editor .review-actions .btn { font-family: inherit; font-size: 13.5px; padding: 11px 20px; }
+
+.editor .review-head:focus-visible { outline: none; }
+
+.editor .side-bare { margin: 0; font-size: 13px; color: var(--ink-faint); font-style: italic; }
+
+/* The platform scrollbar sits on top of the cards and is heavier than anything else on screen. */
+.editor .review-body {
+  scrollbar-width: thin;
+  scrollbar-color: var(--rule-strong) transparent;
+}

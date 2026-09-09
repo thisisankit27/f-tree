@@ -24,6 +24,14 @@ contextBridge.exposeInMainWorld('ftreeDesktop', {
   /** Opens the system file picker and returns { name, bytes } or null if it was cancelled. */
   chooseTree: () => ipcRenderer.invoke('tree:choose'),
 
+  /**
+   * Picks a second tree to merge into the one already open.
+   *
+   * Separate from `chooseTree` because the two are different acts: opening replaces what is on
+   * screen, importing adds to it, and only opening should be remembered for next launch.
+   */
+  chooseImportTree: () => ipcRenderer.invoke('tree:chooseImport'),
+
   /** The tree opened last time, reopened on launch so the app starts where it was left. */
   lastTree: () => ipcRenderer.invoke('tree:last'),
   forgetTree: () => ipcRenderer.invoke('tree:forget'),
