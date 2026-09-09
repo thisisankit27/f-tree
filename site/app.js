@@ -13,7 +13,7 @@
 
   var REPO = 'thisisankit27/f-tree';
   var API = 'https://api.github.com/repos/' + REPO + '/releases';
-  var CACHE_KEY = 'ftree.release.v1';
+  var CACHE_KEY = 'ftree.release.v2';
   var CACHE_TTL = 10 * 60 * 1000;
 
   var reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -49,7 +49,47 @@
         // GitHub returns this as "sha256:<hex>".
         sha256: (apk.digest || '').replace(/^sha256:/, ''),
         url: apk.browser_download_url
-      }
+      },
+      desktop: desktopFrom(releases)
+    };
+  }
+
+  /*
+   * The newest desktop release.
+   *
+   * Found by its tag rather than by being newest, because desktop releases are published as
+   * pre-releases on purpose - it is what keeps `releases/latest` answering with the newest
+   * Android release for the app's own updater. See docs/desktop.md.
+   */
+  function desktopFrom(releases) {
+    var rel = null;
+    for (var i = 0; i < releases.length; i++) {
+      if (releases[i].draft) continue;
+      if (/^desktop-v/.test(releases[i].tag_name || '')) { rel = releases[i]; break; }
+    }
+    if (!rel) return null;
+
+    var files = {};
+    (rel.assets || []).forEach(function (a) {
+      var kind = /\.exe$/i.test(a.name) ? 'windows'
+        : /\.AppImage$/i.test(a.name) ? 'appimage'
+        : /\.deb$/i.test(a.name) ? 'deb'
+        : null;
+      if (!kind) return;
+      files[kind] = {
+        kind: kind,
+        name: a.name,
+        size: a.size,
+        sha256: (a.digest || '').replace(/^sha256:/, ''),
+        url: a.browser_download_url
+      };
+    });
+
+    return {
+      version: (rel.tag_name || '').replace(/^desktop-v/, ''),
+      published: rel.published_at,
+      notesUrl: rel.html_url,
+      files: files
     };
   }
 
@@ -74,6 +114,12 @@
   }
 
   /* ---------------------------------------------------------------- helpers */
+
+  function longDate(iso) {
+    return new Date(iso).toLocaleDateString(undefined, {
+      year: 'numeric', month: 'long', day: 'numeric'
+    });
+  }
 
   function megabytes(bytes) {
     return (bytes / 1048576).toFixed(1) + ' MB';
@@ -386,9 +432,7 @@
     }
     if ((el = document.getElementById('fact-notes'))) el.href = data.notesUrl;
     if ((el = document.getElementById('fact-date')) && data.published) {
-      el.textContent = new Date(data.published).toLocaleDateString(undefined, {
-        year: 'numeric', month: 'long', day: 'numeric'
-      });
+      el.textContent = longDate(data.published);
     }
 
     // Start the download without navigating away from the instructions.
@@ -399,8 +443,111 @@
     if (status) status.textContent = 'Your download has started.';
   }
 
+  /* ------------------------------------------------------ the desktop page */
+
+  /*
+   * Which file this reader wants.
+   *
+   * A guess, and treated as one: it picks the primary button and nothing else, with the other two
+   * kept one click away rather than hidden. `userAgentData` where it exists, the platform string
+   * where it does not, and no pretence of certainty either way.
+   */
+  function guessPlatform() {
+    // `?platform=windows` overrides the guess. It is how somebody on one machine gets the file for
+    // another - "send me the Windows link" - and it is what makes the routing testable in a real
+    // browser rather than only by reading it.
+    var forced = (location.search.match(/[?&]platform=([a-z]+)/i) || [])[1];
+    if (forced) return forced.toLowerCase();
+
+    var hint = (navigator.userAgentData && navigator.userAgentData.platform)
+      || navigator.platform || '';
+    var ua = navigator.userAgent || '';
+    if (/android/i.test(ua)) return 'android';
+    if (/iphone|ipad|ipod/i.test(ua)) return 'ios';
+    if (/win/i.test(hint) || /windows/i.test(ua)) return 'windows';
+    if (/linux/i.test(hint) || /linux|x11|ubuntu/i.test(ua)) return 'linux';
+    if (/mac/i.test(hint) || /mac os/i.test(ua)) return 'mac';
+    return 'unknown';
+  }
+
+  var KIND_LABEL = {
+    windows: 'the Windows installer',
+    deb: 'the .deb for Ubuntu and Debian',
+    appimage: 'the AppImage'
+  };
+
+  function wireDesktop(desktop) {
+    var button = document.getElementById('desktop-primary');
+    var label = document.getElementById('desktop-primary-label');
+    var status = document.getElementById('desktop-status');
+    var others = document.getElementById('desktop-others');
+    if (!button) return;
+
+    if (!desktop || !Object.keys(desktop.files).length) {
+      status.textContent = 'Could not reach GitHub just now. The releases page has every build.';
+      label.textContent = 'Open the releases page';
+      return;
+    }
+
+    var platform = guessPlatform();
+
+    // A phone cannot run any of these, and saying so is more use than offering an 80MB installer.
+    if (platform === 'android' || platform === 'ios') {
+      label.textContent = 'Get f-tree for Android';
+      button.href = platform === 'android' ? '../thanks/' : '../';
+      status.textContent = 'This page is for a laptop. On a phone, f-tree is an Android app.';
+      others.innerHTML = '';
+      return;
+    }
+
+    var order = platform === 'windows' ? ['windows', 'deb', 'appimage'] : ['deb', 'appimage', 'windows'];
+    var first = null;
+    order.forEach(function (kind) { if (!first && desktop.files[kind]) first = desktop.files[kind]; });
+    if (!first) return;
+
+    button.href = first.url;
+    button.setAttribute('download', first.name);
+    label.textContent = 'Download ' + KIND_LABEL[first.kind];
+    status.textContent = first.name + ' · ' + megabytes(first.size) + ' · version ' + desktop.version;
+
+    // Mac is not built yet, and pretending otherwise would waste somebody's afternoon.
+    if (platform === 'mac') {
+      status.textContent = 'There is no macOS build yet. These are the Windows and Linux files.';
+    }
+
+    var rest = order.slice(1).filter(function (k) { return desktop.files[k]; });
+    others.innerHTML = rest.length
+      ? 'On another system? ' + rest.map(function (kind) {
+        var f = desktop.files[kind];
+        return '<a href="' + f.url + '" download="' + f.name + '">' + KIND_LABEL[kind]
+          + '</a> (' + megabytes(f.size) + ')';
+      }).join(' &middot; ')
+      : '';
+
+    fillDesktopFacts(desktop);
+  }
+
+  function fillDesktopFacts(desktop) {
+    var version = document.getElementById('dfact-version');
+    var date = document.getElementById('dfact-date');
+    var notes = document.getElementById('dfact-notes');
+    var hashes = document.getElementById('desktop-hashes');
+    if (version) version.textContent = desktop.version;
+    if (date && desktop.published) date.textContent = longDate(desktop.published);
+    if (notes && desktop.notesUrl) notes.href = desktop.notesUrl;
+    if (!hashes) return;
+
+    var rows = ['windows', 'deb', 'appimage'].filter(function (k) { return desktop.files[k]; });
+    hashes.innerHTML = rows.map(function (kind) {
+      var f = desktop.files[kind];
+      return '<div class="hash-row"><p class="hash-name">' + f.name + '</p>'
+        + '<p class="hash">' + (f.sha256 || 'published on the release page') + '</p></div>';
+    }).join('');
+  }
+
   /* -------------------------------------------------------------------- init */
 
+  var onDesktop = !!document.getElementById('desktop-downloads');
   var onThanks = !!document.getElementById('apk-link');
 
   wireTheme();
@@ -410,9 +557,13 @@
   loadRelease().then(function (data) {
     if (!data) throw new Error('no releases published');
     fillSpecs(data);
-    if (onThanks) wireThanks(data); else showCounter(data);
+    if (onDesktop) wireDesktop(data.desktop);
+    else if (onThanks) wireThanks(data);
+    else showCounter(data);
   }).catch(function (err) {
     if (window.console) console.warn('f-tree: release data unavailable —', err.message);
-    if (onThanks) wireThanks(null); else hideCounter();
+    if (onDesktop) wireDesktop(null);
+    else if (onThanks) wireThanks(null);
+    else hideCounter();
   });
 })();

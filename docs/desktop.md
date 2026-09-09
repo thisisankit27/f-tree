@@ -36,6 +36,18 @@ The page reaches the machine only through the names in `preload.js`. A tree is s
 and the reason the app never uploads it is the reason that list is short and explicit rather than
 a general-purpose `fs`.
 
+## It refuses the network
+
+`refuseTheNetwork` cancels every `http`, `https` and websocket request in the session. Not a
+promise in a policy — the request is refused, so the claim holds whatever the page's markup asks
+for now or later, and the one request the viewer does make (Google Fonts, right for a web page and
+wrong for this) is logged and dropped.
+
+Literata and JetBrains Mono are therefore read from disk: the same two files the Android app ships,
+carried in as a resource and injected as `@font-face`. Without them the app falls back to the
+system serif and monospace, which is worth a line in the log and not worth refusing to open
+somebody's family tree over.
+
 ## Which way the generations run
 
 `layoutArchive(graph, { orientation })` takes `'rows'` (the website — a landscape reader for a

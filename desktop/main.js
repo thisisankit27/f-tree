@@ -10,7 +10,7 @@
  * What the shell adds is the part a browser tab cannot have: a real file picker, a native menu,
  * and a memory of which tree you were reading.
  */
-const { app, BrowserWindow, Menu, dialog, ipcMain, shell } = require('electron');
+const { app, BrowserWindow, Menu, dialog, ipcMain, session, shell } = require('electron');
 const fs = require('node:fs/promises');
 const path = require('node:path');
 
@@ -138,6 +138,45 @@ function buildMenu(win) {
   Menu.setApplicationMenu(Menu.buildFromTemplate(template));
 }
 
+/*
+ * The typefaces, from disk.
+ *
+ * The viewer's HTML asks Google for Literata and JetBrains Mono, which is right for a web page and
+ * wrong for an app that tells people nothing leaves their machine: it would announce every launch
+ * to a third party. The same two files the Android app ships are read off disk instead, and the
+ * request to Google is refused outright below rather than merely made redundant.
+ */
+const FONT_DIR = app.isPackaged
+  ? path.join(process.resourcesPath, 'fonts')
+  : path.join(__dirname, '..', 'app', 'src', 'main', 'res', 'font');
+
+async function localFontCss() {
+  const face = async (family, file, weight) => {
+    const data = await fs.readFile(path.join(FONT_DIR, file));
+    return `@font-face{font-family:"${family}";src:url(data:font/ttf;base64,${data.toString('base64')})`
+      + ` format("truetype");font-weight:${weight};font-style:normal;font-display:block}`;
+  };
+  return [
+    await face('Literata', 'literata.ttf', '100 900'),
+    await face('JetBrains Mono', 'jetbrains_mono.ttf', '100 900'),
+  ].join('');
+}
+
+/*
+ * Nothing reaches the network.
+ *
+ * Not a promise in a privacy policy - the requests are refused by the session, so the claim holds
+ * whatever the page's markup happens to ask for now or later. Only `file:` and `devtools:` are
+ * allowed through.
+ */
+function refuseTheNetwork(ses) {
+  ses.webRequest.onBeforeRequest({ urls: ['http://*/*', 'https://*/*', 'ws://*/*', 'wss://*/*'] },
+    (details, callback) => {
+      console.warn(`f-tree: refused a network request to ${details.url}`);
+      callback({ cancel: true });
+    });
+}
+
 async function createWindow() {
   const win = new BrowserWindow({
     width: 1440,
@@ -156,7 +195,16 @@ async function createWindow() {
   });
 
   win.once('ready-to-show', () => win.show());
+
+  refuseTheNetwork(session.defaultSession);
   await win.loadFile(VIEWER);
+  try {
+    await win.webContents.insertCSS(await localFontCss());
+  } catch (error) {
+    // Without them the app falls back to the system serif and monospace. Worth a line in the log,
+    // not worth refusing to open somebody's family tree over.
+    console.warn(`f-tree: could not load the bundled typefaces — ${error.message}`);
+  }
   buildMenu(win);
 
   // A link to the project should open in the browser, never navigate the app away from the viewer.
@@ -213,6 +261,8 @@ async function runSmoke(win, file) {
     state: document.getElementById('viewer')?.dataset.state ?? null,
     fileName: document.getElementById('file-name')?.textContent ?? null,
     orientation: document.body.dataset.orientation ?? null,
+    literata: document.fonts.check('16px Literata'),
+    mono: document.fonts.check('13px "JetBrains Mono"'),
     people: document.querySelectorAll('#index-list li, #index-list button, #index-list tr').length,
     status: document.querySelector('#status')?.textContent?.trim().slice(0, 90) ?? null,
   })).toString()})()`);
@@ -225,6 +275,9 @@ async function runSmoke(win, file) {
   check('generations run in columns, as they do in the app', seen.orientation === 'columns',
     String(seen.orientation));
   check('the archive was read and counted', /\d+ people/.test(seen.status ?? ''), String(seen.status));
+  // Refusing the network must not quietly cost the app its typography.
+  check('the bundled typefaces loaded without the network', seen.literata && seen.mono,
+    `Literata ${seen.literata}, JetBrains Mono ${seen.mono}`);
 
   if (process.env.FTREE_SMOKE_SHOT) {
     const image = await win.webContents.capturePage();

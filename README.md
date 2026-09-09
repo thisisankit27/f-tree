@@ -31,7 +31,7 @@ Ask how any two people are related and it names the relationship, in English or 
 &nbsp;
 <a href="https://ftree.vibethroughcode.com/playground/"><img src="https://img.shields.io/badge/Try%20it%20in%20your%20browser-8a6420?style=for-the-badge&logo=googlechrome&logoColor=white" alt="Try it in your browser" height="34"></a>
 
-<a href="https://github.com/thisisankit27/f-tree/releases?q=desktop&expanded=true"><img src="https://img.shields.io/badge/Desktop%20app-1f3d2b?style=for-the-badge&logo=linux&logoColor=white" alt="Desktop app for Windows and Linux" height="34"></a>
+<a href="https://ftree.vibethroughcode.com/desktop/"><img src="https://img.shields.io/badge/Desktop%20app-1f3d2b?style=for-the-badge&logo=linux&logoColor=white" alt="Desktop app for Windows and Linux" height="34"></a>
 &nbsp;
 <a href="https://ftree.vibethroughcode.com/"><img src="https://img.shields.io/badge/Website-414942?style=for-the-badge&logo=safari&logoColor=white" alt="Website" height="34"></a>
 &nbsp;
@@ -101,7 +101,7 @@ package name and signing certificate before it installs anything. See
 
 ### On a laptop — Windows and Ubuntu
 
-The **[desktop app](https://github.com/thisisankit27/f-tree/releases?q=desktop&expanded=true)**
+The **[desktop app](https://ftree.vibethroughcode.com/desktop/)**
 opens an exported `.ftree` on a big screen and draws it the way the phone does: a generation is a
 column, ancestors at the left. Windows gets an installer; Linux gets an AppImage or a `.deb`.
 

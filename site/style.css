@@ -783,11 +783,28 @@ h2.rule-label,
   padding: 11px 0;
   border-bottom: 1px solid var(--rule);
 }
-.facts dt { color: var(--ink-faint); letter-spacing: .04em; }
+.facts dt { color: var(--ink-faint); letter-spacing: .04em; overflow-wrap: anywhere; }
 .facts dd { margin: 0; color: var(--ink); overflow-wrap: anywhere; }
 @media (max-width: 560px) {
   .facts div { grid-template-columns: 1fr; gap: 2px; }
 }
+
+/*
+ * A checksum and the file it belongs to.
+ *
+ * Not a `.facts` row: a filename and a 64-character hash are both too long for a label column,
+ * and side by side they collide. The name goes above its hash, each with the whole width.
+ */
+.hash-row {
+  padding: 12px 0;
+  border-bottom: 1px solid var(--rule);
+  font-family: var(--mono);
+  font-size: 13px;
+}
+.hash-row:first-child { border-top: 1px solid var(--rule); }
+.hash-row p { margin: 0; font-family: var(--mono); font-size: 13px; line-height: 1.5; }
+.hash-row .hash-name { color: var(--ink-faint); letter-spacing: .04em; margin-bottom: 5px; }
+.hash-row .hash { color: var(--ink); overflow-wrap: anywhere; }
 
 /* ------------------------------------------------------------------ footer */
 
