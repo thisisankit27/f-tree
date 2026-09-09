@@ -102,12 +102,14 @@ package name and signing certificate before it installs anything. See
 ### On a laptop — Windows and Ubuntu
 
 The **[desktop app](https://ftree.vibethroughcode.com/desktop/)**
-opens an exported `.ftree` on a big screen, laid out for the screen it is on: a generation is a
-row, ancestors at the top, the tree running across the width. Windows gets an installer; on Linux
-take the `.deb`.
+builds a family tree on a laptop, or opens a `.ftree` you already have: add people, connect them,
+edit and delete, undo, and save back to the same file. A generation is a row, ancestors at the top.
+Windows gets an installer; on Linux take the `.deb`. It does not need the Android app — a tree can
+start here.
 
-It reads a tree today — editing, settings and the updater are
-[being built](https://github.com/thisisankit27/f-tree/issues/89). Nothing leaves the machine.
+Editing and the updater work; the people list, the compact and everyone views, importing, photos
+and Hindi kinship are [still being built](https://github.com/thisisankit27/f-tree/issues/89).
+Nothing leaves the machine.
 
 ### Try it without installing anything
 
