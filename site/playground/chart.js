@@ -503,34 +503,6 @@ export class Chart {
     return this.selected ? [false, true] : [false];
   }
 
-  /*
-   * Whether a connector runs to the person the reader has selected.
-   *
-   * Strictly the lines that *touch* them. A marriage bar between two of their relatives is not a
-   * line leading to a relative, and lighting it as well would make the highlight mean two things
-   * at once - which is the state the fading cards were already in before the lines joined them.
-   *
-   * Every link kind already names its own ends, so nothing has to be derived here.
-   */
-  linkLit(link) {
-    const id = this.selected;
-    if (!id) return false;
-    if (link.parents) return link.parents.includes(id) || link.children.includes(id);
-    return link.a === id || link.b === id;
-  }
-
-  /*
-   * Lit connectors are drawn in a second pass, after the faded ones.
-   *
-   * In a chart of any size the lines cross constantly, and a line at 0.28 laid over a highlighted
-   * one cuts it in half - the reader is then following a dashed answer that the data never had.
-   * The extra pass is skipped entirely when nobody is selected, which is the common case and the
-   * one that has to stay cheap while somebody drags a two-thousand-card chart around.
-   */
-  get linkPasses() {
-    return this.selected ? [false, true] : [false];
-  }
-
   /**
    * Strokes one set of connectors.
    *
