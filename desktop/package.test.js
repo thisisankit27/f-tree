@@ -102,3 +102,129 @@ test('these assertions reject the postinst that actually shipped broken', () => 
       + 'if ! { [[ -L /proc/self/ns/user ]] && unshare --user true; }; then',
   ]);
 });
+
+/*
+ * ---------------------------------------------------------------------------------------------
+ * Whether the package contains the app.
+ *
+ * 0.4.0 shipped dead. `main.js` requires `./atomic` and `./identity`; the `files` list in
+ * package.json was an allowlist of four filenames written before either existed, so neither was
+ * packaged, and the app threw `Cannot find module './atomic'` before it drew a window.
+ *
+ * Every test in this repo was green. The smoke test starts `npx electron .` from a checkout,
+ * where every file is present by definition -- it can never see a packaging mistake. The tests
+ * above read the built deb but only ever asked about the postinst. Nothing asked the one
+ * question that mattered: does the thing we are about to upload contain its own source.
+ *
+ * So these walk the require graph from the entry point recorded in the packaged package.json and
+ * insist every relative specifier resolves *inside the archive*. The `files` list is now an
+ * exclusion list rather than an allowlist -- forgetting an exclusion wastes a few KB, forgetting
+ * an inclusion bricks the release -- and this is what holds that decision in place.
+ *
+ * These read `linux-unpacked`, which every `--linux` build writes, and which holds the same
+ * `resources/` the deb, the tarball and the AppImage are each built from.
+ */
+
+const asar = require('@electron/asar');
+
+// Defaults to the build just made, but can be pointed at any installed copy -- an unpacked deb,
+// or /opt/f-tree itself. That is not test scaffolding: it is how these assertions were shown to
+// reject the 0.4.0 that shipped, rather than only to accept the build that replaced it.
+const RESOURCES = process.env.FTREE_PACKAGE_UNDER_TEST
+  || path.join(DIST, 'linux-unpacked', 'resources');
+const ARCHIVE = path.join(RESOURCES, 'app.asar');
+const noPackage = fs.existsSync(ARCHIVE)
+  ? false
+  : 'no dist/linux-unpacked -- run `npx electron-builder --linux` first';
+
+// Node's own resolution order for a relative specifier, which is what `require` will do at run
+// time. Checking only for the literal path would miss `require('./atomic')` finding `atomic.js`.
+function resolveIn(files, fromDir, specifier) {
+  const base = path.posix.normalize(path.posix.join(fromDir, specifier));
+  const candidates = [base, `${base}.js`, `${base}.json`, path.posix.join(base, 'index.js')];
+  return candidates.find((c) => files.has(c)) || null;
+}
+
+const RELATIVE_REQUIRE = /\brequire\(\s*['"](\.[^'"]+)['"]\s*\)/g;
+
+test('every module the main process requires is inside the package', { skip: noPackage }, () => {
+  const files = new Set(
+    asar.listPackage(ARCHIVE).map((f) => f.replace(/^[/\\]/, '').split(path.sep).join('/')));
+  const read = (f) => asar.extractFile(ARCHIVE, f).toString('utf8');
+
+  const entry = JSON.parse(read('package.json')).main;
+  assert.ok(files.has(entry), `package.json names "${entry}" as main and it is not packaged`);
+
+  const missing = [];
+  const seen = new Set();
+  const queue = [entry];
+
+  while (queue.length) {
+    const file = queue.shift();
+    if (seen.has(file) || !file.endsWith('.js')) continue;
+    seen.add(file);
+
+    const dir = path.posix.dirname(file);
+    for (const [, specifier] of read(file).matchAll(RELATIVE_REQUIRE)) {
+      const target = resolveIn(files, dir, specifier);
+      if (target) queue.push(target);
+      else missing.push(`${file} requires '${specifier}', which is not in the package`);
+    }
+  }
+
+  assert.deepStrictEqual(missing, []);
+  // A graph that walked nowhere would pass the assertion above while proving nothing.
+  assert.ok(seen.size > 1, `only reached ${seen.size} file(s) from ${entry}; the walk found nothing`);
+});
+
+/*
+ * The other half of the app, which does not travel in the asar at all.
+ *
+ * The window's page ships through `extraResources`, and its modules import across a directory
+ * boundary that only exists once packaged: the renderer sits at `page/renderer` and reaches the
+ * viewer engine at `page/site/playground` through `../../site/playground/`. That works in a
+ * checkout for a different reason than it works in a package, so a wrong `to:` in extraResources
+ * would leave the window blank with the failure visible only in a devtools console nobody opens.
+ *
+ * Browsers resolve module specifiers literally, so unlike require there is no extension guessing.
+ */
+test('the window\'s page and every module it imports are packaged', { skip: noPackage }, () => {
+  const main = asar.extractFile(ARCHIVE, 'main.js').toString('utf8');
+  const viewer = main.match(/process\.resourcesPath\s*,\s*((?:\s*'[^']+'\s*,?)+)\)/);
+  assert.ok(viewer, 'main.js no longer builds the packaged page path in a readable way');
+
+  // Read the path out of main.js rather than restating it here. A test that hard-codes the
+  // layout agrees with itself when the layout is what moved.
+  const entry = path.posix.join(...[...viewer[1].matchAll(/'([^']+)'/g)].map((m) => m[1]));
+  const abs = (f) => path.join(RESOURCES, f);
+  assert.ok(fs.existsSync(abs(entry)), `main.js loads ${entry} and it is not packaged`);
+
+  const html = fs.readFileSync(abs(entry), 'utf8');
+  const scripts = [...html.matchAll(/<script[^>]*\bsrc=['"]([^'"]+)['"]/g)].map((m) => m[1]);
+  assert.ok(scripts.length, `${entry} loads no scripts; this test would prove nothing`);
+
+  const missing = [];
+  const seen = new Set();
+  const queue = scripts.map((s) => path.posix.join(path.posix.dirname(entry), s));
+
+  while (queue.length) {
+    const file = queue.shift();
+    if (seen.has(file)) continue;
+    seen.add(file);
+    if (!fs.existsSync(abs(file))) {
+      missing.push(`${file} is imported and not packaged`);
+      continue;
+    }
+    const source = fs.readFileSync(abs(file), 'utf8');
+    const specifiers = [
+      ...[...source.matchAll(/\bfrom\s*['"](\.[^'"]+)['"]/g)].map((m) => m[1]),
+      ...[...source.matchAll(/\bimport\s*\(?\s*['"](\.[^'"]+)['"]/g)].map((m) => m[1]),
+    ];
+    for (const specifier of specifiers) {
+      queue.push(path.posix.normalize(path.posix.join(path.posix.dirname(file), specifier)));
+    }
+  }
+
+  assert.deepStrictEqual(missing, []);
+  assert.ok(seen.size > 1, `only reached ${seen.size} module(s) from ${entry}`);
+});
