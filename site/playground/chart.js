@@ -462,29 +462,63 @@ export class Chart {
     ctx.restore();
   }
 
+  /*
+   * Whether a connector runs to the person the reader has selected.
+   *
+   * Strictly the lines that *touch* them. A marriage bar between two of their relatives is not a
+   * line leading to a relative, and lighting it as well would make the highlight mean two things
+   * at once - which is the state the fading cards were already in before the lines joined them.
+   *
+   * Every link kind already names its own ends, so nothing has to be derived here.
+   */
+  linkLit(link) {
+    const id = this.selected;
+    if (!id) return false;
+    if (link.parents) return link.parents.includes(id) || link.children.includes(id);
+    return link.a === id || link.b === id;
+  }
+
+  /*
+   * Lit connectors are drawn in a second pass, after the faded ones.
+   *
+   * In a chart of any size the lines cross constantly, and a line at 0.28 laid over a highlighted
+   * one cuts it in half - the reader is then following a dashed answer that the data never had.
+   * The extra pass is skipped entirely when nobody is selected, which is the common case and the
+   * one that has to stay cheap while somebody drags a two-thousand-card chart around.
+   */
+  get linkPasses() {
+    return this.selected ? [false, true] : [false];
+  }
+
   drawDescents(ctx, c, view, s) {
     ctx.save();
-    ctx.strokeStyle = c.rule;
-    ctx.lineWidth = 1.4 / s;
     ctx.lineCap = 'butt';
-    for (const link of this.layout.descents) {
-      if (link.busY < view.y0 - 200 || link.originY > view.y1 + 200) continue;
-      const xs = link.childXs;
-      const minX = Math.min(link.originX, ...xs);
-      const maxX = Math.max(link.originX, ...xs);
-      if (maxX < view.x0 - 200 || minX > view.x1 + 200) continue;
+    const dimming = Boolean(this.related);
+    for (const pass of this.linkPasses) {
+      for (const link of this.layout.descents) {
+        if (this.linkLit(link) !== pass) continue;
+        if (link.busY < view.y0 - 200 || link.originY > view.y1 + 200) continue;
+        const xs = link.childXs;
+        const minX = Math.min(link.originX, ...xs);
+        const maxX = Math.max(link.originX, ...xs);
+        if (maxX < view.x0 - 200 || minX > view.x1 + 200) continue;
 
-      ctx.beginPath();
-      // Down from between the parents, across the children, then down to each.
-      ctx.moveTo(link.originX, link.originY);
-      ctx.lineTo(link.originX, link.busY);
-      ctx.moveTo(minX, link.busY);
-      ctx.lineTo(maxX, link.busY);
-      for (let i = 0; i < xs.length; i++) {
-        ctx.moveTo(xs[i], link.busY);
-        ctx.lineTo(xs[i], link.childYs[i]);
+        ctx.globalAlpha = !dimming || pass ? 1 : 0.28;
+        ctx.strokeStyle = pass ? c.forest : c.rule;
+        ctx.lineWidth = (pass ? 2.6 : 1.4) / s;
+
+        ctx.beginPath();
+        // Down from between the parents, across the children, then down to each.
+        ctx.moveTo(link.originX, link.originY);
+        ctx.lineTo(link.originX, link.busY);
+        ctx.moveTo(minX, link.busY);
+        ctx.lineTo(maxX, link.busY);
+        for (let i = 0; i < xs.length; i++) {
+          ctx.moveTo(xs[i], link.busY);
+          ctx.lineTo(xs[i], link.childYs[i]);
+        }
+        ctx.stroke();
       }
-      ctx.stroke();
     }
     ctx.restore();
   }
@@ -496,19 +530,24 @@ export class Chart {
   drawSiblings(ctx, c, view, s) {
     if (!this.layout.siblings?.length) return;
     ctx.save();
-    ctx.strokeStyle = c.rule;
-    ctx.lineWidth = 1.4 / s;
     ctx.setLineDash([6 / s, 5 / s]);
+    const dimming = Boolean(this.related);
     const lift = 20;
-    for (const link of this.layout.siblings) {
-      if (link.y < view.y0 - 80 || link.y > view.y1 + 80
-        || link.x2 < view.x0 - 80 || link.x1 > view.x1 + 80) continue;
-      ctx.beginPath();
-      ctx.moveTo(link.x1, link.y);
-      ctx.lineTo(link.x1, link.y - lift);
-      ctx.lineTo(link.x2, link.y - lift);
-      ctx.lineTo(link.x2, link.y);
-      ctx.stroke();
+    for (const pass of this.linkPasses) {
+      for (const link of this.layout.siblings) {
+        if (this.linkLit(link) !== pass) continue;
+        if (link.y < view.y0 - 80 || link.y > view.y1 + 80
+          || link.x2 < view.x0 - 80 || link.x1 > view.x1 + 80) continue;
+        ctx.globalAlpha = !dimming || pass ? 1 : 0.28;
+        ctx.strokeStyle = pass ? c.forest : c.rule;
+        ctx.lineWidth = (pass ? 2.6 : 1.4) / s;
+        ctx.beginPath();
+        ctx.moveTo(link.x1, link.y);
+        ctx.lineTo(link.x1, link.y - lift);
+        ctx.lineTo(link.x2, link.y - lift);
+        ctx.lineTo(link.x2, link.y);
+        ctx.stroke();
+      }
     }
     ctx.setLineDash([]);
     ctx.restore();
@@ -516,20 +555,25 @@ export class Chart {
 
   drawCouples(ctx, c, view, s) {
     ctx.save();
-    ctx.strokeStyle = c.spouseLink;
-    ctx.lineWidth = 1.6 / s;
+    const dimming = Boolean(this.related);
     const offset = 3;
-    for (const link of this.layout.couples) {
-      if (link.y < view.y0 - 40 || link.y > view.y1 + 40
-        || link.x2 < view.x0 - 40 || link.x1 > view.x1 + 40) continue;
-      // A doubled rule, the app's notation for a marriage; dashed when it has ended.
-      ctx.setLineDash(link.subtype === 'DIVORCED' ? [5 / s, 4 / s] : []);
-      ctx.beginPath();
-      ctx.moveTo(link.x1, link.y - offset);
-      ctx.lineTo(link.x2, link.y - offset);
-      ctx.moveTo(link.x1, link.y + offset);
-      ctx.lineTo(link.x2, link.y + offset);
-      ctx.stroke();
+    for (const pass of this.linkPasses) {
+      for (const link of this.layout.couples) {
+        if (this.linkLit(link) !== pass) continue;
+        if (link.y < view.y0 - 40 || link.y > view.y1 + 40
+          || link.x2 < view.x0 - 40 || link.x1 > view.x1 + 40) continue;
+        ctx.globalAlpha = !dimming || pass ? 1 : 0.28;
+        ctx.strokeStyle = pass ? c.forest : c.spouseLink;
+        ctx.lineWidth = (pass ? 2.6 : 1.6) / s;
+        // A doubled rule, the app's notation for a marriage; dashed when it has ended.
+        ctx.setLineDash(link.subtype === 'DIVORCED' ? [5 / s, 4 / s] : []);
+        ctx.beginPath();
+        ctx.moveTo(link.x1, link.y - offset);
+        ctx.lineTo(link.x2, link.y - offset);
+        ctx.moveTo(link.x1, link.y + offset);
+        ctx.lineTo(link.x2, link.y + offset);
+        ctx.stroke();
+      }
     }
     ctx.setLineDash([]);
     ctx.restore();
