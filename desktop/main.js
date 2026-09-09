@@ -53,9 +53,16 @@ if (process.platform === 'linux' && !process.env.DISPLAY && !process.env.WAYLAND
  * step to keep in step with anything. The staged directory is called `page` and not `app` on
  * purpose -- `resources/app` is where Electron looks for an unpacked application, and putting a
  * package.json there would make it try to run this as one.
+ *
+ * Reproducing the shape means reproducing the *depth*, and 0.4.0 did not. It staged the renderer
+ * at `page/renderer`, one level shallower than `desktop/renderer` sits in the repository, so
+ * `../../site/playground/` climbed out of `page` entirely and every module the window imports
+ * 404'd. The browser reports that to a console nobody opens, so it presents as a blank window.
+ * The `desktop` level below is load-bearing: it is what makes one set of relative specifiers
+ * correct both in a checkout and in a package. `package.test.js` walks these imports for real.
  */
 const VIEWER = app.isPackaged
-  ? path.join(process.resourcesPath, 'page', 'renderer', 'index.html')
+  ? path.join(process.resourcesPath, 'page', 'desktop', 'renderer', 'index.html')
   : path.join(__dirname, 'renderer', 'index.html');
 
 /*

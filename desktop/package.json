@@ -1,7 +1,7 @@
 {
   "name": "f-tree-desktop",
   "productName": "f-tree",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "description": "A local-first family tree, on your own machine",
   "author": {
     "name": "thisisankit27",
@@ -31,10 +31,11 @@
       "output": "dist"
     },
     "files": [
-      "main.js",
-      "preload.js",
-      "update.js",
-      "package.json",
+      "**/*",
+      "!**/*.test.js",
+      "!test-fixtures${/*}",
+      "!renderer${/*}",
+      "!package-lock.json",
       "build/icons/*.png"
     ],
     "extraResources": [
@@ -47,7 +48,7 @@
       },
       {
         "from": "renderer",
-        "to": "page/renderer",
+        "to": "page/desktop/renderer",
         "filter": [
           "**/*",
           "!*.test.js"

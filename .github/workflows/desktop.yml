@@ -11,8 +11,9 @@ name: Desktop
 # phone will never be offered an .AppImage, because there are live users on the app.
 #
 # The pre-release flag now carries a second meaning as well: the desktop app stays a pre-release
-# until issue #89 is finished. Until then it reads a tree and does not build one, and calling any
-# build of it a stable release would claim a completeness it does not have.
+# until issue #89 is finished. It builds a tree as well as reading one now, but the parity that
+# issue asks for is not there yet, so calling any build of it a stable release would claim a
+# completeness it does not have.
 #
 # Worth keeping straight, because the two senses of "beta" are not the same mechanism:
 #
@@ -118,6 +119,26 @@ jobs:
         working-directory: desktop
         run: node --test package.test.js
 
+      # The smoke job above starts `electron .` from the checkout, where every source file is
+      # present by definition -- so it cannot see a packaging mistake, and for 0.4.0 it did not.
+      # Two of them shipped in a release every test called green: `atomic.js` and `identity.js`
+      # were never packaged, and the renderer was staged a directory too shallow for its own
+      # imports to resolve. The app threw before drawing a window.
+      #
+      # So the same harness runs a second time here, against the binary that is about to be
+      # uploaded, reading the asar and the staged page that users will actually get. Building a
+      # tree and saving it is part of it: a package can start and still be missing the half of
+      # itself that only a real edit touches.
+      - name: Start the packaged app and build a tree in it
+        if: matrix.os == 'ubuntu-latest'
+        working-directory: desktop
+        env:
+          FTREE_SMOKE: ${{ runner.temp }}/fixtures/sample-family.ftree
+          FTREE_SMOKE_SAVE_TO: ${{ runner.temp }}/built-in-the-package.ftree
+        run: |
+          python3 ../tools/make_sample_tree.py "$RUNNER_TEMP/fixtures"
+          xvfb-run -a ./dist/linux-unpacked/f-tree-desktop --no-sandbox
+
       - uses: actions/upload-artifact@v4
         with:
           name: installers-${{ matrix.os }}
@@ -161,5 +182,5 @@ jobs:
 
           Marked a pre-release on purpose, for two reasons. It keeps the Android app's update
           channel pointing at Android releases; and the desktop app stays a pre-release until
-          [#89](https://github.com/thisisankit27/f-tree/issues/89) is done, because it reads a
-          tree today and does not yet build one."
+          [#89](https://github.com/thisisankit27/f-tree/issues/89) is done: it builds a tree as
+          well as reading one now, but it is not yet the equal of the phone app."
