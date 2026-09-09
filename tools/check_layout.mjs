@@ -82,6 +82,28 @@ async function run(name, { expectPhotos = false } = {}) {
   ).length;
   check('every descent connector lands on placed people', danglingDescents === 0);
 
+  /*
+   * Stronger, and the check that was missing: a connector's own coordinates must meet the card it
+   * names. "Lands on somebody who exists" was satisfied for a year by a bracket drawn one whole
+   * margin above the children with its arms pointing the wrong way, because the ids were right and
+   * only the geometry was wrong. Assert the drawing, not the bookkeeping.
+   */
+  let misdrawn = 0;
+  let upward = 0;
+  for (const d of layout.descents) {
+    for (let i = 0; i < d.childIds.length; i++) {
+      const node = layout.byId.get(d.childIds[i]);
+      if (!node) { misdrawn++; continue; }
+      if (Math.abs(d.childXs[i] - (node.x + METRICS.NODE_W / 2)) > 0.5) misdrawn++;
+      else if (Math.abs(d.childYs[i] - node.y) > 0.5) misdrawn++;
+      if (d.childYs[i] < d.busY) upward++;
+    }
+  }
+  check('every descent drop ends on the top edge of its child', misdrawn === 0,
+    `${misdrawn} drops land somewhere other than the card they name`);
+  check('every descent drop runs downward, from the bar to the child', upward === 0,
+    `${upward} drops point back up at the parents`);
+
   // A child must be drawn below its parents, or the chart is lying about direction.
   let inverted = 0;
   for (const id of graph.order) {

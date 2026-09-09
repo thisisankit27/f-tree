@@ -527,7 +527,6 @@ export function layoutArchive(graph, options = {}) {
   }
 
   const byId = new Map(nodes.map((n) => [n.id, n]));
-  const links = buildLinks(graph, byId);
 
   let width = 0;
   let height = 0;
@@ -539,12 +538,17 @@ export function layoutArchive(graph, options = {}) {
   for (const n of nodes) { n.x += dx; n.y += dy; }
   for (const g of groups) { g.x += dx; g.y += dy; }
   for (const b of bands) { b.x += dx; b.y += dy; b.width = width + dx; }
-  for (const l of links.couples) { l.x1 += dx; l.x2 += dx; l.y += dy; }
-  for (const l of links.siblings) { l.x1 += dx; l.x2 += dx; l.y += dy; }
-  for (const l of links.descents) {
-    l.originX += dx; l.originY += dy; l.busY += dy; l.childTopY += dy;
-    l.childXs = l.childXs.map((x) => x + dx);
-  }
+
+  /*
+   * The connectors are measured last, from where the cards ended up.
+   *
+   * They used to be built first and then translated field by field, which meant the shift had to
+   * name every coordinate a link carries - and it named all of them but one. `childYs` kept its
+   * pre-shift value, so every descent dropped to a point exactly one margin above the child and
+   * the bracket pointed upwards. Deriving the geometry after the last thing that moves a card
+   * makes that class of mistake impossible rather than merely fixed.
+   */
+  const links = buildLinks(graph, byId);
 
   return {
     nodes,
@@ -613,6 +617,9 @@ function buildLinks(graph, byId) {
       originY,
       busY: Math.max(busY, originY + 12),
       childTopY,
+      // Drawn from the cards that were actually placed, and named by the same list, so the three
+      // arrays stay parallel even if the family names somebody the chart has nowhere to put.
+      childIds: children.map((c) => c.id),
       childXs: children.map((c) => c.x + METRICS.NODE_W / 2),
       childYs: children.map((c) => c.y),
       parents: fam.parents,
