@@ -361,3 +361,36 @@ test('an empty tree has no focus to fall back to', () => {
   assert.strictEqual(mostConnected(buildGraph({ people: [], relationships: [] })), null);
   assert.ok(compactFamily(buildGraph({ people: [], relationships: [] }), null).isEmpty);
 });
+
+test('somebody married three times is walked in the Kotlin’s order, not the obvious one', () => {
+  /*
+   * Added, not translated -- and it exists because the first version of `readAcross` got this
+   * wrong in a way no other case could see.
+   *
+   * The Kotlin pushes each sorted neighbour with `ArrayDeque.addFirst`, in a `forEach`. Pushing a,
+   * then b, then c to the *front* leaves the queue as c, b, a -- so the walk continues with the
+   * LAST of the sorted neighbours, not the first. Translating that as "unshift them in reverse"
+   * reads more natural and is the opposite order.
+   *
+   * It can only show where one person has two or more unwalked spouses inside the group, which
+   * means somebody married at least three times. Every other case in this file has a group whose
+   * members each have one unwalked neighbour, and passes under either order.
+   */
+  const graph = new Builder()
+    .person('me', '1990')
+    .person('thrice', '1960')
+    .person('first', '1958').person('second', '1962').person('third', '1966')
+    .married('thrice', 'first').married('thrice', 'second').married('thrice', 'third')
+    .parentOf('thrice', 'me')
+    .build();
+
+  const group = compact(graph, 'me').band(-1).groups[0];
+
+  // `thrice` is the only person with more than one marriage, so the chain starts at an end and
+  // reaches them second. What follows is the part the order decides.
+  assert.deepStrictEqual(group.ids, ['first', 'thrice', 'third', 'second']);
+
+  // Every mark is a real marriage: the three spouses were never wed to each other, so only the
+  // gaps that touch `thrice` are marked.
+  assert.deepStrictEqual(group.links, [true, true, false]);
+});

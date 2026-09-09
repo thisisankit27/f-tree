@@ -275,9 +275,15 @@ function readAcross(group, byDescent, graph, spousesOf) {
     const neighbours = within.get(next)
       .filter((id) => !seen.has(id))
       .sort(by((id) => within.get(id).length, (id) => birthOf(id)));
-    // Depth-first along the chain: pushed to the front, in reverse, so the first neighbour after
-    // the sort is the first one walked. `ArrayDeque.addFirst` in a forEach has the same effect.
-    for (const id of [...neighbours].reverse()) queue.unshift(id);
+    /*
+     * `neighbours.forEach { queue.addFirst(it) }`, exactly as the Kotlin has it.
+     *
+     * Pushing a, then b, then c to the *front* leaves the queue as c, b, a -- so the walk carries
+     * on with the LAST of the sorted neighbours, not the first. Reversing first to "fix" that
+     * reads more natural and produces the opposite order, which is what this did until a group
+     * containing somebody married three times was tested. Every smaller group passes either way.
+     */
+    for (const id of neighbours) queue.unshift(id);
   }
   // Anyone the walk could not reach -- impossible for a connected group, but the row is more
   // useful missing a mark than missing a person.
