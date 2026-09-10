@@ -517,14 +517,14 @@ My Brother [brother] -> Her Sister [her-sister]  kind=related  term=wife  marrie
 My Brother [brother] -> Me [me]  kind=related  term=brother  marriedTo=-  ofSpouse=-  via=our-father  chain=sibling/brother/me
 My Brother [brother] -> Our Father [our-father]  kind=related  term=father  marriedTo=-  ofSpouse=-  via=our-father  chain=parent/father/our-father
 My Brother [brother] -> Their Father [their-father]  kind=related  term=father-in-law  marriedTo=-  ofSpouse=-  via=-  chain=spouse/wife/her-sister > parent/father/their-father
-My Brother [brother] -> My Wife [wife]  kind=related  term=sister-in-law  marriedTo=-  ofSpouse=-  via=-  chain=spouse/wife/her-sister > sibling/sister/wife
+My Brother [brother] -> My Wife [wife]  kind=related  term=sister-in-law  marriedTo=-  ofSpouse=-  via=-  chain=sibling/brother/me > spouse/wife/wife
 Her Sister [her-sister] -> My Brother [brother]  kind=related  term=husband  marriedTo=-  ofSpouse=-  via=-  chain=spouse/husband/brother
-Her Sister [her-sister] -> Me [me]  kind=related  term=brother-in-law  marriedTo=-  ofSpouse=-  via=-  chain=spouse/husband/brother > sibling/brother/me
+Her Sister [her-sister] -> Me [me]  kind=related  term=brother-in-law  marriedTo=-  ofSpouse=-  via=-  chain=sibling/sister/wife > spouse/husband/me
 Her Sister [her-sister] -> Our Father [our-father]  kind=related  term=father-in-law  marriedTo=-  ofSpouse=-  via=-  chain=spouse/husband/brother > parent/father/our-father
 Her Sister [her-sister] -> Their Father [their-father]  kind=related  term=father  marriedTo=-  ofSpouse=-  via=their-father  chain=parent/father/their-father
 Her Sister [her-sister] -> My Wife [wife]  kind=related  term=sister  marriedTo=-  ofSpouse=-  via=their-father  chain=sibling/sister/wife
 Me [me] -> My Brother [brother]  kind=related  term=brother  marriedTo=-  ofSpouse=-  via=our-father  chain=sibling/brother/brother
-Me [me] -> Her Sister [her-sister]  kind=related  term=sister-in-law  marriedTo=-  ofSpouse=-  via=-  chain=spouse/wife/wife > sibling/sister/her-sister
+Me [me] -> Her Sister [her-sister]  kind=related  term=sister-in-law  marriedTo=-  ofSpouse=-  via=-  chain=sibling/brother/brother > spouse/wife/her-sister
 Me [me] -> Our Father [our-father]  kind=related  term=father  marriedTo=-  ofSpouse=-  via=our-father  chain=parent/father/our-father
 Me [me] -> Their Father [their-father]  kind=related  term=father-in-law  marriedTo=-  ofSpouse=-  via=-  chain=spouse/wife/wife > parent/father/their-father
 Me [me] -> My Wife [wife]  kind=related  term=wife  marriedTo=-  ofSpouse=-  via=-  chain=spouse/wife/wife
@@ -538,7 +538,7 @@ Their Father [their-father] -> Her Sister [her-sister]  kind=related  term=daugh
 Their Father [their-father] -> Me [me]  kind=related  term=son-in-law  marriedTo=-  ofSpouse=-  via=-  chain=child/daughter/wife > spouse/husband/me
 Their Father [their-father] -> Our Father [our-father]  kind=related  term=-  marriedTo=-  ofSpouse=-  via=-  chain=child/daughter/wife > spouse/husband/me > parent/father/our-father
 Their Father [their-father] -> My Wife [wife]  kind=related  term=daughter  marriedTo=-  ofSpouse=-  via=their-father  chain=child/daughter/wife
-My Wife [wife] -> My Brother [brother]  kind=related  term=brother-in-law  marriedTo=-  ofSpouse=-  via=-  chain=spouse/husband/me > sibling/brother/brother
+My Wife [wife] -> My Brother [brother]  kind=related  term=brother-in-law  marriedTo=-  ofSpouse=-  via=-  chain=sibling/sister/her-sister > spouse/husband/brother
 My Wife [wife] -> Her Sister [her-sister]  kind=related  term=sister  marriedTo=-  ofSpouse=-  via=their-father  chain=sibling/sister/her-sister
 My Wife [wife] -> Me [me]  kind=related  term=husband  marriedTo=-  ofSpouse=-  via=-  chain=spouse/husband/me
 My Wife [wife] -> Our Father [our-father]  kind=related  term=father-in-law  marriedTo=-  ofSpouse=-  via=-  chain=spouse/husband/me > parent/father/our-father
