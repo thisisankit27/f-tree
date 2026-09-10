@@ -7,6 +7,8 @@
  * the app derives it: stored siblings go stale the moment a parent is added.
  */
 
+import { parsePartialDate } from './dates.js';
+
 const PARENT = 'PARENT';
 const SPOUSE = 'SPOUSE';
 const SIBLING = 'SIBLING';
@@ -312,6 +314,76 @@ export function relationsOf(graph, id) {
 
 /* ------------------------------------------------------------------ how are these two related */
 
+/**
+ * Whether the other person is the elder, when the record actually proves it.
+ *
+ * A port of `Kinship.seniorityOf`. Only an ordering the dates cannot contradict counts: two brothers
+ * both recorded as "1962" could be either way round, and the app would rather say "father's
+ * brother" than pick one. Guessing here produces a word that is wrong to somebody's face.
+ *
+ * This is why `PartialDate` had to move into the engine. "1962" against "1962-04" is a question
+ * about overlapping spans, not about numbers.
+ */
+function seniorityOf(other, subject) {
+  const a = parsePartialDate(other?.birthDate);
+  const b = parsePartialDate(subject?.birthDate);
+  if (!a || !b) return 'UNKNOWN';
+  if (a.latest() < b.earliest()) return 'ELDER';
+  if (b.latest() < a.earliest()) return 'YOUNGER';
+  return 'UNKNOWN';
+}
+
+/**
+ * The people a relationship was measured *through*, as genders.
+ *
+ * A term is two distances, which is all English needs: an uncle is an uncle whichever parent he
+ * belongs to. Most of the world's languages are not like that. Hindi has five words where English
+ * has one, and choosing between them needs to know which parent the line went up through, who it
+ * came back down through, and -- for चाचा against ताऊ -- which of the two was born first.
+ *
+ * So the distances stay exactly as they were and this rides alongside them, carrying the part the
+ * arithmetic threw away. A vocabulary that does not need it can ignore it entirely, which is what
+ * English does today: nothing reads this yet, and that is the proof it is inert.
+ */
+function pathOf(graph, best, subjectId, term = termFor(best.u, best.d)) {
+  const genderOf = (id) => graph.people.get(id)?.gender ?? 'UNSPECIFIED';
+  return {
+    /*
+     * The kind of relative, carried with the path rather than left for a caller to recompute.
+     *
+     * A vocabulary needs the two together and nothing else: which relative this is, and who it was
+     * measured through. Keeping them in one object is what lets a second language be a file that
+     * reads `relate(...).kinship` and touches nothing here.
+     */
+    term,
+    /** Going up from the subject: their own parent first, the shared ancestor last. */
+    ascent: best.ascent.map(genderOf),
+    /** Coming back down: the ancestor's child first, the other person last. */
+    descent: best.descent.map(genderOf),
+    seniority: seniorityAt(graph, best, subjectId),
+    /** Which of the subject's parents the line went up through, if the record says. */
+    side: genderOf(best.ascent[0]) ?? 'UNSPECIFIED',
+    /** Who the line comes back down through on the other side. */
+    link: genderOf(best.descent[0]) ?? 'UNSPECIFIED',
+  };
+}
+
+/**
+ * Which of the two lines leaving the shared ancestor belongs to the elder child.
+ *
+ * The comparison is between the ancestor's two children the lines run through -- for an uncle, the
+ * subject's own parent against the uncle himself. Where the lines part at the subject, as they do
+ * for their own sibling, the subject *is* that child.
+ */
+function seniorityAt(graph, best, subjectId) {
+  if (best.u < 1 || best.d < 1) return 'UNKNOWN';
+  const mineId = best.u === 1 ? subjectId : best.ascent[best.u - 2];
+  const mine = graph.people.get(mineId);
+  const theirs = graph.people.get(best.descent[0]);
+  if (!mine || !theirs) return 'UNKNOWN';
+  return seniorityOf(theirs, mine);
+}
+
 const ORDINALS = ['', 'first', 'second', 'third', 'fourth', 'fifth', 'sixth', 'seventh', 'eighth'];
 
 const ordinal = (n) => ORDINALS[n] ?? `${n}th`;
@@ -511,7 +583,17 @@ function nearestSharedAncestor(graph, fromId, toId, standIns) {
     const score = u + d;
     if (!best || score < best.score
         || (score === best.score && Math.abs(u - d) < Math.abs(best.u - best.d))) {
-      best = { ancestor, u, d, score, ascent: here.route, descent: there.route };
+      /*
+       * `ascent` is already the shape wanted: the subject's own parent first, the shared ancestor
+       * last. `descent` is not -- `ancestorRoutes` walks *upwards* from the other person too, so
+       * their route is their ascent and has to be turned around: reversed, with the ancestor
+       * dropped off the front and the other person put on the end. It then reads the way it is
+       * described, the ancestor's child first and the other person last.
+       */
+      const descent = d === 0
+        ? []
+        : [...there.route].reverse().slice(1).concat(toId);
+      best = { ancestor, u, d, score, ascent: here.route, descent };
     }
   }
   return best;
@@ -533,12 +615,17 @@ export function relate(graph, fromId, toId) {
   const standIns = standInsFor(graph);
   const best = nearestSharedAncestor(graph, fromId, toId, standIns);
   const term = best ? kinshipTerm(best.u, best.d, to) : null;
+  let kinship = best ? pathOf(graph, best, fromId) : null;
 
   const path = shortestPath(graph, fromId, toId);
-  if (!path) return { kind: 'none', term, path, via: best?.ancestor ?? null };
+  if (!path) return { kind: 'none', term, path, via: best?.ancestor ?? null, kinship };
 
   // No blood between them, but one marriage at one end of the line still has a name.
   const affinal = term ? null : affinalTerm(graph, fromId, toId, path, standIns);
+  // A relationship through marriage is measured over its *blood* half: for "my uncle's wife" the
+  // path runs from the subject to the uncle, because the uncle is who decides the word.
+  if (!kinship && affinal?.kinship) kinship = affinal.kinship;
+
   return {
     kind: 'related',
     term: term ?? affinal?.term ?? null,
@@ -546,6 +633,14 @@ export function relate(graph, fromId, toId) {
     ofSpouse: affinal?.ofSpouse ?? null,
     path,
     via: best?.ancestor ?? null,
+    /*
+     * Additive, and read by nothing yet.
+     *
+     * The golden not moving is the proof of that, and the proof is the point: the path can be added
+     * and checked before any word depends on it, so that when the Hindi vocabulary lands the only
+     * new thing is the vocabulary.
+     */
+    kinship,
   };
 }
 
@@ -562,7 +657,19 @@ function bloodTerm(graph, fromId, toId, standIns, other) {
   const best = nearestSharedAncestor(graph, fromId, toId, standIns);
   if (!best) return null;
   const term = termFor(best.u, best.d);
-  return { term, label: kinshipLabel(term, other) };
+  return { term, label: kinshipLabel(term, other), kinship: pathOf(graph, best, fromId, term) };
+}
+
+/**
+ * Wraps a blood relative in the marriage that reaches them.
+ *
+ * `termFor` cannot produce these: they are not two distances, they are a distance *and a marriage*.
+ * `spouse-of` is somebody married to a blood relative of the subject -- an uncle's wife; `of-spouse`
+ * is a blood relative of the person the subject married -- a wife's brother. Hindi tells those apart
+ * and English mostly does not, which is why the shape is kept even though nothing reads it yet.
+ */
+function affinalShape(kind, relative, kinship) {
+  return kinship ? { ...kinship, term: { kind, relative } } : null;
 }
 
 /**
@@ -582,7 +689,14 @@ function affinalTerm(graph, fromId, toId, path, standIns) {
   const at = path.findIndex((s) => s.via === 'spouse');
   const to = graph.people.get(toId);
 
-  if (path.length === 1) return { term: spouseLabel(to, null).toLowerCase() };
+  // Married to the subject themselves: one step, and its own kind rather than a wrapper.
+  if (path.length === 1) {
+    return {
+      term: spouseLabel(to, null).toLowerCase(),
+      kinship: { term: { kind: 'spouse' }, ascent: [], descent: [], seniority: 'UNKNOWN',
+        side: 'UNSPECIFIED', link: 'UNSPECIFIED' },
+    };
+  }
 
   if (at === path.length - 1) {
     const married = graph.people.get(path[path.length - 2].id);
@@ -590,15 +704,28 @@ function affinalTerm(graph, fromId, toId, path, standIns) {
     if (!relative) return null;
     // Dispatched on `relative.term.kind`, not on the English `relative.label`.
     const named = inLawTerm(relative.term, to, 'spouse-of');
-    return named ? { term: named } : { marriedTo: { term: relative.label, person: married } };
+    const kinship = affinalShape('spouse-of', relative.term, relative.kinship);
+    return named
+      ? { term: named, kinship }
+      : { marriedTo: { term: relative.label, person: married }, kinship };
   }
 
   if (at === 0) {
     const spouse = graph.people.get(path[0].id);
     const relative = bloodTerm(graph, spouse.id, toId, standIns, to);
     if (!relative) return null;
+    /*
+     * Measured from the spouse, and this is the case that makes साला different from जेठ.
+     *
+     * The blood half runs from the person somebody married to their relative -- my wife to her
+     * brother -- so the path is hers. The gender that decides the word is still the asker's, which
+     * is why the two are carried separately rather than folded together.
+     */
     const named = inLawTerm(relative.term, to, 'of-spouse');
-    return named ? { term: named } : { ofSpouse: { term: relative.label, spouse } };
+    const kinship = affinalShape('of-spouse', relative.term, relative.kinship);
+    return named
+      ? { term: named, kinship }
+      : { ofSpouse: { term: relative.label, spouse }, kinship };
   }
   return null;
 }

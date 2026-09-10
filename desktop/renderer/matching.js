@@ -15,7 +15,7 @@
  * database. `matching.test.js` is the Kotlin's own test table.
  */
 
-import { parsePartialDate } from './dates.js';
+import { parsePartialDate } from '../../site/playground/dates.js';
 
 /** How confident we are that an imported person is somebody already here. */
 export const MatchTier = Object.freeze({
