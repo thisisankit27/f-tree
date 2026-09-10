@@ -6,9 +6,14 @@
  * `1938`, `1938-04`, `1938-04-17` -- where the precision *is* the statement about how much is
  * known.
  *
- * Only the part the import needs is ported: parsing, the span a partial date covers, and whether
- * two of them could describe the same day. Formatting already exists in `model.js` and is not
+ * Only the part that is needed is ported: parsing, the span a partial date covers, and whether two
+ * of them could describe the same day. Formatting already exists in `model.js` and is not
  * duplicated here.
+ *
+ * It lives in the shared engine rather than in the desktop app because two things now want it. The
+ * import matcher was first, and `model.js` is second: Hindi kinship asks whether one person is
+ * older than another, and "born 1962" against "born 1962-04" is a question about spans rather than
+ * about numbers.
  *
  * `isCompatibleWith` is the load-bearing one. It is what stops an import merging two people called
  * Raj Kumar born eleven years apart, which is the single most destructive thing an import could do.
