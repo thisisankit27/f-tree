@@ -1162,14 +1162,33 @@ async function runEditSmoke(win, check) {
     saveState: document.getElementById('save-state')?.dataset.state ?? '',
     saveAction: document.getElementById('save-state-action')?.hidden === false
       ? document.getElementById('save-state-action').textContent : null,
-    canUndo: document.getElementById('undo')?.disabled === false,
   }));
   check('a person and a child are recorded', /2 people/.test(seen.counts) && /1 connection/.test(seen.counts),
     seen.counts);
   // A new tree has nowhere to autosave to, so the bar says so and offers the one way out (#149).
   check('a tree with no file says it is not saved, and offers to save it',
     seen.saveState === 'untitled' && seen.saveAction === 'Save…', `${seen.saveState} / ${seen.saveAction}`);
-  check('there is something to undo', seen.canUndo === true);
+
+  /*
+   * Undo without a button on the bar (#150): the menu's command, which is what Ctrl+Z sends. Focus is
+   * taken out of the form first, because inside a text field Ctrl+Z means the typing, not the tree.
+   */
+  await page(() => document.activeElement?.blur());
+  win.webContents.send('menu:command', 'edit:undo');
+  await settle();
+  const undone = await page(() => ({
+    counts: document.getElementById('counts')?.textContent ?? '',
+    toast: document.getElementById('toast-text')?.textContent ?? '',
+  }));
+  win.webContents.send('menu:command', 'edit:redo');
+  await settle();
+  const redone = await page(() => document.getElementById('counts')?.textContent ?? '');
+  // One step: "add Ravi as a child" is a person and a connection to the tree, and one act to the
+  // reader. Undone as two, it left Ravi floating with nothing joining him to anybody.
+  check('undo takes the child back in one step, and redo returns them, from the menu',
+    /1 person · 0 connections/.test(undone.counts) && /Undid: Add Ravi as a child/.test(undone.toast)
+      && /2 people · 1 connection/.test(redone),
+    `${undone.counts} (${undone.toast}) → ${redone}`);
 
   // The rules, through the interface rather than around it: a child cannot also be a partner.
   await page(() => {
@@ -1197,8 +1216,9 @@ async function runEditSmoke(win, check) {
     /1 connection/.test(seen.counts) && /already parent and child/i.test(seen.toast ?? ''),
     `${seen.counts} — ${seen.toast}`);
 
-  // Save, through the real writer and the real atomic write.
-  await page(() => document.getElementById('save').click());
+  // Save, through the bar's own Save… -- the one way to save a new tree now the toolbar button is
+  // gone (#150) -- and the real writer and the real atomic write.
+  await page(() => document.getElementById('save-state-action').click());
   await settle(1200);
 
   const target = process.env.FTREE_SMOKE_SAVE_TO;
@@ -1855,13 +1875,24 @@ async function runRelateSmoke(win, check) {
     editorOpen: document.getElementById('panel').hidden === false,
   }));
 
-  // The bar is deliberately not a way in -- see the note in app.js. Pinned, so that adding one
-  // later is a decision somebody makes on purpose rather than a header that quietly grows a row.
+  /*
+   * The bar is a way in now (#150), and it still has to be one row.
+   *
+   * It was kept off the bar while Undo, Redo and Save were on it, because one more icon wrapped the
+   * row at 1095px. Those three are gone; this pins that the button is there *and* that the header
+   * has not quietly grown a second row to fit it.
+   */
   const header = await page(() => ({
     height: Math.round(document.querySelector('header').getBoundingClientRect().height),
-    button: Boolean(document.getElementById('relate-btn')),
+    relate: document.getElementById('relate-btn')?.getAttribute('aria-label') ?? null,
+    prefs: document.getElementById('prefs-btn')?.getAttribute('aria-label') ?? null,
+    pressed: document.getElementById('relate-btn')?.getAttribute('aria-pressed') ?? null,
   }));
-  check('the bar stays one row', header.height <= 60 && !header.button, JSON.stringify(header));
+  check('the bar has Find a relation and Preferences, and stays one row',
+    header.height <= 60 && header.relate === 'Find a relation' && header.prefs === 'Preferences',
+    JSON.stringify(header));
+  check('and the relation button shows the question is open', header.pressed === 'true',
+    String(header.pressed));
 
   check('the relation finder opens', opened.shown, String(opened.shown));
   check('it is seeded from the person that was selected',
@@ -2037,7 +2068,67 @@ async function runRelateSmoke(win, check) {
   }));
   check('closing the question puts the panel away', !closed.shown, String(closed.shown));
 
+  /*
+   * From a person (#151): the question starts from whoever is open, with them in the first slot and
+   * the second left for the reader. Starting from the panel is the case with the trap in it -- the
+   * panel is closed first, which clears the selection -- so the name is checked, not assumed.
+   */
+  win.webContents.send('menu:command', 'view:index');
+  await settle();
+  const person = await page(() => {
+    const rows = [...document.querySelectorAll('#index-list .index-row')];
+    const row = rows[3] ?? rows[0];
+    row?.click();
+    return row?.querySelector('.who')?.textContent.trim() ?? '';
+  });
+  await settle();
+  await page(() => document.querySelector('#panel .relate-from')?.click());
+  await settle(500);
+  const fromPanel = await page(() => ({
+    shown: document.getElementById('relate').hidden === false,
+    a: document.getElementById('relate-a').value,
+    b: document.getElementById('relate-b').value,
+    focus: document.activeElement?.id ?? '',
+    editorOpen: document.getElementById('panel').hidden === false,
+  }));
+  check('"How are we related?" on a person starts the question from them',
+    fromPanel.shown && fromPanel.a === person && fromPanel.b === '' && fromPanel.focus === 'relate-b',
+    `${person} → ${JSON.stringify(fromPanel)}`);
+  check('and the person panel stands down for it', !fromPanel.editorOpen);
+
+  // The people list offers it on every row, beside the row rather than inside it.
+  win.webContents.send('menu:command', 'view:index');
+  await settle();
+  const listed = await page(() => {
+    const item = [...document.querySelectorAll('#index-list .index-item')][1];
+    item?.querySelector('.index-relate')?.click();
+    return item?.querySelector('.who')?.textContent.trim() ?? '';
+  });
+  await settle(500);
+  const fromList = await page(() => ({
+    a: document.getElementById('relate-a').value,
+    b: document.getElementById('relate-b').value,
+    view: document.getElementById('viewer').dataset.view,
+  }));
+  check('so does every row of the people list, replacing an earlier question',
+    fromList.a === listed && fromList.b === '' && fromList.view === 'chart',
+    `${listed} → ${JSON.stringify(fromList)}`);
+
+  // And the compact view, from the person it is centred on.
+  win.webContents.send('menu:command', 'view:compact');
+  await settle();
+  const centred = await page(() => {
+    const name = document.querySelector('.band-focus-name')?.textContent.trim() ?? '';
+    document.querySelector('.band-relate')?.click();
+    return name;
+  });
+  await settle(500);
+  const fromCompact = await page(() => document.getElementById('relate-a').value);
+  check('and the compact view, from the person it is centred on', Boolean(centred)
+    && fromCompact === centred, `${centred} → ${fromCompact}`);
+
   win.webContents.send('menu:command', 'view:chart');
+  await page(() => document.getElementById('relate-close').click());
   await settle(300);
 }
 
@@ -2107,12 +2198,23 @@ async function runImportSmoke(win, check) {
   const after = await page(() => ({
     counts: document.getElementById('counts').textContent,
     open: document.getElementById('review').open === true,
-    undo: document.getElementById('undo')?.disabled === false,
+    offersUndo: document.getElementById('toast-action')?.hidden === false
+      ? document.getElementById('toast-action').textContent : null,
   }));
 
   check('confirming closes the question', !after.open, String(after.open));
   check('the tree grew once it was confirmed', after.counts !== before.people, after.counts);
-  check('the whole import can be undone', after.undo, 'undo is available');
+
+  // Undone for real, in one step, rather than checking that a button is enabled: the toast offers
+  // Undo, and the menu's Undo -- what Ctrl+Z sends -- puts the tree back exactly as it was.
+  await page(() => document.activeElement?.blur());
+  win.webContents.send('menu:command', 'edit:undo');
+  await settle(400);
+  const reverted = await page(() => document.getElementById('counts').textContent);
+  check('the whole import can be undone, in one step', after.offersUndo === 'Undo'
+    && reverted === before.people, `${after.offersUndo} — ${after.counts} → ${reverted}`);
+  win.webContents.send('menu:command', 'edit:redo');
+  await settle(400);
 }
 
 /*
@@ -2160,6 +2262,16 @@ async function runMenuSmoke(win, check) {
   for (const label of ['Check for updates automatically', 'Offer me beta releases']) {
     check(`"${label}" is still a checkbox in the menu`, labels.includes(label));
   }
+
+  // With Undo and Redo off the bar (#150), the menu is where they are always found, on the keys
+  // every editor uses; and the backups autosave keeps are reachable from beside Save (#149).
+  const file = (menu ? menu.items : []).find((item) => item.label === 'File');
+  const fileItems = file ? file.submenu.items : [];
+  const accel = (label) => fileItems.find((item) => item.label === label)?.accelerator ?? null;
+  check('Undo and Redo are in the menu on the usual keys',
+    accel('Undo') === 'CmdOrCtrl+Z' && accel('Redo') === 'CmdOrCtrl+Shift+Z',
+    `${accel('Undo')} / ${accel('Redo')}`);
+  check('File > Show backups is there', fileItems.some((item) => item.label === 'Show backups'));
 }
 
 async function runSmoke(win, file) {
@@ -2234,8 +2346,10 @@ async function runSmoke(win, file) {
     })(),
     peopleNote: document.getElementById('index-note')?.textContent ?? null,
     // The editor's own surface. A page that reads a tree but cannot change one is not this app.
-    canEdit: Boolean(document.getElementById('add-person') && document.getElementById('save')),
-    undoPresent: Boolean(document.getElementById('undo') && document.getElementById('redo')),
+    canEdit: Boolean(document.getElementById('add-person') && document.getElementById('panel-save')),
+    // Gone from the bar on purpose (#150): saving is automatic and undo is the menu, Ctrl+Z and the
+    // toasts. Asserted absent, so they do not drift back in without somebody deciding they should.
+    toolbarLeftovers: ['undo', 'redo', 'save'].filter((id) => document.getElementById(id)),
     panelExists: Boolean(document.getElementById('panel')),
   })).toString()})()`);
 
@@ -2263,7 +2377,8 @@ async function runSmoke(win, file) {
   }
   check('the archive was read and counted', /\d+ people/.test(seen.counts ?? ''), String(seen.counts));
   check('the page can change a tree, not only read one', seen.canEdit === true);
-  check('undo and redo are there', seen.undoPresent === true);
+  check('the bar no longer carries Undo, Redo or Save', seen.toolbarLeftovers.length === 0,
+    seen.toolbarLeftovers.join(', ') || 'none');
   check('a person can be opened for editing', seen.panelExists === true);
   /*
    * The list is not a second opinion on the chart. At the zoom that fits a large family on one

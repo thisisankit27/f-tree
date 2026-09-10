@@ -93,19 +93,12 @@
 
       <button type="button" class="tool primary-tool" id="add-person">Add a person</button>
 
-      <div class="undo-pair" role="group" aria-label="Undo and redo">
-        <button type="button" class="icon" id="undo" aria-label="Undo" disabled>
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M9 7 4 12l5 5"/><path d="M4 12h9a6 6 0 0 1 0 12h-1"/>
-          </svg>
-        </button>
-        <button type="button" class="icon" id="redo" aria-label="Redo" disabled>
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="m15 7 5 5-5 5"/><path d="M20 12h-9a6 6 0 0 0 0 12h1"/>
-          </svg>
-        </button>
-      </div>
-
+      <!--
+        No Undo, Redo or Save here any more (#150). Saving is automatic once a tree has a file (#149)
+        and the bar's save state offers Save… for the one tree that has none; undo is Ctrl+Z, the
+        menu, and an Undo button in every toast that announces something undoable. The room they
+        took is given to the two things that had no way in from the bar at all.
+      -->
       <div class="zoom">
         <button type="button" class="icon" id="zoom-out" aria-label="Zoom out">&minus;</button>
         <output class="zoom-level" id="zoom-level" aria-live="off">100%</output>
@@ -113,7 +106,11 @@
         <button type="button" class="tool" id="fit">Fit</button>
       </div>
 
-      <button type="button" class="tool save-btn" id="save">Save</button>
+      <!-- Android's own mark and words for it (`relation_find`), so the two shells say the same. -->
+      <button type="button" class="icon" id="relate-btn" aria-label="Find a relation"
+              title="Find a relation (R)" aria-pressed="false"></button>
+      <button type="button" class="icon" id="prefs-btn" aria-label="Preferences"
+              title="Preferences (Ctrl+,)"></button>
     </div>
   </header>
 

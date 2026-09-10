@@ -42,6 +42,7 @@ import {
   normaliseDateTyping,
 } from './person-draft.js';
 import { createAutosave, describeWriteFailure } from './autosave.js';
+import { relateIcon, prefsIcon } from './icons.js';
 
 const { PARENT, SPOUSE, SIBLING } = RelationshipType;
 
@@ -239,15 +240,22 @@ function paintSaveState() {
   action.textContent = view === 'untitled' ? 'Save…' : 'Retry';
 }
 
+/**
+ * Which file is open, in the bar and in the window's own title.
+ *
+ * The title is the copy that is always there: below 1180px the bar gives the name's width to the
+ * tools and keeps only the save state, and the title bar -- which every desktop shows anyway --
+ * goes on saying which tree this is.
+ */
+function showFileName(name) {
+  $('file-name').textContent = name ?? '';
+  document.title = name ? `${name} — f-tree` : 'f-tree';
+}
+
 /** Keeps the window, the menu and the save state in step with whether there is work not on disk. */
 function reflectDirty() {
   const dirty = Boolean(state.tree?.isDirty) || draftIsDirty();
   paintSaveState();
-  $('save').dataset.dirty = String(dirty);
-  $('undo').disabled = !state.tree?.canUndo;
-  $('redo').disabled = !state.tree?.canRedo;
-  $('undo').title = state.tree?.undoLabel ? `Undo: ${state.tree.undoLabel}` : 'Undo';
-  $('redo').title = state.tree?.redoLabel ? `Redo: ${state.tree.redoLabel}` : 'Redo';
   shell?.setDirty(dirty);
 }
 
@@ -335,7 +343,7 @@ function renderCounts() {
   const people = state.tree.people.length;
   $('counts').textContent = people === 0
     ? 'Nobody yet'
-    : `${count(people, 'person', 'people')}·`
+    : `${count(people, 'person', 'people')} · `
       + `${count(state.tree.relationships.length, 'connection', 'connections')}`;
 }
 
@@ -727,13 +735,17 @@ function wirePrefs() {
 /* ------------------------------------------------------------------ how two people are related */
 
 /*
- * Reached from the menu and the keyboard, and deliberately not from the bar.
+ * Reached from the bar, from a person, and from the menu and the keyboard.
  *
- * The website has a "Relate" button because a browser tab has nowhere else to put it. This bar
- * already carries what the website's does *and* the editing tools, and it is full: measured on a
- * 1095px window, adding one 26px icon took the header from 56px to 93px, because the row wraps.
- * The desktop has the affordance a tab does not -- View > How are two people related?, on Ctrl+R --
- * so the question is asked there, and the bar keeps the width it was designed for.
+ * For a while it was deliberately *not* on the bar. That bar carried Undo, Redo and Save as well as
+ * the viewer's tools, and measured on a 1095px window, one more 26px icon took the header from 56px
+ * to 93px because the row wrapped. #150 took those three off -- autosave made Save redundant and
+ * undo keeps Ctrl+Z, the menu and an Undo button in every toast -- which freed far more than one
+ * icon's width. Re-measured with the button in, and Preferences beside it: one 56px row at 1440,
+ * 1095 and every width down to 880, in both themes (the rules are at the end of editor.css).
+ *
+ * The bar's button starts a fresh question. The ones on a person (#151) continue from somebody
+ * already on screen, which is the commoner form of it: "how is *this* person related to me?"
  */
 
 /**
@@ -773,23 +785,41 @@ function forgetRelate() {
   const panel = $('relate');
   if (panel) {
     panel.hidden = true;
+    $('relate-btn')?.setAttribute('aria-pressed', 'false');
     $('relate-a').value = '';
     $('relate-b').value = '';
     $('relate-answer').replaceChildren();
   }
 }
 
-async function openRelate(seed = state.selected) {
+/**
+ * Opens the question, seeded with `seed` if there is one.
+ *
+ * The seed is taken as an argument and read *before* anything else happens, because the first thing
+ * this does is close the person panel -- which clears the selection. Relying on the selection would
+ * seed an empty slot, which is the one trap in starting from a person (#151).
+ *
+ * `fromPerson` is that case: the person asked about goes in the first slot even if an earlier
+ * question left somebody else there, and the second slot is emptied for the reader to fill.
+ */
+async function openRelate(seed = state.selected, { fromPerson = false } = {}) {
   // One question at a time. Both panels are positioned in the same corner, and two open at once
   // would be two things claiming to be what the window is about. Closing the person panel can be
   // refused -- it asks first if it holds unsaved edits -- and then the question waits.
   if (state.selected && !(await select(null))) return;
 
   $('relate').hidden = false;
+  $('relate-btn')?.setAttribute('aria-pressed', 'true');
 
-  // Seeded from whoever was selected, because "how is this person related to..." is the question
-  // somebody has in mind when they reach for this while looking at a person.
-  if (seed && state.graph?.people.has(seed) && !state.relateA) {
+  const known = seed && state.graph?.people.has(seed);
+  if (known && fromPerson) {
+    state.relateA = seed;
+    state.relateB = null;
+    $('relate-a').value = displayName(state.graph.people.get(seed));
+    $('relate-b').value = '';
+  } else if (known && !state.relateA) {
+    // Seeded from whoever was selected, because "how is this person related to..." is the question
+    // somebody has in mind when they reach for this while looking at a person.
     state.relateA = seed;
     $('relate-a').value = displayName(state.graph.people.get(seed));
   }
@@ -797,8 +827,15 @@ async function openRelate(seed = state.selected) {
   $(state.relateA ? 'relate-b' : 'relate-a').focus();
 }
 
+/** Asks "how are we related?" about one person: they are the first answer, the reader picks the second. */
+function relateFrom(id) {
+  setView('chart');
+  openRelate(id, { fromPerson: true });
+}
+
 function closeRelate() {
   $('relate').hidden = true;
+  $('relate-btn')?.setAttribute('aria-pressed', 'false');
   // The whole tree comes back. Leaving the chart cut down after the question is closed would strand
   // somebody on a three-person chart with no obvious way out.
   clearTrace();
@@ -1038,6 +1075,7 @@ function renderCompact() {
       $('compact').scrollTop = 0;
     },
     onEdit: (id) => select(id),
+    onRelate: (id) => relateFrom(id),
     onMore: () => {
       state.generationsUp += 2;
       state.generationsDown += 2;
@@ -1115,7 +1153,19 @@ function renderPeople() {
 
       row.append(left, how);
       row.addEventListener('click', () => select(person.id));
-      li.append(row);
+
+      // A second way into the question, beside the row rather than inside it: a button cannot hold
+      // another button, and the row's own click already means "open this person" (#151).
+      const relate = document.createElement('button');
+      relate.type = 'button';
+      relate.className = 'index-relate';
+      relate.append(relateIcon(15));
+      relate.setAttribute('aria-label', `How are we related? Starting from ${displayName(person)}`);
+      relate.title = 'How are we related?';
+      relate.addEventListener('click', () => relateFrom(person.id));
+
+      li.className = 'index-item';
+      li.append(row, relate);
       list.append(li);
     }
   }
@@ -1248,6 +1298,8 @@ function renderPanel() {
   const body = $('panel-body');
   body.replaceChildren();
   body.append(personForm(person), relativesSection(person));
+  // Not for somebody still being added: a blank person has no family to be asked about yet.
+  if (!isFresh(person)) body.append(relateRow(person));
   paintPanelState();
 }
 
@@ -1552,6 +1604,29 @@ function relativesSection(person) {
 
   box.append(addRelativeForm(person));
   return box;
+}
+
+/**
+ * "How are we related?" from the person already open (#151).
+ *
+ * Android offers it from the person sheet and the person page, in these words. Before this the
+ * desktop could only start the question from nothing, so the commonest form of it -- this person,
+ * and me -- cost the reader the selection they had already made and a name retyped from the screen.
+ */
+function relateRow(person) {
+  const row = document.createElement('div');
+  row.className = 'relate-row';
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = 'relate-from';
+  button.append(relateIcon(16));
+  const words = document.createElement('span');
+  words.textContent = 'How are we related?';
+  button.append(words);
+  button.title = `How is ${displayName(person)} related to somebody else?`;
+  button.addEventListener('click', () => relateFrom(person.id));
+  row.append(button);
+  return row;
 }
 
 function addRelativeForm(person) {
@@ -1930,14 +2005,17 @@ function addRelative(subjectId, kind, name) {
   if (!result.ok) {
     /*
      * The person was added and the connection refused, which would leave a stranger floating in
-     * the tree that nobody asked for. Undo takes back the whole step, so what the reader sees is
-     * simply that nothing happened, and why.
+     * the tree that nobody asked for. The addition is withdrawn -- not undone, which would leave it
+     * waiting in Redo -- so what the reader sees is simply that nothing happened, and why.
      */
-    state.tree.undo();
+    state.tree.withdraw(added.id);
     toast(REFUSALS[result.reason] ?? 'That connection was not made.', 'bad');
     rebuild();
     return;
   }
+  // A person and a relationship to the tree, one act to the reader, so one step to undo.
+  const word = KINDS.find(([k]) => k === kind)[1].toLowerCase();
+  state.tree.combine(2, `Add ${name || 'someone'} as a ${word}`);
   state.adding = null;
   rebuild();
 }
@@ -2014,7 +2092,7 @@ async function startNewTree() {
   state.name = 'Untitled tree';
   state.selected = null;
   forgetRelate();
-  $('file-name').textContent = state.name;
+  showFileName(state.name);
   setState('loaded');
   chart.resize();
   rebuild({ refit: true });
@@ -2050,7 +2128,7 @@ async function openBytes(bytes, name, filePath) {
     state.name = name;
     state.selected = null;
     forgetRelate();
-    $('file-name').textContent = name;
+    showFileName(name);
     setState('loaded');
     chart.resize();
     rebuild({ refit: true });
@@ -2343,7 +2421,7 @@ async function save({ as = false } = {}) {
 
     state.path = result.path;
     state.name = result.name;
-    $('file-name').textContent = result.name;
+    showFileName(result.name);
     state.tree.markSaved(signature);
     reflectDirty();
     toast(`Saved ${count(made.people, 'person', 'people')} and `
@@ -2417,9 +2495,15 @@ function wireChrome() {
   $('start-new').addEventListener('click', startNewTree);
   $('choose').addEventListener('click', () => shell?.chooseTree());
   $('add-person').addEventListener('click', addPerson);
-  $('save').addEventListener('click', () => save());
-  $('undo').addEventListener('click', undo);
-  $('redo').addEventListener('click', redo);
+
+  // The two the bar gained when Undo, Redo and Save left it (#150). Their glyphs come from icons.js,
+  // which the panel, the list and the compact view draw theirs from too.
+  $('relate-btn').append(relateIcon(19));
+  $('relate-btn').addEventListener('click', () => {
+    if ($('relate').hidden) { setView('chart'); openRelate(); } else closeRelate();
+  });
+  $('prefs-btn').append(prefsIcon(15));
+  $('prefs-btn').addEventListener('click', openPrefs);
   $('panel-close').addEventListener('click', () => select(null));
   $('panel-save').addEventListener('click', () => commitDraft());
   // The bar's save state offers the one thing each of its two awkward states needs.
@@ -2540,6 +2624,7 @@ function wireShell() {
 
 function closeTree() {
   autosave.cancel();
+  showFileName(null);
   state.tree = null;
   state.path = null;
   state.selected = null;
