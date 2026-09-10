@@ -313,7 +313,27 @@ an AppImage is the reader's file to put where they want it, so the app does not 
 **This is the one thing that reaches the network,** and it is made from the main process. The window
 stays refused outright, so nothing the page contains can ever call out.
 
-## Not yet
+## What it deliberately does not have
 
-The desktop app currently **reads** a tree. Editing, the settings screen, Hindi kinship and photos
-are tracked in [#89](https://github.com/thisisankit27/f-tree/issues/89).
+[#89](https://github.com/thisisankit27/f-tree/issues/89)'s parity checklist is done, so this section
+is no longer a list of things being built. One item on it was closed by deciding *not* to do it, and
+that is worth keeping written down — otherwise it reads as an oversight and somebody adds it.
+
+**The focused chart.** Android draws a second chart centred on one person, their ancestors and
+descendants only, everybody else hidden. A phone needs it: at that width the whole tree is unreadable
+and the ego-centric view is the only way to see a line at all.
+
+A laptop is the opposite shape. The whole tree fits across it, which is why both **JavaScript** shells
+— this app and the website viewer — draw generations as rows, while the Android app keeps columns for
+the screen it is on. **Compact** already answers the want the focused chart exists for, in a form the
+canvas cannot manage: text at any size, three generations up and down, and reachable by a screen
+reader. Two views of one person's line, one of them worse, is not parity.
+
+`collectFocused` in `site/playground/focus.js` is the Kotlin's `TreeLayoutEngine.collect`, ported and
+tested, because Compact is built on it. The engine can do this; the shell chooses not to offer it as
+a chart.
+
+**Columns, in these two shells.** The Android app draws them and always has — that is the right
+layout for a phone, and #89 reversed the *desktop*, not the app. What the JavaScript engine keeps is
+the ability to draw either, with CI checking both orientations, so the one neither JS shell currently
+ships is the one that cannot rot unnoticed.

@@ -2090,6 +2090,31 @@ async function runSmoke(win, file) {
   }
 
   if (process.env.FTREE_SMOKE_SHOT) {
+    /*
+     * A zoom for the picture, because "fit the window" is not a legible screenshot.
+     *
+     * The chart opens fitted, and for the sample family on a 1440px window that lands at 32% -- at
+     * which the canvas renderer stops drawing names, correctly, because they would be illegible.
+     * Fine for a smoke test that asserts on the DOM, useless for the image on the download page,
+     * which is where the last one came from and why it showed a layout the app no longer draws.
+     *
+     * Steps rather than a factor: `zoom:in` is the same command the menu sends, so the picture is
+     * of a zoom level a reader can actually reach, not one only a test can set.
+     */
+    const steps = Number(process.env.FTREE_SMOKE_SHOT_ZOOM || 0);
+    if (steps) {
+      // Back to the chart first. The assertions above finish on the people list, so without this
+      // the composed picture is of whatever view the last check happened to leave up -- which is
+      // how a screenshot of the index ends up captioned as the chart.
+      win.webContents.send('menu:command', 'view:chart');
+      await new Promise((resolve) => setTimeout(resolve, 400));
+    }
+    for (let i = 0; i < steps; i += 1) {
+      win.webContents.send('menu:command', 'zoom:in');
+      await new Promise((resolve) => setTimeout(resolve, 120));
+    }
+    if (steps) await new Promise((resolve) => setTimeout(resolve, 400));
+
     const image = await win.webContents.capturePage();
     await fs.writeFile(process.env.FTREE_SMOKE_SHOT, image.toPNG());
     console.log(`       wrote ${process.env.FTREE_SMOKE_SHOT}`);

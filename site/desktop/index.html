@@ -81,15 +81,19 @@
     </p>
 
     <div class="beta-note">
-      <span class="badge">Beta</span>
+      <span class="badge">New</span>
       <span>
-        <strong>This is an early build and it will have rough edges.</strong> It is new, it has been
-        tested by very few people, and it may misbehave — expect that rather than a finished app.
-        <strong>It now writes to your file as well as reading it</strong>, which this page used to
-        promise it would not, so the honest advice has changed with it: keep a copy of anything you
-        care about before editing. Every save writes to a temporary file first and only then
-        replaces yours, and the previous version is kept beside it as <code>.bak</code> — but a
-        second copy somewhere else is still worth more than either.
+        <strong>Keep a copy of anything you care about before you edit it.</strong> Not because a
+        save is careless — every one writes to a temporary file first and only then replaces yours,
+        and your previous version is kept beside it as <code>.bak</code> — but because this app is
+        new, and has been tested by far fewer people than the phone one. A second copy somewhere
+        else is worth more than either safeguard.
+        <span style="display:block;margin-top:10px">
+          Every download here is labelled a <strong>pre-release</strong> on GitHub. That is
+          deliberate, and it is not a verdict on how finished this is: it is the mechanism that
+          keeps the Android app’s update channel answering with Android releases, so nobody’s phone
+          is ever offered a desktop installer.
+        </span>
       </span>
     </div>
 
@@ -200,11 +204,21 @@
     <details class="folded">
       <summary>What does it do today?</summary>
       <p style="margin:14px 0 0;max-width:40em">
-        It <b>reads</b> a tree: the chart, the people index, the search and the relation finder.
-        Editing, settings and Hindi kinship are
-        <a href="https://github.com/thisisankit27/f-tree/issues/89">being built</a>. Building and
-        editing a tree is the phone's job for now, and the <a href="../thanks/">Android app</a>
-        does all of it.
+        Everything the phone app does with a tree. It <b>reads</b> one — the chart, a compact
+        reading you can follow at any size, the people index and the search — and it <b>builds and
+        edits</b> one: add a person, add a relative, correct a fact, remove a relationship, undo,
+        save. It <b>imports</b> a relative’s file into the tree you have, matching people rather
+        than duplicating them. It answers <b>how two people are related</b>, in English and in
+        <span lang="hi">हिन्दी</span>. It adds and frames <b>photographs</b>. Updates are checked
+        against a SHA-256 if you ask for them.
+      </p>
+      <p style="margin:12px 0 0;max-width:40em">
+        One thing the phone has that this deliberately does not: a <b>focused chart</b> — the drawn
+        tree narrowed to one person’s line, with everybody else hidden. A phone screen needs that.
+        A laptop’s does not, and <b>Compact</b> answers the same want better here: one person’s
+        family as generation bands, readable without zooming and reachable by a screen reader, which
+        a canvas never is. <a href="https://github.com/thisisankit27/f-tree/issues/89">#89</a> has
+        the checklist and the reasoning.
       </p>
     </details>
   </div>

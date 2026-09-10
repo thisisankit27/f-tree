@@ -107,9 +107,10 @@ edit and delete, undo, and save back to the same file. A generation is a row, an
 Windows gets an installer; on Linux take the `.deb`. It does not need the Android app — a tree can
 start here.
 
-Editing and the updater work; the people list, the compact and everyone views, importing, photos
-and Hindi kinship are [still being built](https://github.com/thisisankit27/f-tree/issues/89).
-Nothing leaves the machine.
+Three ways to read it — the chart, a compact reading that stays legible at any size, and the people
+index. It answers **how two people are related**, in English and in हिन्दी. It imports a relative's
+file, matching people rather than duplicating them, and it adds and frames photographs. Nothing
+leaves the machine.
 
 ### Try it without installing anything
 
