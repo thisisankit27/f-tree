@@ -43,6 +43,23 @@
   /* Matches chart.js's `departed`: the ground for somebody no longer living. */
   --departed: #eae8de;
   --shadow: 0 10px 34px rgba(20, 30, 22, .13);
+  /*
+   * Four roles the desktop's editor asked for from its first day and nobody defined (#145). They
+   * ran on inline fallbacks that were light-mode colours, so dark mode drew near-white text on a
+   * near-white toast. Defined here, in both themes, and the fallbacks are gone: a missing token
+   * should fail loudly, not quietly paint a daytime colour at night.
+   *
+   * danger / on-danger  -- Android's own `error` / `onError`, from Color.kt
+   * accent              -- focus and "this one", which is the forest's job everywhere else here
+   * paper               -- text laid on an ink surface, i.e. the ground colour
+   * sunk                -- a well for inputs: darker than the panel by day, lighter by night,
+   *                        because a darkening wash on a dark surface is invisible
+   */
+  --danger: #8f3b30;
+  --on-danger: #fff;
+  --accent: var(--forest);
+  --paper: var(--bone);
+  --sunk: rgba(26, 28, 26, .045);
 
   /* One multiplier for every size in the chrome, so "big screen" is a single number. */
   --ui: 1;
@@ -86,6 +103,9 @@
   --rule-strong: #465146;
   --departed: #11160f;
   --shadow: 0 10px 34px rgba(0, 0, 0, .45);
+  --danger: #ffb4a8;
+  --on-danger: #561410;
+  --sunk: rgba(224, 228, 221, .06);
   --forest-hover: #b6dbc3;
   --on-forest: #06371c;
   --on-sage: #abe4bc;
