@@ -319,32 +319,82 @@ const ordinal = (n) => ORDINALS[n] ?? `${n}th`;
 const greats = (n) => (n <= 0 ? '' : 'great-'.repeat(n));
 
 /**
+ * What kind of relative two distances describe, before any language names it.
+ *
+ * `u` is generations up from the subject to the shared ancestor and `d` generations back down to
+ * the other person. Everything a family says out loud falls out of those two numbers -- but the
+ * *word* is a separate question from the *kind*, and keeping them separate is what this is for.
+ *
+ * Two reasons the shape exists rather than only the string:
+ *
+ *   Somewhere else in this file had to ask "is this an uncle?", and was asking it of the English
+ *   word: `/(^|-)(uncle|aunt)$/` over a term, and `great-` counted by regex to work out how many
+ *   generations up it was. That is a parser for a sentence this file wrote itself, and it breaks
+ *   the moment the sentence is written in another language -- which is exactly what is coming.
+ *
+ *   Hindi does not divide relatives the way English does, and cannot be produced by translating
+ *   English words. It needs the structure and, later, the route.
+ *
+ * `greats` counts generations *beyond* the first named one: a grandparent has none, a
+ * great-grandparent one. `degree` and `removed` are the cousin arithmetic.
+ */
+export function termFor(u, d) {
+  if (u === 0 && d === 0) return { kind: 'self' };
+  if (u === 0) return { kind: 'descendant', generations: d };
+  if (d === 0) return { kind: 'ancestor', generations: u };
+  if (u === 1 && d === 1) return { kind: 'sibling' };
+  if (d === 1) return { kind: 'parents-sibling', greats: u - 2 };
+  if (u === 1) return { kind: 'siblings-child', greats: d - 2 };
+
+  return { kind: 'cousin', degree: Math.min(u, d) - 1, removed: Math.abs(u - d) };
+}
+
+/**
+ * The English word for a kind of relative.
+ *
+ * Kept apart from `termFor` so that a second language is a second function here rather than a
+ * second copy of the arithmetic. `other` decides gender, and where the file does not record one the
+ * term says so rather than guessing -- "aunt or uncle" is honest and "uncle" is a coin toss about
+ * somebody's relative.
+ */
+export function kinshipLabel(term, other) {
+  switch (term.kind) {
+    case 'self':
+      return 'the same person';
+    case 'descendant': {
+      const child = byGender(other, 'son', 'daughter', 'child');
+      return term.generations === 1 ? child : `${greats(term.generations - 2)}grand${child}`;
+    }
+    case 'ancestor': {
+      const parent = byGender(other, 'father', 'mother', 'parent');
+      return term.generations === 1 ? parent : `${greats(term.generations - 2)}grand${parent}`;
+    }
+    case 'sibling':
+      return byGender(other, 'brother', 'sister', 'sibling');
+    case 'parents-sibling':
+      return `${greats(term.greats)}${byGender(other, 'uncle', 'aunt', 'aunt or uncle')}`;
+    case 'siblings-child':
+      return `${greats(term.greats)}${byGender(other, 'nephew', 'niece', 'nephew or niece')}`;
+    case 'cousin': {
+      const base = `${ordinal(term.degree)} cousin`;
+      if (term.removed === 0) return base;
+      if (term.removed === 1) return `${base} once removed`;
+      if (term.removed === 2) return `${base} twice removed`;
+      return `${base} ${term.removed} times removed`;
+    }
+    default:
+      return null;
+  }
+}
+
+/**
  * The English kinship term for a blood relationship, from up/down distances to a common ancestor.
  *
- * u is generations up from the subject to the shared ancestor, d is generations back down to the
- * other person. Everything a family actually says out loud falls out of these two numbers.
+ * Kept as it was, signature and all -- `tools/check_layout.mjs` imports it, and so does anything
+ * else that only wants the word.
  */
 export function kinshipTerm(u, d, other) {
-  if (u === 0 && d === 0) return 'the same person';
-  if (u === 0) {
-    if (d === 1) return byGender(other, 'son', 'daughter', 'child');
-    return `${greats(d - 2)}grand${byGender(other, 'son', 'daughter', 'child')}`;
-  }
-  if (d === 0) {
-    if (u === 1) return byGender(other, 'father', 'mother', 'parent');
-    return `${greats(u - 2)}grand${byGender(other, 'father', 'mother', 'parent')}`;
-  }
-  if (u === 1 && d === 1) return byGender(other, 'brother', 'sister', 'sibling');
-  if (d === 1) return `${greats(u - 2)}${byGender(other, 'uncle', 'aunt', 'aunt or uncle')}`;
-  if (u === 1) return `${greats(d - 2)}${byGender(other, 'nephew', 'niece', 'nephew or niece')}`;
-
-  const degree = Math.min(u, d) - 1;
-  const removed = Math.abs(u - d);
-  const base = `${ordinal(degree)} cousin`;
-  if (removed === 0) return base;
-  if (removed === 1) return `${base} once removed`;
-  if (removed === 2) return `${base} twice removed`;
-  return `${base} ${removed} times removed`;
+  return kinshipLabel(termFor(u, d), other);
 }
 
 /**
@@ -500,9 +550,19 @@ export function relate(graph, fromId, toId) {
 }
 
 /** The blood term between two people, ignoring the line the search happened to take. */
+/**
+ * The blood relationship between two people, as a structure and as a word.
+ *
+ * Both, because its two callers want different things: `affinalTerm` asks "is this an uncle, and
+ * how many greats" -- a question about the kind -- while the sentence it builds needs the word.
+ * Returning the word alone is what forced the old `inLawTerm` to read the English back with a
+ * regex.
+ */
 function bloodTerm(graph, fromId, toId, standIns, other) {
   const best = nearestSharedAncestor(graph, fromId, toId, standIns);
-  return best ? kinshipTerm(best.u, best.d, other) : null;
+  if (!best) return null;
+  const term = termFor(best.u, best.d);
+  return { term, label: kinshipLabel(term, other) };
 }
 
 /**
@@ -528,16 +588,17 @@ function affinalTerm(graph, fromId, toId, path, standIns) {
     const married = graph.people.get(path[path.length - 2].id);
     const relative = bloodTerm(graph, fromId, married.id, standIns, married);
     if (!relative) return null;
-    const named = inLawTerm(relative, to, 'spouse-of');
-    return named ? { term: named } : { marriedTo: { term: relative, person: married } };
+    // Dispatched on `relative.term.kind`, not on the English `relative.label`.
+    const named = inLawTerm(relative.term, to, 'spouse-of');
+    return named ? { term: named } : { marriedTo: { term: relative.label, person: married } };
   }
 
   if (at === 0) {
     const spouse = graph.people.get(path[0].id);
     const relative = bloodTerm(graph, spouse.id, toId, standIns, to);
     if (!relative) return null;
-    const named = inLawTerm(relative, to, 'of-spouse');
-    return named ? { term: named } : { ofSpouse: { term: relative, spouse } };
+    const named = inLawTerm(relative.term, to, 'of-spouse');
+    return named ? { term: named } : { ofSpouse: { term: relative.label, spouse } };
   }
   return null;
 }
@@ -549,26 +610,45 @@ function affinalTerm(graph, fromId, toId, path, standIns) {
  * tells the page to say who somebody married rather than reach for a word nobody says.
  */
 function inLawTerm(relative, other, direction) {
-  const isUncleAunt = /(^|-)(uncle|aunt)$/.test(relative) || relative === 'aunt or uncle';
-  const isSibling = relative === 'brother' || relative === 'sister' || relative === 'sibling';
-  const isParent = relative === 'father' || relative === 'mother' || relative === 'parent';
-  const isChild = relative === 'son' || relative === 'daughter' || relative === 'child';
+  if (!relative) return null;
 
   if (direction === 'spouse-of') {
-    // A parent's sibling's spouse is simply an aunt or an uncle, and always has been.
-    if (isUncleAunt) {
-      const greatCount = (relative.match(/great-/g) ?? []).length;
-      return 'great-'.repeat(greatCount) + byGender(other, 'uncle', 'aunt', 'aunt or uncle');
+    switch (relative.kind) {
+      // A parent's sibling's spouse is simply an aunt or an uncle, and always has been. The greats
+      // carry across untouched: a great-uncle's wife is a great-aunt, not an aunt.
+      case 'parents-sibling':
+        return `${greats(relative.greats)}${byGender(other, 'uncle', 'aunt', 'aunt or uncle')}`;
+      case 'sibling':
+        return byGender(other, 'brother-in-law', 'sister-in-law', 'sibling-in-law');
+      // A *parent's* new spouse is a step-parent; a grandparent's is not a step-grandparent in
+      // anything English says out loud, so only the first generation is named.
+      case 'ancestor':
+        return relative.generations === 1
+          ? byGender(other, 'stepfather', 'stepmother', 'step-parent')
+          : null;
+      case 'descendant':
+        return relative.generations === 1
+          ? byGender(other, 'son-in-law', 'daughter-in-law', 'child-in-law')
+          : null;
+      default:
+        return null;
     }
-    if (isSibling) return byGender(other, 'brother-in-law', 'sister-in-law', 'sibling-in-law');
-    if (isParent) return byGender(other, 'stepfather', 'stepmother', 'step-parent');
-    if (isChild) return byGender(other, 'son-in-law', 'daughter-in-law', 'child-in-law');
-    return null;
   }
-  if (isParent) return byGender(other, 'father-in-law', 'mother-in-law', 'parent-in-law');
-  if (isSibling) return byGender(other, 'brother-in-law', 'sister-in-law', 'sibling-in-law');
-  if (isChild) return byGender(other, 'stepson', 'stepdaughter', 'stepchild');
-  return null;
+
+  switch (relative.kind) {
+    case 'ancestor':
+      return relative.generations === 1
+        ? byGender(other, 'father-in-law', 'mother-in-law', 'parent-in-law')
+        : null;
+    case 'sibling':
+      return byGender(other, 'brother-in-law', 'sister-in-law', 'sibling-in-law');
+    case 'descendant':
+      return relative.generations === 1
+        ? byGender(other, 'stepson', 'stepdaughter', 'stepchild')
+        : null;
+    default:
+      return null;
+  }
 }
 
 /**
