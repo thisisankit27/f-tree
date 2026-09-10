@@ -97,7 +97,7 @@ must be B's भांजा or भांजी*, computed independently from opp
 
 ## Settings
 
-`Updates > Preferences…`, on `Ctrl+,`. Family words, photographs on the chart, appearance, and the
+`Settings > Preferences…`, on `Ctrl+,`. Family words, photographs on the chart, appearance, and the
 two update settings. Every one of them is also in the native menu, and **both surfaces go through
 the same `settings:set`**, which rebuilds the menu from the result.
 
@@ -284,7 +284,7 @@ guards, because there are live users on the app.
 
 ## The updater
 
-Two switches under **Updates**, both off until the reader turns them on, and the same two the
+Two switches under **Settings**, both off until the reader turns them on, and the same two the
 Android app offers for the same reasons:
 
 | | |
