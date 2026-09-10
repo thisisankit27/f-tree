@@ -258,3 +258,66 @@ test('exportedAt is stamped at save time', () => {
   const when = new Date('2026-01-02T03:04:05Z');
   assert.strictEqual(tree.toExchange(when).exportedAt, '2026-01-02T03:04:05.000Z');
 });
+
+/* ---------------------------------------------------------------- an addition nobody finished */
+
+test('withdrawing an unfinished addition leaves no trace in the history', () => {
+  const { tree } = family();
+  const before = tree.signature();
+  const steps = tree.undoLabel;
+  const { id } = tree.addPerson({ name: '' });
+
+  assert.ok(tree.canWithdraw(id));
+  assert.deepStrictEqual(tree.withdraw(id), { ok: true });
+  assert.strictEqual(tree.signature(), before, 'the tree is as it was');
+  assert.strictEqual(tree.undoLabel, steps, 'and the history is as it was');
+  assert.ok(!tree.canRedo, 'a blank person is not something to redo');
+});
+
+test('an addition can only be withdrawn while it is the newest step', () => {
+  const { tree, father } = family();
+  const { id } = tree.addPerson({ name: '' });
+  tree.addRelationship({ from: father, to: id, type: PARENT });
+
+  assert.ok(!tree.canWithdraw(id), 'something has happened since');
+  assert.strictEqual(tree.withdraw(id).reason, 'NOT_THE_LATEST');
+  assert.ok(tree.person(id), 'and the person is still there');
+});
+
+test('only the person the newest step added can be withdrawn', () => {
+  const { tree, child } = family();
+  tree.addPerson({ name: '' });
+  assert.ok(!tree.canWithdraw(child));
+  assert.ok(!new Tree().canWithdraw('nobody'), 'nothing to withdraw in an empty history');
+});
+
+test('finishing an addition as one step: withdraw, then add with the same id', () => {
+  const tree = new Tree();
+  const { id } = tree.addPerson({ name: '' });
+  tree.withdraw(id);
+  tree.addPerson({ id, name: 'Ravi' });
+
+  assert.strictEqual(tree.undoLabel, 'Add Ravi');
+  tree.undo();
+  assert.strictEqual(tree.people.length, 0, 'one undo takes the whole addition back');
+});
+
+/* ---------------------------------------------------------------- keep as unknown */
+
+test('keeping someone as unknown clears every detail and keeps every connection', () => {
+  const { tree, father } = family();
+  tree.updatePerson(father, { birthDate: '1938', deceased: true, notes: 'x', photo: 'photos/a.jpg' });
+  const edges = tree.relationships.length;
+
+  assert.deepStrictEqual(tree.clearDetails(father), { ok: true });
+  assert.deepStrictEqual(tree.person(father), { id: father });
+  assert.strictEqual(tree.relationships.length, edges, 'the family still joins up through them');
+  assert.strictEqual(tree.undoLabel, 'Keep Shyam as unknown');
+
+  tree.undo();
+  assert.strictEqual(tree.person(father).name, 'Shyam', 'and undo gives them back');
+});
+
+test('keeping nobody as unknown is refused', () => {
+  assert.strictEqual(new Tree().clearDetails('nobody').reason, 'NO_SUCH_PERSON');
+});
