@@ -115,8 +115,42 @@
  * who does not know the day should not be made to invent one.
  */
 .editor .field-hint {
-  font-size: 11px;
-  opacity: 0.55;
+  margin: 0;
+  font-size: 11.5px;
+  line-height: 1.4;
+  color: var(--ink-faint);
+}
+
+/* One hint under both dates, rather than the same line twice or one field left bare (#147). */
+.editor .dates-hint {
+  grid-column: 1 / -1;
+  margin-top: calc(var(--field-gap) * -0.5);
+}
+
+/*
+ * A placeholder is an example, not a value.
+ *
+ * `1948` in the Born field must not be mistaken for somebody's birth year, so it is set in the
+ * faint ink the rest of the form uses for things that are not the record itself.
+ */
+.editor .field input::placeholder,
+.editor .field textarea::placeholder {
+  color: var(--ink-faint);
+  opacity: .8;
+}
+
+/* What is wrong with a date, under that date, in words that say how to put it right. */
+.editor .field-error {
+  margin: 0;
+  font-size: 11.5px;
+  line-height: 1.4;
+  color: var(--danger);
+}
+
+.editor .field-error:empty { display: none; }
+
+.editor .field[data-problem='true'] input {
+  border-color: var(--danger);
 }
 
 .editor .check {
@@ -266,6 +300,14 @@
   max-height: 168px;
 }
 
+/* The years beside a name in a list of matches, set apart as the viewer's own results set them. */
+.editor .search-results button small {
+  margin-left: 8px;
+  font-family: var(--mono);
+  font-size: calc(11px * var(--ui));
+  color: var(--ink-faint);
+}
+
 /* ------------------------------------------------------------------ saying no */
 
 /*
@@ -285,25 +327,172 @@
   line-height: 1.45;
 }
 
-.editor .danger-row {
-  margin-top: 26px;
-  padding-top: 14px;
-  border-top: 1px solid var(--rule);
+/* ------------------------------------------------------------------ the panel's frame */
+
+/*
+ * A head, a body that scrolls, and a foot that does not.
+ *
+ * The playground's panel scrolls as one block, which suits a reader. An editor's panel ends in the
+ * buttons that keep or discard what was typed, and a Save that has scrolled below a long family list
+ * is a Save nobody presses -- so here only the middle moves.
+ */
+.editor .edit-panel {
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  overflow: hidden;
 }
 
+.editor .panel-head {
+  display: flex;
+  align-items: center;
+  flex: none;
+  min-height: calc(56px * var(--ui));
+  padding: calc(14px * var(--ui)) calc(56px * var(--ui)) calc(12px * var(--ui)) calc(20px * var(--ui));
+  border-bottom: 1px solid var(--rule);
+}
+
+.editor .panel-title {
+  margin: 0;
+  font-family: var(--serif);
+  font-size: calc(18px * var(--ui));
+  font-weight: 600;
+  letter-spacing: -.01em;
+}
+
+.editor .edit-panel .panel-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 0 calc(20px * var(--ui)) calc(22px * var(--ui));
+  scrollbar-width: thin;
+  scrollbar-color: var(--rule-strong) transparent;
+}
+
+.editor .panel-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: none;
+  padding: calc(11px * var(--ui)) calc(14px * var(--ui)) calc(11px * var(--ui)) calc(20px * var(--ui));
+  border-top: 1px solid var(--rule);
+  background: var(--bone-dim);
+}
+
+/*
+ * Whether there is anything unsaved, said beside the button that would save it.
+ *
+ * Brass rather than the colour of a refusal: an unsaved edit is something to notice, not something
+ * wrong. After a save it says so for a moment in the quiet colour, then says nothing.
+ */
+.editor .panel-status {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  text-align: right;
+  font-family: var(--mono);
+  font-size: calc(11.5px * var(--ui));
+  color: var(--ink-faint);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.editor .panel-status[data-tone='dirty'] { color: var(--brass); }
+
+.editor .panel-actions .btn {
+  font-size: calc(12.5px * var(--ui));
+  padding: calc(8px * var(--ui)) calc(18px * var(--ui));
+}
+
+.editor .btn:disabled,
+.editor .btn:disabled:hover {
+  opacity: .42;
+  cursor: default;
+}
+
+.editor .btn.primary:disabled:hover { background: var(--forest); border-color: var(--forest); }
+
 .editor .btn-danger {
-  font: inherit;
-  font-size: 12.5px;
+  font-family: var(--mono);
+  font-size: calc(12.5px * var(--ui));
   color: var(--danger);
   background: none;
   border: 1px solid color-mix(in srgb, var(--danger) 40%, transparent);
-  border-radius: 8px;
-  padding: 6px 11px;
+  border-radius: 999px;
+  padding: calc(8px * var(--ui)) calc(14px * var(--ui));
   cursor: pointer;
+  white-space: nowrap;
+  transition: background .12s, border-color .12s;
 }
 
 .editor .btn-danger:hover {
   background: color-mix(in srgb, var(--danger) 12%, transparent);
+  border-color: var(--danger);
+}
+
+.editor .panel-actions button:focus-visible,
+.editor .ask button:focus-visible,
+.editor .toast-action:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* ------------------------------------------------------------------ a question before an act */
+
+.editor .review.ask[open] { width: min(470px, calc(100vw - 48px)); }
+
+/* No rule under the question: the options, or the buttons, are the rest of the same sentence. */
+.editor .ask .review-head { border-bottom: 0; padding-bottom: 6px; }
+.editor .ask .review-foot { justify-content: flex-end; margin-top: 16px; }
+
+.editor .ask-options {
+  display: grid;
+  gap: 8px;
+  padding: 12px 26px 0;
+}
+
+/*
+ * A choice that needs its sentence to be understood.
+ *
+ * "Keep as unknown" does not explain itself, and the difference between it and "Delete completely"
+ * is the whole reason the dialog exists -- so each is a block with its consequence written under it,
+ * not a button with a tooltip.
+ */
+.editor .ask-option {
+  display: grid;
+  gap: 3px;
+  width: 100%;
+  text-align: left;
+  font-family: var(--serif);
+  color: var(--ink);
+  background: var(--raised);
+  border: 1px solid var(--rule-strong);
+  border-radius: 11px;
+  padding: 12px 15px 13px;
+  cursor: pointer;
+  transition: border-color .12s, background .12s;
+}
+
+.editor .ask-option:hover { background: var(--bone-dim); border-color: var(--forest); }
+.editor .ask-option-label { font-size: 15px; font-weight: 600; }
+.editor .ask-option-detail { font-size: 13px; line-height: 1.45; color: var(--ink-soft); }
+
+.editor .ask-option[data-tone='danger'] .ask-option-label { color: var(--danger); }
+.editor .ask-option[data-tone='danger']:hover { border-color: var(--danger); }
+
+/* The one filled destructive button: the answer to "Discard changes?" that loses something. */
+.editor .btn.danger {
+  background: var(--danger);
+  border-color: var(--danger);
+  color: var(--on-danger);
+}
+
+.editor .btn.danger:hover {
+  background: color-mix(in srgb, var(--danger) 86%, var(--ink));
+  border-color: color-mix(in srgb, var(--danger) 86%, var(--ink));
+  color: var(--on-danger);
 }
 
 /* ------------------------------------------------------------------ toast */
@@ -321,7 +510,35 @@
   color: var(--paper);
   font-size: 13px;
   box-shadow: 0 6px 26px rgba(0, 0, 0, 0.22);
+  display: flex;
+  align-items: center;
+  gap: 16px;
 }
+
+/*
+ * The one thing a toast can offer to do, which is put back what it just announced.
+ *
+ * Set in the inverse of the forest -- pale green on the ink toast by day, deep green on the pale one
+ * by night -- so it reads as the app's own action colour on a surface that has swapped its ground.
+ */
+.editor .toast-action {
+  flex: none;
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: .02em;
+  color: var(--inverse-accent);
+  background: none;
+  border: 0;
+  border-radius: 6px;
+  padding: 4px 8px;
+  margin: -4px -8px -4px 0;
+  cursor: pointer;
+}
+
+.editor .toast-action:hover { background: color-mix(in srgb, var(--inverse-accent) 16%, transparent); }
+.editor .toast[data-tone='bad'] .toast-action { color: var(--on-danger); text-decoration: underline; }
+.editor .toast[data-tone='warn'] .toast-action { color: var(--forest); }
 
 .editor .toast[data-tone='bad'] {
   background: var(--danger);
@@ -1182,3 +1399,5 @@
   line-height: 1.5;
   color: var(--ink-faint);
 }
+
+.editor .nowrap { white-space: nowrap; }

@@ -27,6 +27,40 @@ which multiply a chart's width far faster than they add to what it tells you. Cl
 the reading to that person. Where the record goes further than the reading, it says so and offers
 to go on.
 
+## Editing a person
+
+The person panel keeps its edits as a draft and writes them to the tree on **Save**, which is how
+the phone's edit screen has always worked ([#148](https://github.com/thisisankit27/f-tree/issues/148)).
+It used to commit each field as it lost focus. That meant nothing on screen said an edit had been
+taken, and closing the panel with a field still focused depended on the browser firing `change`.
+
+| | |
+|---|---|
+| **Save** | keeps the draft as one step in the history; disabled while there is nothing unsaved |
+| **Add** | the same button for somebody "Add a person" has just created, still blank |
+| **Discard** | backs out of that addition. The blank card goes, with no trace in the history (`Tree.withdraw`) |
+| **Delete this person** | for anybody already in the tree. Asks first when they have connections |
+| leaving with edits | *Discard changes? / Your edits to this person won't be kept.*, in Android's words |
+
+"Discard" is offered only while the person is a fresh, blank addition. On anybody else the button
+removes them and every one of their connections, and "Discard" would read as "discard my edits",
+which is not what happens.
+
+**Deleting somebody with connections** offers Android's two choices: *Keep as unknown*, which clears
+their details but keeps their place so the family still joins up (`Tree.clearDetails`), and *Delete
+completely*. Somebody joined to nobody is deleted straight away. Either way the toast carries an
+**Undo** button.
+
+**Dates are checked before they are kept**, by Android's rules (`renderer/person-draft.js`): a date
+must be `1938`, `1938-04` or `1938-04-17`, and a death may not end before the birth begins.
+Overlapping partial dates are fine, since "born 1938, died 1938" is real. A space, slash or full stop
+typed in a date becomes the dash as it is typed
+([#90](https://github.com/thisisankit27/f-tree/issues/90)), so the parser stays exactly as strict as
+it was. A death date ticks *No longer living*, and unticking it clears the date.
+
+Ctrl+Z inside a text field undoes the typing, not the last change to the tree. The menu owns the
+accelerator, so without that exception it would take back a relative added a minute ago.
+
 ## Photographs
 
 A face in the person panel, and **click it to see the photograph whole** — every other surface shows

@@ -60,6 +60,8 @@
   --accent: var(--forest);
   --paper: var(--bone);
   --sunk: rgba(26, 28, 26, .045);
+  /* The action colour on an ink surface -- the toast -- where the forest would vanish. */
+  --inverse-accent: var(--sage);
 
   /* One multiplier for every size in the chrome, so "big screen" is a single number. */
   --ui: 1;
@@ -106,6 +108,7 @@
   --danger: #ffb4a8;
   --on-danger: #561410;
   --sunk: rgba(224, 228, 221, .06);
+  --inverse-accent: #2a5138;
   --forest-hover: #b6dbc3;
   --on-forest: #06371c;
   --on-sage: #abe4bc;

@@ -12,9 +12,10 @@
  * relationship rules, and the only thing that can put a change back. A field that wrote to a person
  * directly would edit somebody's family with no rule check, no undo and no unsaved mark.
  *
- * **One edit is one undo step.** Form fields commit on `change`, not on `input`, so typing a name
- * is one step rather than one per keystroke -- which would make undo useless exactly when it
- * matters.
+ * **One edit is one undo step, and it happens when somebody says so.** The person panel holds its
+ * edits as a draft and commits them on Save, as the phone does (#148): one Save is one step, the
+ * panel shows whether there is anything unsaved, and leaving with edits asks first. It used to
+ * commit on every field's `change`, which meant nothing on screen ever said an edit was taken.
  *
  * **A refusal is an explanation.** The rules say no for reasons a person can understand, so the
  * interface says the reason and not "invalid".
@@ -36,6 +37,10 @@ import { MatchTier } from './matching.js';
 import { renderBands } from './bands.js';
 import { sentenceFor, unrelatedWording, paintSentence, nameNode, hindiFor } from './relation.js';
 import { decode, encode, asImageUrl, freeName, squareCrop } from './photo.js';
+import {
+  DateProblem, draftFrom, withChange, dateProblems, isDirty, fieldsFrom, isBlankPerson,
+  normaliseDateTyping,
+} from './person-draft.js';
 
 const { PARENT, SPOUSE, SIBLING } = RelationshipType;
 
@@ -54,6 +59,22 @@ const state = {
   selected: null,
   /** Which kind of relative the "add" form is currently offering. */
   adding: null,
+  /**
+   * The person panel's edits, not yet kept: `{ id, values, showProblems }`.
+   *
+   * Keyed by id and held here rather than read back out of the inputs, because the panel is redrawn
+   * whenever anything else changes the tree -- a photograph, a relative added -- and a redraw that
+   * rebuilt the form from the tree would throw away a name somebody was halfway through typing.
+   */
+  draft: null,
+  /**
+   * Somebody "Add a person" created, not yet confirmed with Add.
+   *
+   * The card exists from the first click so the chart can show where it will go, but until Add is
+   * pressed it is a question rather than a person: backing out takes it away again, and finishing
+   * it is one step in the history rather than an addition followed by an edit.
+   */
+  fresh: null,
   /** 'chart', 'compact' or 'index'. */
   view: 'chart',
   /**
@@ -84,20 +105,49 @@ function setState(value) {
 }
 
 let toastTimer = null;
-function toast(message, tone = 'good') {
+let toastLinger = 0;
+
+/**
+ * Says something once, where the eye already is.
+ *
+ * `action` puts one button in it -- in practice always Undo. The toolbar's undo button is gone
+ * (#150) and a toast that says "Undo with Ctrl+Z" is advertising a shortcut to somebody who has
+ * just been surprised; the button is the thing itself, and the shortcut still works. A toast with
+ * a button stays a little longer, and holds still while the pointer or focus is on it, so it
+ * cannot vanish from under a click.
+ */
+function toast(message, tone = 'good', { action = null } = {}) {
   const box = $('toast');
-  box.textContent = message;
+  $('toast-text').textContent = message;
+  const button = $('toast-action');
+  button.hidden = !action;
+  button.textContent = action?.label ?? '';
+  button.onclick = action ? () => { box.hidden = true; action.run(); } : null;
   box.dataset.tone = tone;
   box.hidden = false;
-  clearTimeout(toastTimer);
   // A refusal is longer and worth reading twice; a confirmation is not.
-  const linger = { bad: 9000, warn: 9000 }[tone] ?? 2600;
-  toastTimer = setTimeout(() => { box.hidden = true; }, linger);
+  toastLinger = { bad: 9000, warn: 9000 }[tone] ?? (action ? 6500 : 2600);
+  holdToast(false);
+}
+
+function holdToast(holding) {
+  clearTimeout(toastTimer);
+  if (!holding) toastTimer = setTimeout(() => { $('toast').hidden = true; }, toastLinger);
+}
+
+/** The Undo button a toast offers after something that can be taken back. */
+const UNDO = { label: 'Undo', run: () => undo() };
+
+/** Whether the person panel holds edits the tree does not. */
+function draftIsDirty() {
+  const draft = state.draft;
+  const person = draft && state.tree?.person(draft.id);
+  return Boolean(person && isDirty(draft.values, person));
 }
 
 /** Keeps the window, the menu and the dot in step with whether there is work not on disk. */
 function reflectDirty() {
-  const dirty = Boolean(state.tree?.isDirty);
+  const dirty = Boolean(state.tree?.isDirty) || draftIsDirty();
   $('unsaved').hidden = !dirty;
   $('save').dataset.dirty = String(dirty);
   $('undo').disabled = !state.tree?.canUndo;
@@ -315,7 +365,7 @@ function setPhoto(id, bytes) {
     return;
   }
   rebuild();
-  toast(bytes ? 'Photograph added. Undo with Ctrl+Z.' : 'Photograph removed. Undo with Ctrl+Z.');
+  toast(bytes ? 'Photograph added.' : 'Photograph removed.', 'good', { action: UNDO });
 }
 
 /** The framing step: pick a file, choose what the circle shows, then store it. */
@@ -632,10 +682,11 @@ function forgetRelate() {
   }
 }
 
-function openRelate(seed = state.selected) {
+async function openRelate(seed = state.selected) {
   // One question at a time. Both panels are positioned in the same corner, and two open at once
-  // would be two things claiming to be what the window is about.
-  if (state.selected) select(null);
+  // would be two things claiming to be what the window is about. Closing the person panel can be
+  // refused -- it asks first if it holds unsaved edits -- and then the question waits.
+  if (state.selected && !(await select(null))) return;
 
   $('relate').hidden = false;
 
@@ -1044,26 +1095,141 @@ const REFUSALS = {
   DUPLICATE_ID: 'Somebody with that id is already here.',
 };
 
+/** Android's own words for each date problem, so the two shells say the same thing. */
+const DATE_PROBLEMS = {
+  [DateProblem.MALFORMED]: 'Use a year like 1938, or 1938-04-17',
+  [DateProblem.DEATH_BEFORE_BIRTH]: 'This is earlier than the birth date',
+};
+
+/** Which draft field each input edits. */
+const FIELD_KEYS = {
+  'f-name': 'name',
+  'f-gender': 'gender',
+  'f-birth': 'birthDate',
+  'f-death': 'deathDate',
+  'f-deceased': 'deceased',
+  'f-notes': 'notes',
+};
+
+/**
+ * Somebody "Add a person" made and nobody has finished adding: still blank, joined to nobody.
+ *
+ * Checked against the tree rather than remembered, because the moment they gain a relative or a
+ * photograph they are a person with something recorded, and "Discard" would understate what the
+ * button then does.
+ */
+function isFresh(person) {
+  if (!person || state.fresh !== person.id || !isBlankPerson(person)) return false;
+  return !state.tree.relationships.some((r) => r.from === person.id || r.to === person.id);
+}
+
 function renderPanel() {
   const panel = $('panel');
   const id = state.selected;
-  if (!id) {
-    panel.hidden = true;
-    return;
-  }
-  const person = state.tree.person(id);
+  const person = id ? state.tree.person(id) : null;
   if (!person) {
     panel.hidden = true;
+    state.draft = null;
     return;
   }
   panel.hidden = false;
 
+  /*
+   * The draft survives a redraw, unless there is nothing in it.
+   *
+   * A draft nobody has touched is refreshed from the tree every time, so an undo that changes this
+   * person shows in the form at once. One with edits in it is kept, because it holds something the
+   * tree does not and a redraw is not the reader asking to lose it.
+   */
+  const draft = state.draft;
+  if (draft?.id !== id || !isDirty(draft.values, draft.base)) {
+    state.draft = { id, base: person, values: draftFrom(person), showProblems: false,
+      touched: new Set() };
+  }
+
+  $('panel-title').textContent = isFresh(person) ? 'Add a person' : 'Edit person';
   const body = $('panel-body');
   body.replaceChildren();
-  body.append(personForm(person), relativesSection(person), dangerRow(person));
+  body.append(personForm(person), relativesSection(person));
+  paintPanelState();
 }
 
-function field({ label, id, value = '', type = 'text', wide = false, hint = null }) {
+/** The word the panel shows for a moment after its edits were kept. */
+let panelFlash = null;
+let panelFlashTimer = null;
+
+function flashPanel(word) {
+  panelFlash = word;
+  clearTimeout(panelFlashTimer);
+  panelFlashTimer = setTimeout(() => { panelFlash = null; paintPanelState(); }, 2400);
+}
+
+/**
+ * Brings the panel's buttons, status and date problems up to date with its draft.
+ *
+ * Called on every keystroke, so it touches only those -- redrawing the form would take the caret
+ * out of the field being typed in.
+ */
+function paintPanelState() {
+  const draft = state.draft;
+  const person = draft && state.tree?.person(draft.id);
+  if (!person) return;
+
+  const fresh = isFresh(person);
+  const dirty = isDirty(draft.values, person);
+
+  // "Add" and "Discard" only while this is still an addition; for anybody already in the tree the
+  // destructive button says what it does, which is remove them and every one of their connections.
+  const save = $('panel-save');
+  save.textContent = fresh ? 'Add' : 'Save';
+  save.disabled = !fresh && !dirty;
+  $('panel-remove').textContent = fresh ? 'Discard' : 'Delete this person';
+
+  const status = $('panel-status');
+  status.textContent = dirty ? 'Unsaved' : (panelFlash ?? '');
+  status.dataset.tone = dirty ? 'dirty' : 'done';
+
+  /*
+   * A problem is shown once the field has been left, or once Save has been pressed -- not while
+   * the first digit of a year is being typed. It clears the moment it is fixed.
+   */
+  const problems = dateProblems(draft.values);
+  for (const [key, inputId] of [['birthDate', 'f-birth'], ['deathDate', 'f-death']]) {
+    const input = $(inputId);
+    if (!input) continue;
+    const shown = draft.showProblems || draft.touched.has(key) ? problems[key] : null;
+    input.setAttribute('aria-invalid', String(Boolean(shown)));
+    input.closest('.field').dataset.problem = String(Boolean(shown));
+    paintProblem($(`${inputId}-error`), shown ? DATE_PROBLEMS[shown] : '');
+  }
+
+  reflectDirty();
+}
+
+/**
+ * A problem's words, with any example date kept on one line.
+ *
+ * The date fields are half the panel wide, and "1938-04-17" broken at a hyphen reads as two
+ * fragments rather than one example of the shape to type -- exactly the thing the message is for.
+ */
+function paintProblem(box, message) {
+  box.replaceChildren();
+  let last = 0;
+  for (const match of message.matchAll(/\d{4}(?:-\d{2}){0,2}/g)) {
+    box.append(message.slice(last, match.index));
+    const date = document.createElement('span');
+    date.className = 'nowrap';
+    date.textContent = match[0];
+    box.append(date);
+    last = match.index + match[0].length;
+  }
+  box.append(message.slice(last));
+}
+
+function field({
+  label, id, value = '', type = 'text', wide = false, hint = null, placeholder = null,
+  validated = false, describedBy = null,
+}) {
   const wrap = document.createElement('div');
   wrap.className = wide ? 'field wide' : 'field';
   const lab = document.createElement('label');
@@ -1072,9 +1238,13 @@ function field({ label, id, value = '', type = 'text', wide = false, hint = null
   const input = type === 'textarea'
     ? document.createElement('textarea')
     : document.createElement('input');
-  if (type !== 'textarea') input.type = 'text';
+  if (type !== 'textarea') {
+    input.type = 'text';
+    input.autocomplete = 'off';
+  }
   input.id = id;
   input.value = value ?? '';
+  if (placeholder) input.placeholder = placeholder;
   wrap.append(lab, input);
   if (hint) {
     const note = document.createElement('p');
@@ -1082,10 +1252,21 @@ function field({ label, id, value = '', type = 'text', wide = false, hint = null
     note.textContent = hint;
     wrap.append(note);
   }
+  const described = [];
+  if (validated) {
+    const error = document.createElement('p');
+    error.className = 'field-error';
+    error.id = `${id}-error`;
+    wrap.append(error);
+    described.push(error.id);
+  }
+  if (describedBy) described.push(describedBy);
+  if (described.length) input.setAttribute('aria-describedby', described.join(' '));
   return wrap;
 }
 
 function personForm(person) {
+  const values = state.draft.values;
   const form = document.createElement('div');
   form.className = 'form-grid';
 
@@ -1095,12 +1276,15 @@ function personForm(person) {
   photo.classList.add('field', 'wide');
   form.append(photo);
 
+  // Android's own placeholder: a blank name is not a mistake here, it is how an unknown person is
+  // recorded, and the field should say so before anybody wonders.
   form.append(field({
-    label: 'Name', id: 'f-name', value: person.name ?? '', wide: true,
+    label: 'Name', id: 'f-name', value: values.name, wide: true,
+    placeholder: 'Leave blank if you don’t know it',
   }));
 
   const gender = document.createElement('div');
-  gender.className = 'field';
+  gender.className = 'field wide';
   const gl = document.createElement('label');
   gl.textContent = 'Gender';
   gl.htmlFor = 'f-gender';
@@ -1110,47 +1294,97 @@ function personForm(person) {
     const option = document.createElement('option');
     option.value = value;
     option.textContent = text;
-    if ((person.gender ?? '') === value) option.selected = true;
+    if (values.gender === value) option.selected = true;
     select.append(option);
   }
   gender.append(gl, select);
   form.append(gender);
 
+  /*
+   * The two dates side by side, with one hint under both (#147).
+   *
+   * The placeholders are real dates rather than a format string: `1948` shows that a year alone is
+   * a whole answer, and `2019-03-14` shows the fullest shape and the separator. One hint under the
+   * pair says the same thing to both, rather than printing it twice or leaving one field bare.
+   */
   form.append(field({
-    label: 'Born', id: 'f-birth', value: person.birthDate ?? '', hint: 'A year alone is fine',
+    label: 'Born', id: 'f-birth', value: values.birthDate, placeholder: '1948',
+    validated: true, describedBy: 'f-dates-hint',
   }));
-  form.append(field({ label: 'Died', id: 'f-death', value: person.deathDate ?? '' }));
+  form.append(field({
+    label: 'Passed away', id: 'f-death', value: values.deathDate, placeholder: '2019-03-14',
+    validated: true, describedBy: 'f-dates-hint',
+  }));
+  const hint = document.createElement('p');
+  hint.className = 'field-hint dates-hint';
+  hint.id = 'f-dates-hint';
+  hint.textContent = 'A year alone is fine. Spaces become dashes.';
+  form.append(hint);
+  for (const id of ['f-birth', 'f-death']) {
+    const input = form.querySelector(`#${id}`);
+    input.spellcheck = false;
+  }
 
   const check = document.createElement('label');
   check.className = 'check';
   const box = document.createElement('input');
   box.type = 'checkbox';
   box.id = 'f-deceased';
-  box.checked = Boolean(person.deceased);
+  box.checked = values.deceased;
   check.append(box, document.createTextNode('No longer living'));
   form.append(check);
 
   form.append(field({
-    label: 'Notes', id: 'f-notes', value: person.notes ?? '', type: 'textarea', wide: true,
+    label: 'Notes', id: 'f-notes', value: values.notes, type: 'textarea', wide: true,
+    placeholder: 'Anything worth remembering',
   }));
 
   /*
-   * Committed on `change`, never on `input`.
+   * Every keystroke goes into the draft, and nothing into the tree until Save.
    *
-   * `input` fires per keystroke, which would put eleven undo steps behind a name like
-   * "Shyam Sundar" and make undo useless at the moment somebody actually needs it.
+   * So a name typed letter by letter is still one step in the history -- the reason this used to
+   * wait for `change` -- and the panel can say at once that there is something unsaved.
    */
-  form.addEventListener('change', () => {
-    const result = state.tree.updatePerson(person.id, {
-      name: $('f-name').value,
-      gender: $('f-gender').value || null,
-      birthDate: $('f-birth').value,
-      deathDate: $('f-death').value,
-      deceased: $('f-deceased').checked,
-      notes: $('f-notes').value,
-    });
-    if (!result.ok) { toast(REFUSALS[result.reason] ?? 'That change was not made.', 'bad'); return; }
-    rebuild();
+  const onEdit = (event) => {
+    const key = FIELD_KEYS[event.target.id];
+    if (!key || !state.draft) return;
+
+    let value = event.target.type === 'checkbox' ? event.target.checked : event.target.value;
+    if (key === 'birthDate' || key === 'deathDate') {
+      const typed = normaliseDateTyping(value, event.target.selectionStart ?? value.length);
+      if (typed.value !== value) {
+        event.target.value = typed.value;
+        event.target.setSelectionRange(typed.caret, typed.caret);
+      }
+      value = typed.value;
+    }
+
+    state.draft.values = withChange(state.draft.values, key, value);
+    // A death date ticks "no longer living", and unticking it clears the date: show both at once.
+    $('f-deceased').checked = state.draft.values.deceased;
+    if ($('f-death').value !== state.draft.values.deathDate) {
+      $('f-death').value = state.draft.values.deathDate;
+    }
+    paintPanelState();
+  };
+  form.addEventListener('input', onEdit);
+  form.addEventListener('change', onEdit);
+
+  form.addEventListener('focusout', (event) => {
+    const key = FIELD_KEYS[event.target.id];
+    if (key !== 'birthDate' && key !== 'deathDate') return;
+    state.draft?.touched.add(key);
+    paintPanelState();
+  });
+
+  // Enter keeps the edit, as a form does; in the notes, where Enter is a new line, Ctrl+Enter does.
+  form.addEventListener('keydown', (event) => {
+    if (event.key !== 'Enter') return;
+    const line = event.target.tagName === 'INPUT' && event.target.type === 'text';
+    if (line || event.ctrlKey || event.metaKey) {
+      event.preventDefault();
+      commitDraft();
+    }
   });
 
   return form;
@@ -1299,18 +1533,6 @@ function addRelativeForm(person) {
   return box;
 }
 
-function dangerRow(person) {
-  const row = document.createElement('div');
-  row.className = 'danger-row';
-  const button = document.createElement('button');
-  button.type = 'button';
-  button.className = 'btn-danger';
-  button.textContent = 'Delete this person';
-  button.addEventListener('click', () => removePerson(person.id));
-  row.append(button);
-  return row;
-}
-
 function escapeHtml(text) {
   return String(text).replace(/[&<>"']/g, (c) => (
     { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -1318,7 +1540,142 @@ function escapeHtml(text) {
 
 /* ------------------------------------------------------------------ editing */
 
+/**
+ * Asks one short question in a dialog and resolves with the answer, or null for the safe one.
+ *
+ * `options` are the choices that need a sentence each to be understood -- "Keep as unknown" does
+ * not explain itself -- and are drawn as a list; `actions` are the ordinary buttons along the foot.
+ * Escape, and closing any other way, always answers null: whatever the question, the answer that
+ * changes nothing is the one a stray keypress gets.
+ */
+function ask({ title, body, options = [], actions = [], focus = null }) {
+  const dialog = $('ask');
+  $('ask-title').textContent = title;
+  $('ask-body').textContent = body;
+
+  const optionsBox = $('ask-options');
+  optionsBox.replaceChildren();
+  optionsBox.hidden = options.length === 0;
+  const actionsBox = $('ask-actions');
+  actionsBox.replaceChildren();
+
+  return new Promise((resolve) => {
+    const finish = (value) => {
+      dialog.onclose = null;
+      if (dialog.open) dialog.close();
+      resolve(value);
+    };
+
+    for (const option of options) {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'ask-option';
+      if (option.tone) button.dataset.tone = option.tone;
+      const label = document.createElement('span');
+      label.className = 'ask-option-label';
+      label.textContent = option.label;
+      const detail = document.createElement('span');
+      detail.className = 'ask-option-detail';
+      detail.textContent = option.detail;
+      button.append(label, detail);
+      button.addEventListener('click', () => finish(option.value));
+      optionsBox.append(button);
+    }
+
+    for (const action of actions) {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = `btn ${action.tone ?? 'quiet'}`;
+      button.textContent = action.label;
+      button.addEventListener('click', () => finish(action.value ?? null));
+      actionsBox.append(button);
+    }
+
+    dialog.onclose = () => resolve(null);
+    dialog.showModal();
+    (focus == null ? $('ask-head') : actionsBox.children[focus]).focus();
+  });
+}
+
+/** Whether a question is on screen, which the keyboard shortcuts must not reach past. */
+const dialogOpen = () => Boolean(document.querySelector('dialog[open]'));
+
+/**
+ * Lets go of the person in the panel, asking first if that would lose edits.
+ *
+ * Resolves false when the reader chose to keep editing, and every caller then leaves things as
+ * they were. The wording is Android's (`edit_discard_*`), so the two shells ask the same question
+ * in the same words.
+ *
+ * A fresh addition is taken away again on the way out: backing out of "Add a person" is backing
+ * out, and leaving a blank card on the chart would be the app deciding somebody unknown exists.
+ */
+async function releasePanel() {
+  if (draftIsDirty()) {
+    const answer = await ask({
+      title: 'Discard changes?',
+      body: 'Your edits to this person won’t be kept.',
+      actions: [
+        { label: 'Keep editing', value: null },
+        { label: 'Discard', value: 'discard', tone: 'danger' },
+      ],
+      focus: 0,
+    });
+    if (answer !== 'discard') {
+      $('f-name')?.focus();
+      return false;
+    }
+  }
+  letGoOfPanel();
+  return true;
+}
+
+/** Drops the draft, and a fresh addition with it. The part of letting go that needs no question. */
+function letGoOfPanel() {
+  const person = state.draft && state.tree?.person(state.draft.id);
+  state.draft = null;
+  if (person && isFresh(person)) {
+    withdrawFresh(person.id);
+    state.selected = null;
+    rebuild();
+  }
+  state.fresh = null;
+}
+
+/** Takes an unfinished addition back out of the tree, without a trace in the history if possible. */
+function withdrawFresh(id) {
+  if (state.tree.canWithdraw(id)) state.tree.withdraw(id);
+  else state.tree.removePerson(id);
+  state.fresh = null;
+}
+
+/**
+ * Opens somebody in the panel, or closes it with null -- after asking, if it holds unsaved edits.
+ *
+ * Resolves whether the selection actually changed. When the reader keeps editing, the chart is put
+ * back on the person the panel still holds, so the two never disagree about who is open.
+ */
 function select(id) {
+  // Immediately, when there is nothing to ask: a click on a card should open it in the same frame,
+  // not a turn of the event loop later.
+  if (id === state.selected || !draftIsDirty()) {
+    if (id !== state.selected) letGoOfPanel();
+    selectNow(id);
+    return Promise.resolve(true);
+  }
+  return releasePanel().then((released) => {
+    if (!released) {
+      chart.selected = state.selected;
+      chart.invalidate();
+      return false;
+    }
+    selectNow(id);
+    return true;
+  });
+}
+
+/** The selection itself, for callers that have already dealt with the panel. */
+function selectNow(id) {
   state.selected = id;
   state.adding = null;
   chart.selected = id;
@@ -1328,10 +1685,123 @@ function select(id) {
   if (state.view === 'index') renderPeople();
 }
 
-function addPerson() {
+/**
+ * Keeps the panel's edits.
+ *
+ * Refused, with the problem shown under the field and the caret put in it, while a date cannot be
+ * understood. Finishing a fresh addition replaces the blank one in the history, so undo takes back
+ * "Add Shyam Lal" in one step rather than a name and then a person.
+ *
+ * @returns {boolean} whether there is now nothing unsaved in the panel
+ */
+function commitDraft() {
+  const draft = state.draft;
+  const person = draft && state.tree?.person(draft.id);
+  if (!person) return true;
+
+  const fresh = isFresh(person);
+  if (!fresh && !isDirty(draft.values, person)) return true;
+
+  const problems = dateProblems(draft.values);
+  const wrong = problems.birthDate ? 'f-birth' : problems.deathDate ? 'f-death' : null;
+  if (wrong) {
+    draft.showProblems = true;
+    paintPanelState();
+    $(wrong)?.focus();
+    return false;
+  }
+
+  const fields = fieldsFrom(draft.values);
+  let result;
+  if (fresh && state.tree.canWithdraw(person.id)) {
+    state.tree.withdraw(person.id);
+    result = state.tree.addPerson({ id: person.id, ...fields });
+  } else {
+    result = state.tree.updatePerson(person.id, fields);
+  }
+  if (!result.ok) {
+    toast(REFUSALS[result.reason] ?? 'That change was not made.', 'bad');
+    return false;
+  }
+
+  state.fresh = null;
+  state.draft = null;
+  flashPanel(fresh ? 'Added' : 'Saved');
+  rebuild();
+  return true;
+}
+
+/** The panel's destructive button, which is Discard for an addition and Delete for anybody else. */
+async function removeFromPanel() {
+  const person = state.tree.person(state.selected);
+  if (!person) return;
+  if (isFresh(person)) {
+    state.draft = null;
+    withdrawFresh(person.id);
+    state.selected = null;
+    rebuild();
+    return;
+  }
+  await deletePerson(person.id);
+}
+
+/**
+ * Deletes somebody, asking first when that would take connections with them.
+ *
+ * Android's dialog, ported: somebody joined to others is offered "Keep as unknown" beside "Delete
+ * completely", because a grandparent you know little about is still the join between two branches,
+ * and deleting them outright splits the family in two. Somebody joined to nobody is removed at once
+ * -- there is no shape to lose -- with Undo in the toast.
+ */
+async function deletePerson(id) {
+  const person = state.tree.person(id);
+  if (!person) return;
+  const edges = state.tree.relationships.filter((r) => r.from === id || r.to === id);
+
+  if (edges.length) {
+    const others = new Set(edges.map((r) => (r.from === id ? r.to : r.from))).size;
+    const who = person.name ? displayName(person) : 'This person';
+    const choice = await ask({
+      title: person.name ? `Delete ${displayName(person)}?` : 'Delete this person?',
+      body: `${who} is connected to ${count(others, 'other person', 'other people')}. `
+        + 'Choose what happens to those connections.',
+      options: [
+        {
+          value: 'unknown',
+          label: 'Keep as unknown',
+          detail: 'Clears their details but keeps their place in the tree, so the family still joins up.',
+        },
+        {
+          value: 'delete',
+          label: 'Delete completely',
+          detail: `Removes them and their ${count(edges.length, 'connection', 'connections')}.`,
+          tone: 'danger',
+        },
+      ],
+      actions: [{ label: 'Cancel', value: null }],
+    });
+    if (choice === 'unknown') { keepAsUnknown(id); return; }
+    if (choice !== 'delete') return;
+  }
+  removePerson(id);
+}
+
+function keepAsUnknown(id) {
+  const result = state.tree.clearDetails(id);
+  if (!result.ok) { toast(REFUSALS[result.reason] ?? 'Nothing was changed.', 'bad'); return; }
+  state.draft = null;
+  state.selected = null;
+  rebuild();
+  toast('Kept as an unknown person.', 'good', { action: UNDO });
+}
+
+async function addPerson() {
+  if (!(await releasePanel())) return;
   const result = state.tree.addPerson({ name: '' });
   if (!result.ok) { toast(REFUSALS[result.reason] ?? 'Could not add anybody.', 'bad'); return; }
   state.selected = result.id;
+  state.fresh = result.id;
+  state.draft = null;
   state.adding = null;
   rebuild({ refit: state.tree.people.length <= 1 });
   $('f-name')?.focus();
@@ -1398,15 +1868,29 @@ function removePerson(id) {
   const name = displayName(person ?? {});
   const result = state.tree.removePerson(id);
   if (!result.ok) { toast(REFUSALS[result.reason] ?? 'Nobody was deleted.', 'bad'); return; }
+  state.draft = null;
   state.selected = null;
   rebuild();
   toast(result.removedEdges
-    ? `Deleted ${name} and ${count(result.removedEdges, 'connection', 'connections')}. `
-      + 'Undo with Ctrl+Z.'
-    : `Deleted ${name}. Undo with Ctrl+Z.`);
+    ? `Deleted ${name} and ${count(result.removedEdges, 'connection', 'connections')}.`
+    : `Deleted ${name}.`, 'good', { action: UNDO });
+}
+
+/**
+ * Whether the caret is in a text field, where Ctrl+Z means the text.
+ *
+ * The menu owns the accelerator, so without this Ctrl+Z inside the name field would take back the
+ * last change to the *tree* -- a relative added a minute ago -- rather than the last few letters.
+ * With edits now held in the panel until Save, the letters are what somebody typing means.
+ */
+function typingInField() {
+  const el = document.activeElement;
+  return Boolean(el) && (el.tagName === 'TEXTAREA'
+    || (el.tagName === 'INPUT' && /^(text|search)$/.test(el.type)));
 }
 
 function undo() {
+  if (typingInField()) { document.execCommand('undo'); return; }
   const result = state.tree?.undo();
   if (!result?.ok) return;
   rebuild();
@@ -1414,6 +1898,7 @@ function undo() {
 }
 
 function redo() {
+  if (typingInField()) { document.execCommand('redo'); return; }
   const result = state.tree?.redo();
   if (!result?.ok) return;
   rebuild();
@@ -1422,8 +1907,11 @@ function redo() {
 
 /* ------------------------------------------------------------------ files */
 
-function startNewTree() {
+async function startNewTree() {
+  if (state.tree && !(await releasePanel())) return;
   state.tree = new Tree({}, { ownTreeId: state.ownTreeId });
+  state.draft = null;
+  state.fresh = null;
   state.photos = new Map();
   state.path = null;
   state.name = 'Untitled tree';
@@ -1457,6 +1945,8 @@ async function openBytes(bytes, name, filePath) {
 
     state.tree = new Tree(doc, { ownTreeId: state.ownTreeId });
     state.tree.markSaved();
+    state.draft = null;
+    state.fresh = null;
     state.photos = photos;
     state.path = filePath ?? null;
     state.name = name;
@@ -1690,8 +2180,9 @@ function commitImport(plan, decisions, importedPhotos, fileName) {
       + 'added without contradicting your tree.'
     : '';
 
-  toast(`${said.join(', ')}.${extra}${refused}\nUndo puts this back.`,
-    result.conflicts.length || result.relationshipsRefused.length ? 'warn' : 'good');
+  toast(`${said.join(', ')}.${extra}${refused}`,
+    result.conflicts.length || result.relationshipsRefused.length ? 'warn' : 'good',
+    { action: UNDO });
 }
 
 /**
@@ -1709,6 +2200,10 @@ function photosStillUsed() {
 
 async function save({ as = false } = {}) {
   if (!state.tree || state.saving) return;
+  // Saving the file saves the person being edited too; a Ctrl+S that wrote everything except the
+  // name on screen would be the one save somebody could not believe. A date that cannot be kept
+  // stops the whole save, with the problem shown where it is.
+  if (!commitDraft()) return;
   state.saving = true;
   try {
     let made;
@@ -1754,6 +2249,15 @@ function wireChrome() {
   $('undo').addEventListener('click', undo);
   $('redo').addEventListener('click', redo);
   $('panel-close').addEventListener('click', () => select(null));
+  $('panel-save').addEventListener('click', () => commitDraft());
+  $('panel-remove').addEventListener('click', () => removeFromPanel());
+
+  // A toast with a button in it holds still while somebody is reaching for the button.
+  const box = $('toast');
+  box.addEventListener('mouseenter', () => holdToast(true));
+  box.addEventListener('mouseleave', () => holdToast(false));
+  box.addEventListener('focusin', () => holdToast(true));
+  box.addEventListener('focusout', () => holdToast(false));
 
   for (const button of document.querySelectorAll('[data-view]')) {
     button.addEventListener('click', () => setView(button.dataset.view));
@@ -1804,11 +2308,10 @@ function wireChrome() {
       button.type = 'button';
       button.innerHTML = `<span>${escapeHtml(displayName(person))}</span>`
         + `<small>${escapeHtml(lifespan(person) || '')}</small>`;
-      button.addEventListener('click', () => {
-        select(person.id);
-        chart.centreOn(person.id);
+      button.addEventListener('click', async () => {
         search.value = '';
         results.hidden = true;
+        if (await select(person.id)) chart.centreOn(person.id);
       });
       li.append(button);
       results.append(li);
@@ -1820,7 +2323,11 @@ function wireChrome() {
 function wireShell() {
   if (!shell) return;
 
-  shell.onOpenTree((tree) => openBytes(tree.bytes, tree.name, tree.path));
+  shell.onOpenTree(async (tree) => {
+    // Opening another file closes the panel as surely as clicking away does, so it asks the same.
+    if (state.tree && !(await releasePanel())) return;
+    openBytes(tree.bytes, tree.name, tree.path);
+  });
 
   shell.onMenuCommand((command) => {
     if (command === 'file:new') { startNewTree(); return; }
@@ -1840,17 +2347,26 @@ function wireShell() {
     if (command === 'search') { $('search').focus(); return; }
     if (command === 'theme') { $('theme-btn').click(); return; }
     if (command === 'close') {
-      state.tree = null;
-      state.selected = null;
-      forgetRelate();
-      setState('empty');
-      shell.setDirty(false);
+      releasePanel().then((released) => { if (released) closeTree(); });
     }
   });
 }
 
+function closeTree() {
+  state.tree = null;
+  state.selected = null;
+  state.draft = null;
+  state.fresh = null;
+  forgetRelate();
+  setState('empty');
+  shell.setDirty(false);
+}
+
 function wireKeys() {
   document.addEventListener('keydown', (event) => {
+    // A dialog owns the keyboard while it is open. Escape there means "the safe answer" to the
+    // dialog, and must not also close the panel behind it -- which would ask a second question.
+    if (dialogOpen()) return;
     const typing = /^(INPUT|TEXTAREA|SELECT)$/.test(event.target.tagName);
     if (event.key === 'Escape') {
       if (state.adding) { state.adding = null; renderPanel(); return; }

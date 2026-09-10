@@ -244,6 +244,51 @@ export class Tree {
   }
 
   /**
+   * Whether the newest step is exactly the addition of this person, and nothing else since.
+   *
+   * The person panel creates somebody the moment "Add a person" is pressed, so the card is on the
+   * chart while their name is being typed. Backing out of that, or finishing it, should read as one
+   * act in the history rather than an addition plus an edit plus a removal.
+   */
+  canWithdraw(id) {
+    const top = this.past.at(-1);
+    const person = this.state.people.at(-1);
+    if (!top || person?.id !== id) return false;
+    if (top.state.people.some((p) => p.id === id)) return false;
+    return JSON.stringify([[...top.state.people, person], top.state.relationships]) === this.signature();
+  }
+
+  /**
+   * Takes back the addition of a person nobody finished adding, leaving no trace in the history.
+   *
+   * Only when `canWithdraw` says the newest step is that addition; otherwise it is refused, because
+   * rewinding past somebody else's edit to reach it would lose that edit.
+   */
+  withdraw(id) {
+    if (!this.canWithdraw(id)) return { ok: false, reason: 'NOT_THE_LATEST' };
+    this.state = this.past.pop().state;
+    return { ok: true };
+  }
+
+  /**
+   * Strips a person back to somebody unknown, leaving every relationship where it was.
+   *
+   * Android's "Keep as unknown" (`PersonDao.clearDetails`): deleting somebody you know little about
+   * should not tear a hole in the shape of the family, so their place stays and joins it up.
+   */
+  clearDetails(id) {
+    const at = this.state.people.findIndex((p) => p.id === id);
+    if (at < 0) return { ok: false, reason: 'NO_SUCH_PERSON' };
+    const current = this.state.people[at];
+    return this.edit(`Keep ${current.name ?? 'someone'} as unknown`, () => {
+      const next = { id };
+      if (current.origins) next.origins = current.origins;
+      this.state.people[at] = next;
+      return { ok: true };
+    });
+  }
+
+  /**
    * Removes a person and every relationship that touched them.
    *
    * Leaving the edges behind would put ends in the file that point at nobody. `model.js` drops
