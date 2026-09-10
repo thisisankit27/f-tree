@@ -20,8 +20,10 @@ const path = require('node:path');
  *    cut in the middle costs the edit, never the tree. The temp file must share the directory:
  *    a rename across filesystems is a copy, and copies are interruptible.
  *
- * 3. Whatever was there before is kept as `<name>.bak`, replaced each save. That is one step
- *    back on disk, on top of undo in the app and the phone still holding the original.
+ * 3. Nothing else is written beside the file. It used to leave the previous version there as
+ *    `<name>.bak`, which under autosave (#149) would be overwritten every second and so only ever
+ *    hold the version from a moment ago. Earlier versions are kept by `backups.js` instead, in the
+ *    app's own folder, on a schedule that makes them worth having.
  *
  * The directory itself is fsynced too, which is what actually makes the rename durable; without
  * it the file contents survive a crash and the directory entry pointing at them may not.
@@ -40,14 +42,6 @@ async function writeTreeFile(target, bytes) {
   }
 
   try {
-    /*
-     * The backup is a copy, not a rename: renaming the original away would leave the path with
-     * nothing in it for as long as the copy takes, and a reader arriving in that instant would
-     * find the tree missing. Copying leaves the original in place until the atomic rename.
-     */
-    const existing = await fs.readFile(target).catch(() => null);
-    if (existing) await fs.writeFile(`${target}.bak`, existing);
-
     await fs.rename(temporary, target);
   } catch (error) {
     await fs.rm(temporary, { force: true });

@@ -29,32 +29,15 @@ test('a new file is written', async () => {
   assert.strictEqual(await fs.readFile(target, 'utf8'), 'hello');
 });
 
-test('no backup is made when there was nothing to back up', async () => {
-  const dir = await scratch();
-  const target = path.join(dir, 'tree.ftree');
-  await writeTreeFile(target, bytes('first'));
-  assert.ok(!fssync.existsSync(`${target}.bak`));
-});
-
-test('the previous contents are kept as .bak', async () => {
-  const dir = await scratch();
-  const target = path.join(dir, 'tree.ftree');
-  await writeTreeFile(target, bytes('first'));
-  await writeTreeFile(target, bytes('second'));
-
-  assert.strictEqual(await fs.readFile(target, 'utf8'), 'second');
-  assert.strictEqual(await fs.readFile(`${target}.bak`, 'utf8'), 'first');
-});
-
-test('the backup is one step back, not a growing pile', async () => {
+test('a second write replaces the first, and leaves nothing beside it', async () => {
+  // No `.bak` any more: earlier versions are kept by backups.js, away from the reader's folder.
   const dir = await scratch();
   const target = path.join(dir, 'tree.ftree');
   for (const text of ['one', 'two', 'three']) await writeTreeFile(target, bytes(text));
 
   assert.strictEqual(await fs.readFile(target, 'utf8'), 'three');
-  assert.strictEqual(await fs.readFile(`${target}.bak`, 'utf8'), 'two');
-  const left = await fs.readdir(dir);
-  assert.deepStrictEqual(left.sort(), ['tree.ftree', 'tree.ftree.bak']);
+  assert.deepStrictEqual(await fs.readdir(dir), ['tree.ftree']);
+  assert.ok(!fssync.existsSync(`${target}.bak`));
 });
 
 test('nothing temporary is left behind', async () => {
