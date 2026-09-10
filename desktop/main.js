@@ -515,10 +515,16 @@ function buildMenu(win) {
       ],
     },
     {
-      label: 'Updates',
+      // Named for what it holds, which is not only updates. `Preferences…` opens a dialog whose own
+      // sections are Reading and Updates -- so while this menu was called Updates, one of the two
+      // was inside the other both ways round, and `Family words: English / हिन्दी` was filed under a
+      // heading no reader would open to look for it. See #138.
+      //
+      // The two checkboxes stay in the menu rather than only in the dialog. They are the two things
+      // this app must never turn on quietly, and a checkbox you can see without opening anything is
+      // the plainest way to say they are off.
+      label: 'Settings',
       submenu: [
-        { label: 'Check for updates now…', click: () => checkForUpdates(win) },
-        { type: 'separator' },
         {
           label: 'Preferences…',
           accelerator: 'CmdOrCtrl+,',
@@ -549,6 +555,8 @@ function buildMenu(win) {
           label: 'Both are off until you switch them on',
           enabled: false,
         },
+        { type: 'separator' },
+        { label: 'Check for updates now…', click: () => checkForUpdates(win) },
       ],
     },
     {
@@ -1826,6 +1834,53 @@ async function runImportSmoke(win, check) {
   check('the whole import can be undone', after.undo, 'undo is available');
 }
 
+/*
+ * The menu, read back from the app that built it.
+ *
+ * Nothing tested the menu before this. It is assembled inline in `createWindow`, so there is no
+ * template a unit test can import -- `settings.test.js` covers the values behind the checkboxes and
+ * this harness only proved that *a* menu was attached. That is how `Preferences…` came to sit under
+ * a top-level menu called Updates while the dialog it opens has an Updates section of its own (#138):
+ * a naming mistake no check could have caught, because no check was looking.
+ *
+ * So this reads `Menu.getApplicationMenu()` -- the real one, in the real app, after the real build --
+ * and asserts the two things a reader depends on: that the settings live under a name that describes
+ * them, and that the accelerator which opens them is the one every desktop app uses.
+ *
+ * Deliberately not behind an env flag. Every other smoke section is opt-in and CI sets four of them;
+ * this one costs nothing and guards a thing that only breaks when somebody edits the menu, which is
+ * exactly when nobody is running the optional half.
+ */
+async function runMenuSmoke(win, check) {
+  const menu = Menu.getApplicationMenu();
+  const tops = (menu ? menu.items : []).map((item) => item.label);
+
+  check('the app has a menu at all', tops.length > 0, tops.join(' / '));
+
+  // Not `Updates`: it holds Family words and Photographs, which have nothing to do with updating.
+  check('the settings live under a menu named for what it holds', tops.includes('Settings'), 'Settings');
+  check('and not under one named for a section of its own dialog', !tops.includes('Updates'));
+
+  const settings = (menu ? menu.items : []).find((item) => item.label === 'Settings');
+  const labels = settings ? settings.submenu.items.map((item) => item.label) : [];
+
+  // The dialog first. It is the whole of the settings; the two checkboxes are a shortcut to two of
+  // them, and a reader looking for anything else needs to be shown the door that leads there.
+  check('Preferences… is the first thing in it', labels[0] === 'Preferences…', labels[0] || '(empty)');
+
+  const prefs = settings && settings.submenu.items[0];
+  check(
+    'and opens on the accelerator every other desktop app uses for it',
+    Boolean(prefs) && prefs.accelerator === 'CmdOrCtrl+,',
+    prefs ? String(prefs.accelerator) : '(none)',
+  );
+
+  // The two the app must never turn on quietly stay visible without opening anything.
+  for (const label of ['Check for updates automatically', 'Offer me beta releases']) {
+    check(`"${label}" is still a checkbox in the menu`, labels.includes(label));
+  }
+}
+
 async function runSmoke(win, file) {
   const failures = [];
   const iconExists = await fs.access(ICON_FOR_WINDOW).then(() => true, () => false);
@@ -1982,6 +2037,8 @@ async function runSmoke(win, file) {
     }
     check('the updater can reach GitHub through the page-level refusal', reachable, detail);
   }
+
+  await runMenuSmoke(win, check);
 
   if (process.env.FTREE_SMOKE_SAVE_TO) await runEditSmoke(win, check);
 
