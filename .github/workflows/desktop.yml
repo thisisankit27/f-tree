@@ -10,14 +10,17 @@ name: Desktop
 # the ordinary channel reads - answering with the newest *app* release. Two independent reasons a
 # phone will never be offered an .AppImage, because there are live users on the app.
 #
-# The pre-release flag now carries a second meaning as well: the desktop app stays a pre-release
-# until issue #89 is finished. It builds a tree as well as reading one now, but the parity that
-# issue asks for is not there yet, so calling any build of it a stable release would claim a
-# completeness it does not have.
+# The flag used to carry a second meaning, and no longer does. Until #89 closed it also meant "not
+# finished yet": the desktop could read a tree but not build one, and calling such a build stable
+# would have claimed a completeness it did not have. #89's parity checklist is done, so that reason
+# is spent. The flag stays for the mechanical reason above, which does not expire and must not be
+# removed on the grounds that the app is finished now - the two were never the same argument.
 #
 # Worth keeping straight, because the two senses of "beta" are not the same mechanism:
 #
-#   GitHub's pre-release flag  ->  how finished this is. Set on every desktop release.
+#   GitHub's pre-release flag  ->  which project `releases/latest` answers for. Set on every desktop
+#                                  release, permanently, so that endpoint keeps naming an *app*
+#                                  release. Says nothing about how finished the desktop app is.
 #   the tag's suffix           ->  the app's own beta channel. `desktop-v0.3.3` is stable to it;
 #                                  `desktop-v0.3.3-beta.1` is not. See update.js.
 #
@@ -221,7 +224,7 @@ jobs:
             Chromium a working sandbox helper without you touching anything; the portable
             \`.tar.gz\` and the \`.AppImage\` need one \`sudo chmod 4755\` on Ubuntu 24.04+.
 
-          Marked a pre-release on purpose, for two reasons. It keeps the Android app's update
-          channel pointing at Android releases; and the desktop app stays a pre-release until
-          [#89](https://github.com/thisisankit27/f-tree/issues/89) is done: it builds a tree as
-          well as reading one now, but it is not yet the equal of the phone app."
+          Marked a pre-release on purpose, and that is **not** a statement about how finished this
+          is. It is what keeps the Android app's update channel answering with Android releases, so
+          nobody's phone is ever offered a desktop installer. See the note at the top of
+          \`.github/workflows/desktop.yml\`."
