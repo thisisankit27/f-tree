@@ -71,6 +71,45 @@ function roundRect(ctx, x, y, w, h, r) {
   ctx.closePath();
 }
 
+/** The side of one bucket in the hit-test grid, in layout units. */
+export const HIT_CELL = 400;
+
+/**
+ * A coarse grid over the cards, so hit testing costs one bucket rather than a scan of every card.
+ *
+ * Each card is filed in **every** bucket its box overlaps, not only the one holding its top-left
+ * corner. A card is 188x64 and a bucket 400 square, so roughly half of all cards cross a bucket
+ * edge; filed by corner alone, the part of such a card past the edge answered nobody -- up to 150px
+ * of 188, leaving a live strip on the left that happened to be where the photograph is drawn (#144).
+ * The correction sits here, beside the arithmetic that was wrong, and keeps the lookup one bucket.
+ */
+export function spatialIndex(nodes, { NODE_W, NODE_H }, cell = HIT_CELL) {
+  const grid = new Map();
+  for (const node of nodes) {
+    const x0 = Math.floor(node.x / cell);
+    const x1 = Math.floor((node.x + NODE_W) / cell);
+    const y0 = Math.floor(node.y / cell);
+    const y1 = Math.floor((node.y + NODE_H) / cell);
+    for (let cx = x0; cx <= x1; cx += 1) {
+      for (let cy = y0; cy <= y1; cy += 1) {
+        const key = `${cx},${cy}`;
+        if (!grid.has(key)) grid.set(key, []);
+        grid.get(key).push(node);
+      }
+    }
+  }
+  return { grid, cell };
+}
+
+/** The card under a point in layout units, or null for empty paper. */
+export function nodeAtPoint(index, { NODE_W, NODE_H }, x, y) {
+  const key = `${Math.floor(x / index.cell)},${Math.floor(y / index.cell)}`;
+  for (const node of index.grid.get(key) ?? []) {
+    if (x >= node.x && x <= node.x + NODE_W && y >= node.y && y <= node.y + NODE_H) return node;
+  }
+  return null;
+}
+
 export class Chart {
   constructor(canvas, options = {}) {
     this.canvas = canvas;
@@ -130,34 +169,16 @@ export class Chart {
   }
 
   /**
-   * A coarse grid over the nodes.
-   *
    * Hit testing runs on every pointer move; scanning a few thousand nodes each time is wasteful
-   * when a bucket lookup answers the same question in constant time.
+   * when a bucket lookup answers the same question in constant time. See `spatialIndex`.
    */
   buildIndex() {
-    const cell = 400;
-    const grid = new Map();
-    for (const node of this.layout.nodes) {
-      const cx = Math.floor(node.x / cell);
-      const cy = Math.floor(node.y / cell);
-      const key = `${cx},${cy}`;
-      if (!grid.has(key)) grid.set(key, []);
-      grid.get(key).push(node);
-    }
-    this.grid = grid;
-    this.cell = cell;
+    this.index = spatialIndex(this.layout.nodes, this.layout.metrics);
   }
 
   nodeAt(worldX, worldY) {
     if (!this.layout) return null;
-    const { NODE_W, NODE_H } = this.layout.metrics;
-    const key = `${Math.floor(worldX / this.cell)},${Math.floor(worldY / this.cell)}`;
-    for (const node of this.grid.get(key) ?? []) {
-      if (worldX >= node.x && worldX <= node.x + NODE_W
-        && worldY >= node.y && worldY <= node.y + NODE_H) return node;
-    }
-    return null;
+    return nodeAtPoint(this.index, this.layout.metrics, worldX, worldY);
   }
 
   /* ---------------------------------------------------------------- view */

@@ -26,7 +26,7 @@
  * Somebody mid-edit knows they are mid-edit; the dot is for coming back to a window after lunch.
  */
 .editor .unsaved {
-  color: var(--accent, #c56a3a);
+  color: var(--accent);
   font-size: 20px;
   line-height: 1;
   margin-left: 2px;
@@ -87,8 +87,8 @@
   font: inherit;
   font-size: 13.5px;
   color: inherit;
-  background: var(--sunk, rgba(0, 0, 0, 0.04));
-  border: 1px solid var(--rule, rgba(0, 0, 0, 0.14));
+  background: var(--sunk);
+  border: 1px solid var(--rule);
   border-radius: 8px;
   padding: 7px 9px;
   width: 100%;
@@ -104,7 +104,7 @@
 .editor .field input:focus-visible,
 .editor .field select:focus-visible,
 .editor .field textarea:focus-visible {
-  outline: 2px solid var(--accent, #c56a3a);
+  outline: 2px solid var(--accent);
   outline-offset: 1px;
 }
 
@@ -130,7 +130,7 @@
 .editor .check input {
   width: 15px;
   height: 15px;
-  accent-color: var(--accent, #c56a3a);
+  accent-color: var(--accent);
 }
 
 /* ------------------------------------------------------------------ relatives */
@@ -169,7 +169,7 @@
 }
 
 .editor .rel-list li:hover {
-  background: var(--sunk, rgba(0, 0, 0, 0.04));
+  background: var(--sunk);
 }
 
 .editor .rel-go {
@@ -219,7 +219,7 @@
 
 .editor .rel-cut:hover {
   opacity: 1;
-  color: var(--danger, #b3402f);
+  color: var(--danger);
 }
 
 .editor .rel-empty {
@@ -232,7 +232,7 @@
 
 .editor .add-rel {
   margin-top: 10px;
-  border: 1px dashed var(--rule, rgba(0, 0, 0, 0.18));
+  border: 1px dashed var(--rule);
   border-radius: 10px;
   padding: 12px;
 }
@@ -248,7 +248,7 @@
   font: inherit;
   font-size: 12.5px;
   color: inherit;
-  background: var(--sunk, rgba(0, 0, 0, 0.04));
+  background: var(--sunk);
   border: 1px solid transparent;
   border-radius: 7px;
   padding: 6px 4px;
@@ -256,7 +256,7 @@
 }
 
 .editor .kinds button[aria-pressed='true'] {
-  border-color: var(--accent, #c56a3a);
+  border-color: var(--accent);
   font-weight: 600;
 }
 
@@ -279,8 +279,8 @@
   margin: 10px 0 0;
   padding: 9px 11px;
   border-radius: 8px;
-  background: color-mix(in srgb, var(--danger, #b3402f) 12%, transparent);
-  border: 1px solid color-mix(in srgb, var(--danger, #b3402f) 34%, transparent);
+  background: color-mix(in srgb, var(--danger) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--danger) 34%, transparent);
   font-size: 12.5px;
   line-height: 1.45;
 }
@@ -288,22 +288,22 @@
 .editor .danger-row {
   margin-top: 26px;
   padding-top: 14px;
-  border-top: 1px solid var(--rule, rgba(0, 0, 0, 0.12));
+  border-top: 1px solid var(--rule);
 }
 
 .editor .btn-danger {
   font: inherit;
   font-size: 12.5px;
-  color: var(--danger, #b3402f);
+  color: var(--danger);
   background: none;
-  border: 1px solid color-mix(in srgb, var(--danger, #b3402f) 40%, transparent);
+  border: 1px solid color-mix(in srgb, var(--danger) 40%, transparent);
   border-radius: 8px;
   padding: 6px 11px;
   cursor: pointer;
 }
 
 .editor .btn-danger:hover {
-  background: color-mix(in srgb, var(--danger, #b3402f) 12%, transparent);
+  background: color-mix(in srgb, var(--danger) 12%, transparent);
 }
 
 /* ------------------------------------------------------------------ toast */
@@ -317,14 +317,15 @@
   max-width: min(560px, 88vw);
   padding: 10px 16px;
   border-radius: 999px;
-  background: var(--ink, #1b1f1a);
-  color: var(--paper, #f7f6f1);
+  background: var(--ink);
+  color: var(--paper);
   font-size: 13px;
   box-shadow: 0 6px 26px rgba(0, 0, 0, 0.22);
 }
 
 .editor .toast[data-tone='bad'] {
-  background: var(--danger, #b3402f);
+  background: var(--danger);
+  color: var(--on-danger);
   border-radius: 12px;
   white-space: pre-line;
   text-align: left;
@@ -384,7 +385,7 @@
 
 /* Which person the panel is currently editing, marked where the eye already is. */
 .editor .index-row[aria-current='true'] {
-  outline: 2px solid var(--accent, #c56a3a);
+  outline: 2px solid var(--accent);
   outline-offset: -2px;
   border-radius: 8px;
 }
@@ -595,7 +596,7 @@
 }
 
 .editor .pair-choice button:focus-visible {
-  outline: 2px solid var(--accent, #c56a3a);
+  outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
 
