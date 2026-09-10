@@ -156,7 +156,18 @@ function rebuild({ refit = false } = {}) {
  * The chart expects something archive-shaped. Photos live in memory here because the file is
  * rewritten on save, so this hands them over from the map rather than re-reading a ZIP.
  */
+/**
+ * The photographs the chart is allowed to draw.
+ *
+ * When the setting is off the chart is handed an archive with nothing in it, rather than the real
+ * one and an instruction to ignore it. That is how Android does it and it is the safer shape: "the
+ * reader turned photographs off" becomes a fact the drawing code *cannot* forget, instead of a flag
+ * it has to remember to check in every place it draws a card.
+ */
 function archiveShim() {
+  if (prefs && prefs.photosOnChart === false) {
+    return { has: () => false, read: async () => undefined };
+  }
   return {
     has: (name) => state.photos.has(name),
     read: async (name) => state.photos.get(name),
@@ -189,6 +200,101 @@ function setView(view) {
   if (view === 'chart') chart.resize();
   else if (view === 'compact') renderCompact();
   else renderPeople();
+}
+
+/* ------------------------------------------------------------------ preferences */
+
+/**
+ * What the reader has chosen, as this page last heard it.
+ *
+ * The main process owns the file and the rules; this is a copy to draw with. Every write goes back
+ * through `setSetting`, and what comes back is what the settings *became* -- which is not always
+ * what was asked for, because the cross-setting rules can change more than the one key, and because
+ * turning betas on asks a question that can be answered no.
+ */
+let prefs = null;
+
+function paintPrefs() {
+  if (!prefs) return;
+  $('pref-words').value = prefs.familyWords;
+  $('pref-photos').checked = prefs.photosOnChart;
+  $('pref-theme').value = prefs.theme;
+  $('pref-updates').checked = prefs.checkForUpdates;
+  $('pref-beta').checked = prefs.betaReleases;
+
+  /*
+   * Betas are unavailable while checking is off, rather than merely useless.
+   *
+   * They are separate settings answering different questions -- whether the app may ask GitHub
+   * anything, and which answer it will accept -- so betas with checking off does nothing at all. A
+   * live checkbox that does nothing is a worse explanation than a greyed one next to a line saying
+   * no request is made.
+   */
+  $('pref-beta').disabled = !prefs.checkForUpdates;
+
+  // Inert until the Hindi vocabulary lands (#124). Said plainly rather than hidden: a setting that
+  // is present and does nothing is worse than one that admits it is not ready.
+  $('pref-words-note').textContent = prefs.familyWords === 'hi'
+    ? 'Hindi kinship words are not built yet — the relation finder still answers in English.'
+    : 'The words the relation finder uses.';
+
+  $('pref-updates-note').textContent = prefs.checkForUpdates
+    ? `Last looked ${whenChecked(prefs.lastCheckedAt)}.`
+    : 'Off. The app makes no network request of any kind until this is on.';
+}
+
+/** When the updater last got an answer, in words rather than as a timestamp. */
+function whenChecked(at) {
+  if (!at) return 'never';
+  const days = Math.floor((Date.now() - at) / 86_400_000);
+  if (days <= 0) return 'today';
+  if (days === 1) return 'yesterday';
+  if (days < 30) return `${days} days ago`;
+  return new Date(at).toLocaleDateString();
+}
+
+/** Puts a changed setting into effect on this page. */
+function applyPrefs({ redraw = false } = {}) {
+  if (!prefs) return;
+  document.documentElement.setAttribute('data-theme', prefs.theme);
+  chart?.setTheme(prefs.theme);
+
+  // The pre-paint cache, refreshed from the truth. See the note on the inline script in
+  // index.html: nothing can be asked of the settings file before the first paint.
+  try {
+    localStorage.setItem('ftree.desktop', JSON.stringify({ theme: prefs.theme }));
+  } catch { /* blocked storage costs one launch in the system's colours, not the setting */ }
+
+  if (redraw && state.graph) rebuild();
+}
+
+async function setPref(key, value) {
+  if (!shell?.setSetting) return;
+  const before = prefs;
+  prefs = await shell.setSetting(key, value);
+  // Photographs change what the chart is given, so that one needs a rebuild; the rest do not.
+  applyPrefs({ redraw: before?.photosOnChart !== prefs.photosOnChart });
+  paintPrefs();
+}
+
+function openPrefs() {
+  paintPrefs();
+  $('prefs').showModal();
+  $('prefs-head').focus();
+}
+
+function wirePrefs() {
+  const dialog = $('prefs');
+  if (!dialog) return;
+
+  $('prefs-done').addEventListener('click', () => dialog.close());
+  $('pref-words').addEventListener('change', (e) => setPref('familyWords', e.target.value));
+  $('pref-theme').addEventListener('change', (e) => setPref('theme', e.target.value));
+  $('pref-photos').addEventListener('change', (e) => setPref('photosOnChart', e.target.checked));
+  $('pref-updates').addEventListener('change', (e) => setPref('checkForUpdates', e.target.checked));
+  // The answer to this one can be no -- the main process asks first -- so the checkbox is repainted
+  // from what came back rather than left showing what was clicked.
+  $('pref-beta').addEventListener('change', (e) => setPref('betaReleases', e.target.checked));
 }
 
 /* ------------------------------------------------------------------ how two people are related */
@@ -1336,7 +1442,15 @@ function wireChrome() {
     const next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
     document.documentElement.setAttribute('data-theme', next);
     chart.setTheme(next);
-    try { localStorage.setItem('ftree.desktop', JSON.stringify({ theme: next })); } catch { /* fine */ }
+    /*
+     * Written to the settings file, which is now the only copy that counts.
+     *
+     * The theme used to live in the page's own storage while every other setting lived in a file
+     * the main process owns. Two stores meant the preferences dialog could not show the theme
+     * without asking the page. `applyPrefs` keeps the localStorage mirror up to date for the sake
+     * of the pre-paint script, and nothing else reads it.
+     */
+    setPref('theme', next);
   });
 
   const search = $('search');
@@ -1387,6 +1501,7 @@ function wireShell() {
     if (command === 'view:chart') { setView('chart'); return; }
     if (command === 'view:compact') { setView('compact'); return; }
     if (command === 'view:relate') { setView('chart'); openRelate(); return; }
+    if (command === 'settings:open') { openPrefs(); return; }
     if (command === 'view:index') { setView('index'); return; }
     if (command === 'search') { $('search').focus(); return; }
     if (command === 'theme') { $('theme-btn').click(); return; }
@@ -1435,8 +1550,22 @@ async function boot() {
 
   wireChrome();
   wireRelate();
+  wirePrefs();
   wireShell();
   wireKeys();
+
+  /*
+   * Settings before the first draw.
+   *
+   * The theme especially: reading it after the chart exists means a window that flashes light and
+   * then goes dark on every launch, for everybody who chose dark.
+   */
+  if (shell?.settings) {
+    try {
+      prefs = await shell.settings();
+      applyPrefs();
+    } catch { /* the page already has the defaults on it */ }
+  }
 
   if (shell) {
     document.body.dataset.shell = 'desktop';

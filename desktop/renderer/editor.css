@@ -908,3 +908,96 @@
  * single word covers.
  */
 .editor .relate[data-answered='true'] .relate-help { display: none; }
+
+/* ------------------------------------------------------------------ preferences */
+
+/*
+ * The preferences dialog borrows the review dialog's shell -- same box, same head, same foot -- so
+ * the two questions this app asks look like the same app asking. What it adds is the row: a label,
+ * the control it belongs to, and a line saying what the choice actually does.
+ *
+ * That third element is the reason these are rows rather than a list of checkboxes. "Offer me beta
+ * releases" is not self-explanatory, and neither is what happens to a version you skipped when you
+ * change channel. A settings screen that only names its switches makes the reader guess.
+ */
+
+/* `[open]` to match the specificity of `.editor .review[open]`, which would otherwise win and
+   give this the import dialog's 760px. A settings dialog wants to be narrower than a merge review:
+   there is nothing here to compare side by side. */
+.editor .prefs[open] { width: min(500px, calc(100vw - 48px)); }
+
+.editor .prefs-body {
+  display: block;
+  padding: 4px 0;
+}
+
+.editor .prefs-group + .prefs-group { border-top: 1px solid var(--rule); }
+
+.editor .prefs-heading {
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: var(--brass);
+  margin: 0;
+  padding: 17px 20px 7px;
+}
+
+.editor .prefs-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 2px 16px;
+  padding: 9px 20px 10px;
+}
+
+.editor .prefs-row + .prefs-row { border-top: 1px solid var(--rule); }
+
+.editor .prefs-label {
+  font-family: var(--serif);
+  font-size: 15px;
+  color: var(--ink);
+  cursor: pointer;
+}
+
+/* The explanation belongs under the label, not beside the control. */
+.editor .prefs-note {
+  grid-column: 1 / -1;
+  grid-row: 2;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--ink-faint);
+  margin: 0;
+  max-width: 52ch;
+}
+
+.editor .prefs-control {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--ink);
+  background: var(--raised);
+  border: 1px solid var(--rule-strong);
+  border-radius: 999px;
+  padding: 6px 11px;
+  cursor: pointer;
+}
+
+.editor .prefs-check {
+  width: 17px;
+  height: 17px;
+  accent-color: var(--forest);
+  cursor: pointer;
+}
+
+/*
+ * A setting that cannot do anything says so by being unavailable.
+ *
+ * Betas with update checking off makes no request -- they answer different questions, and neither
+ * can start one on its own. A live checkbox that changes nothing is a worse explanation than a
+ * greyed one beside a line saying no request is made.
+ */
+.editor .prefs-check:disabled,
+.editor .prefs-control:disabled { opacity: .38; cursor: default; }
+
+.editor .prefs-row:has(.prefs-check:disabled) .prefs-label { color: var(--ink-faint); }

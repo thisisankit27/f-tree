@@ -19,6 +19,13 @@ const path = require('node:path');
 const { chooseUpdate } = require('./update');
 const { writeTreeFile } = require('./atomic');
 const { installationId } = require('./identity');
+const {
+  DEFAULT_SETTINGS,
+  normalise: normaliseSettings,
+  applyChange: applySettingChange,
+  mayCheckForUpdates,
+  shouldOffer,
+} = require('./settings');
 
 /*
  * A window needs somewhere to be.
@@ -97,21 +104,34 @@ const stateFile = () => path.join(app.getPath('userData'), 'session.json');
 const settingsFile = () => path.join(app.getPath('userData'), 'settings.json');
 
 /*
- * What the reader has switched on. Both off until they do.
- *
- * The same two the app offers, and off for the same reason: this app makes no network request of
- * any kind unless somebody has asked it to, and a default of "on" would quietly make that untrue
- * for everybody who never opened this menu.
+ * What the reader has chosen. The rules about it live in settings.js, which is pure and tested;
+ * this side only reads and writes the file.
  */
-const DEFAULT_SETTINGS = { checkForUpdates: false, betaReleases: false };
 let settings = { ...DEFAULT_SETTINGS };
 
 async function readSettings() {
   try {
-    return { ...DEFAULT_SETTINGS, ...JSON.parse(await fs.readFile(settingsFile(), 'utf8')) };
+    return normaliseSettings(JSON.parse(await fs.readFile(settingsFile(), 'utf8')));
   } catch {
-    return { ...DEFAULT_SETTINGS };
+    return normaliseSettings(null);
   }
+}
+
+/**
+ * Applies one change, writes it, and rebuilds the menu.
+ *
+ * The rebuild is the point. A menu checkbox's `checked:` is a snapshot taken when the menu was
+ * built, so the moment a second surface can change the same value the two disagree -- switch betas
+ * on in the preferences dialog and the menu goes on saying they are off until the app restarts.
+ * Every change goes through here, from either surface, and the menu is rebuilt from the result.
+ */
+async function changeSetting(key, value, win) {
+  const before = settings;
+  settings = applySettingChange(settings, key, value);
+  if (JSON.stringify(before) === JSON.stringify(settings)) return settings;
+  await writeSettings();
+  if (win && !win.isDestroyed()) buildMenu(win);
+  return settings;
 }
 
 async function writeSettings() {
@@ -287,6 +307,11 @@ async function checkForUpdates(win, { quiet = false } = {}) {
     linuxFormat: process.env.APPIMAGE ? 'appimage' : null,
   });
 
+  // The answer is remembered so the preferences dialog can say when the app last looked. Cleared
+  // again by settings.js the moment update checking is switched off, so a remembered result can
+  // never outlive the setting that produced it.
+  await changeSetting('lastCheckedAt', Date.now(), win);
+
   if (found.kind !== 'newer') {
     if (!quiet) {
       await dialog.showMessageBox(win, {
@@ -321,17 +346,33 @@ async function checkForUpdates(win, { quiet = false } = {}) {
     return;
   }
 
+  /*
+   * A version the reader has already declined is not raised again.
+   *
+   * Without this the automatic check offers the same release on every launch until they take it,
+   * which teaches people to dismiss the dialog without reading it -- and the one release that
+   * matters is then dismissed the same way. Only the quiet check is silenced: asking from the menu
+   * always gets an answer, because a question deserves one.
+   */
+  if (quiet && !shouldOffer(settings, found.version)) return;
+
   const answer = await dialog.showMessageBox(win, {
     type: 'info',
     message: `f-tree ${found.version} is available.`,
     detail: `${found.notes ? found.notes.slice(0, 700) + '\n\n' : ''}`
       + `${found.file.name} · ${(found.file.size / 1048576).toFixed(1)} MB`
       + `${found.file.sha256 ? '' : '\n\nGitHub has published no checksum for this file.'}`,
-    buttons: ['Download', 'Release notes', 'Not now'],
+    buttons: ['Download', 'Release notes', 'Skip this version', 'Not now'],
     defaultId: 0,
-    cancelId: 2,
+    cancelId: 3,
   });
   if (answer.response === 1) { shell.openExternal(found.notesUrl); return; }
+  if (answer.response === 2) {
+    // "Not now" and "skip" are different answers and the app should not conflate them: one is
+    // about today, the other about this release.
+    await changeSetting('skippedVersion', found.version, win);
+    return;
+  }
   if (answer.response !== 0) return;
 
   let got;
@@ -467,13 +508,16 @@ function buildMenu(win) {
         { label: 'Check for updates now…', click: () => checkForUpdates(win) },
         { type: 'separator' },
         {
+          label: 'Preferences…',
+          accelerator: 'CmdOrCtrl+,',
+          click: () => win.webContents.send('menu:command', 'settings:open'),
+        },
+        { type: 'separator' },
+        {
           label: 'Check for updates automatically',
           type: 'checkbox',
           checked: settings.checkForUpdates,
-          click: async (item) => {
-            settings.checkForUpdates = item.checked;
-            await writeSettings();
-          },
+          click: async (item) => { await changeSetting('checkForUpdates', item.checked, win); },
         },
         {
           label: 'Offer me beta releases',
@@ -485,8 +529,7 @@ function buildMenu(win) {
               item.checked = false;
               return;
             }
-            settings.betaReleases = item.checked;
-            await writeSettings();
+            await changeSetting('betaReleases', item.checked, win);
           },
         },
         { type: 'separator' },
@@ -678,6 +721,27 @@ ipcMain.handle('app:version', () => app.getVersion());
  * written without one claims the empty origin -- see identity.js.
  */
 ipcMain.handle('app:installationId', () => installationId(app.getPath('userData')));
+
+/*
+ * Settings, both ways.
+ *
+ * Writing goes through `changeSetting` -- the same path the menu uses -- so the cross-setting rules
+ * apply whichever surface made the change, and the menu is rebuilt from the result. A checkbox
+ * whose `checked:` was a snapshot is exactly how two surfaces start disagreeing.
+ */
+ipcMain.handle('settings:get', () => ({ ...settings }));
+
+ipcMain.handle('settings:set', async (event, { key, value }) => {
+  const win = BrowserWindow.fromWebContents(event.sender);
+
+  // The one setting that asks before it is on rather than after. Refusing here means the dialog is
+  // told what the value actually became, rather than assuming its own.
+  if (key === 'betaReleases' && value === true && !settings.betaReleases) {
+    if (!(await confirmBeta(win))) return { ...settings };
+  }
+
+  return { ...(await changeSetting(key, value, win)) };
+});
 ipcMain.handle('tree:choose', async (event) => {
   const win = BrowserWindow.fromWebContents(event.sender);
   return chooseInto(win);
@@ -1077,6 +1141,163 @@ async function runCompactSmoke(win, check) {
  * back when the question is closed, and -- the one worth having -- that two people the file does
  * not connect are told exactly that rather than shown an empty box.
  */
+/*
+ * The preferences dialog, and the thing it exists to stop.
+ *
+ * The defect this was built for is not "there is no settings screen" -- it is that a native menu
+ * checkbox's `checked:` is a snapshot taken when the menu was built. One surface over one value is
+ * fine forever; two is fine until somebody uses the second one. So what is asserted here is not
+ * "the dialog opens" but "changing it here changed the menu too", and the cross-setting rules that
+ * would otherwise be silently wrong.
+ */
+async function runSettingsSmoke(win, check) {
+  const { Menu } = require('electron');
+  const page = (fn, ...args) => win.webContents.executeJavaScript(
+    `(${fn.toString()})(${args.map((a) => JSON.stringify(a)).join(',')})`);
+  const settle = (ms = 350) => new Promise((r) => setTimeout(r, ms));
+
+  console.log('\n  -- preferences --');
+
+  /** What the *menu* currently believes, read from the real application menu. */
+  const menuSays = (label) => {
+    const walk = (items) => {
+      for (const item of items) {
+        if (item.label === label) return item.checked;
+        if (item.submenu) {
+          const found = walk(item.submenu.items);
+          if (found !== undefined) return found;
+        }
+      }
+      return undefined;
+    };
+    return walk(Menu.getApplicationMenu().items);
+  };
+
+  win.webContents.send('menu:command', 'settings:open');
+  await settle(600);
+
+  const opened = await page(() => ({
+    open: document.getElementById('prefs').open === true,
+    rows: document.querySelectorAll('#prefs .prefs-row').length,
+    notes: [...document.querySelectorAll('#prefs .prefs-note')]
+      .filter((n) => n.textContent.trim()).length,
+  }));
+  check('the preferences dialog opens', opened.open, String(opened.open));
+
+  /*
+   * It fits in the window the app actually opens at.
+   *
+   * A settings screen that scrolls hides settings, and the ones it hides are the ones at the
+   * bottom -- here, the two that reach the network, which are exactly what a reader came to check.
+   *
+   * Asserted as a budget rather than by measuring the visible area, because a screen smaller than
+   * the app's default window makes that measurement a fact about the test machine. The dialog's
+   * width is fixed, so its content height is not: at the default 900px window, `.review[open]`
+   * gives `min(84vh, 760px)` = 756px, less the head and foot, leaving about 584px for settings.
+   * 560 keeps a margin and still fails if a row is added carelessly.
+   */
+  const BUDGET = 560;
+  const fits = await page(() => {
+    const body = document.querySelector('#prefs .prefs-body');
+    return { scroll: body.scrollHeight, width: Math.round(body.getBoundingClientRect().width) };
+  });
+  check('every setting fits the window the app opens at, without scrolling',
+    fits.scroll <= BUDGET,
+    `${fits.scroll}px of settings against a ${BUDGET}px budget, at ${fits.width}px wide`);
+  check('every setting says what it does', opened.rows > 0 && opened.notes > 0,
+    `${opened.rows} rows, ${opened.notes} explained`);
+
+  // Both surfaces start agreeing.
+  check('the menu and the dialog start in step',
+    menuSays('Check for updates automatically') === false, String(menuSays('Check for updates automatically')));
+
+  /*
+   * The regression this file exists for: change it in the dialog, and read the menu.
+   *
+   * Before the rebuild, the menu went on showing what it was built with until the app restarted.
+   */
+  await page(() => {
+    const box = document.getElementById('pref-updates');
+    box.checked = true;
+    box.dispatchEvent(new Event('change', { bubbles: true }));
+  });
+  await settle(600);
+
+  check('turning a setting on in the dialog updates the menu',
+    menuSays('Check for updates automatically') === true,
+    String(menuSays('Check for updates automatically')));
+
+  const afterOn = await page(() => ({
+    beta: document.getElementById('pref-beta').disabled,
+    note: document.getElementById('pref-updates-note').textContent.trim(),
+  }));
+  check('a setting that can now do something becomes available', !afterOn.beta,
+    `beta disabled: ${afterOn.beta}`);
+  check('the dialog says when the app last looked', /Last looked/.test(afterOn.note), afterOn.note);
+
+  // And the cross-setting rule, end to end: turning it off forgets what was remembered.
+  await page(() => {
+    const box = document.getElementById('pref-updates');
+    box.checked = false;
+    box.dispatchEvent(new Event('change', { bubbles: true }));
+  });
+  await settle(600);
+
+  const afterOff = await page(async () => {
+    const s = await window.ftreeDesktop.settings();
+    return {
+      lastChecked: s.lastCheckedAt,
+      skipped: s.skippedVersion,
+      note: document.getElementById('pref-updates-note').textContent.trim(),
+      beta: document.getElementById('pref-beta').disabled,
+    };
+  });
+  check('turning update checking off forgets what the last check found',
+    afterOff.lastChecked === 0 && afterOff.skipped === null,
+    `lastCheckedAt ${afterOff.lastChecked}, skipped ${afterOff.skipped}`);
+  check('and the menu follows it back down',
+    menuSays('Check for updates automatically') === false,
+    String(menuSays('Check for updates automatically')));
+  check('betas go unavailable again with nothing to check', afterOff.beta, String(afterOff.beta));
+
+  // Photographs off means the chart is handed none, rather than asked to ignore them.
+  await page(() => {
+    const box = document.getElementById('pref-photos');
+    box.checked = false;
+    box.dispatchEvent(new Event('change', { bubbles: true }));
+  });
+  await settle(700);
+  const photos = await page(async () => (await window.ftreeDesktop.settings()).photosOnChart);
+  check('photographs can be turned off', photos === false, String(photos));
+
+  if (process.env.FTREE_SMOKE_SHOT_PREFS) {
+    const shot = process.env.FTREE_SMOKE_SHOT_PREFS;
+    await fs.writeFile(shot, (await win.webContents.capturePage()).toPNG());
+    console.log(`       wrote ${shot}`);
+
+    await page(() => document.getElementById('theme-btn').click());
+    await settle(400);
+    const other = shot.replace(/(\.png)?$/, '-other-theme.png');
+    await fs.writeFile(other, (await win.webContents.capturePage()).toPNG());
+    console.log(`       wrote ${other}`);
+    await page(() => document.getElementById('theme-btn').click());
+    await settle(300);
+  }
+
+  // The theme is one store now, and the menu is rebuilt from it.
+  const themed = await page(async () => {
+    document.getElementById('theme-btn').click();
+    await new Promise((r) => setTimeout(r, 400));
+    const s = await window.ftreeDesktop.settings();
+    return { setting: s.theme, painted: document.documentElement.getAttribute('data-theme') };
+  });
+  check('the theme is kept with every other setting, not in its own store',
+    themed.setting === themed.painted, JSON.stringify(themed));
+
+  await page(() => document.getElementById('prefs').close());
+  await settle(300);
+}
+
 async function runRelateSmoke(win, check) {
   const page = (fn, ...args) => win.webContents.executeJavaScript(
     `(${fn.toString()})(${args.map((a) => JSON.stringify(a)).join(',')})`);
@@ -1467,6 +1688,8 @@ async function runSmoke(win, file) {
 
   if (process.env.FTREE_SMOKE_RELATE) await runRelateSmoke(win, check);
 
+  if (process.env.FTREE_SMOKE_SETTINGS) await runSettingsSmoke(win, check);
+
   if (process.env.FTREE_SMOKE_IMPORT) await runImportSmoke(win, check);
 
   if (process.env.FTREE_SMOKE_SHOT) {
@@ -1489,7 +1712,7 @@ app.whenReady().then(async () => {
   }
 
   // Only if asked, and quietly: starting the app never costs a dialog for having nothing to say.
-  if (settings.checkForUpdates) {
+  if (mayCheckForUpdates(settings)) {
     checkForUpdates(window_, { quiet: true }).catch(() => {});
   }
 

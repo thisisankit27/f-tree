@@ -14,6 +14,17 @@ contextBridge.exposeInMainWorld('ftreeDesktop', {
   version: () => ipcRenderer.invoke('app:version'),
 
   /**
+   * What the reader has chosen, and one way to change it.
+   *
+   * `set` returns the settings as they *became*, not as they were asked to be. Two reasons: the
+   * cross-setting rules can change more than the one key that was set -- turning updates off also
+   * clears what the last check found -- and turning betas on asks a question the reader can answer
+   * no to. A dialog that assumed its own value would then show the opposite of the truth.
+   */
+  settings: () => ipcRenderer.invoke('settings:get'),
+  setSetting: (key, value) => ipcRenderer.invoke('settings:set', { key, value }),
+
+  /**
    * This installation's own id, stamped into a tree started here.
    *
    * Not cosmetic: a tree written with an empty origin cannot be told apart from every other
