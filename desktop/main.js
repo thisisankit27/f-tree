@@ -2165,7 +2165,10 @@ async function runImportSmoke(win, check) {
   check('importing asks before it merges', asked.open, asked.title);
   check('the button says exactly what pressing it will do',
     /^(Add|Merge) \d+ /.test(asked.confirm), asked.confirm);
-  check('the dialog says the work is not on disk yet', /until you save/.test(asked.outcome),
+  // It used to say nothing reached the file until Save. Under autosave (#149) that is false for a
+  // tree with a file -- this one has one -- so it says how to get back instead, and where.
+  check('the dialog says how to take it back once it is written',
+    /One Undo puts all of it back/.test(asked.outcome) && /Show backups/.test(asked.outcome),
     asked.outcome);
   check('the tree is untouched while the question is open', asked.counts === before.people,
     asked.counts);

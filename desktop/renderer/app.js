@@ -2312,8 +2312,13 @@ function openReview(plan, fileName, importedPhotos) {
     commitImport(plan, decisions, importedPhotos, fileName);
   };
 
-  $('review-outcome').textContent =
-    'Nothing is written to your file until you save. Undo puts all of it back.';
+  // Said as it now is. This used to promise that nothing reached the file until Save; under
+  // autosave (#149) the import is written a moment after it is confirmed, so the honest comfort is
+  // the two ways back -- one Undo, and the version from before kept among the backups.
+  $('review-outcome').textContent = state.path
+    ? 'Your file is updated once you confirm. One Undo puts all of it back, and the version from '
+      + 'before is kept in File › Show backups.'
+    : 'Nothing is written to a file until you save this tree. One Undo puts all of it back.';
 
   dialog.showModal();
   /*
