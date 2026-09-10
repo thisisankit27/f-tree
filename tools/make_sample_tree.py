@@ -22,6 +22,26 @@ try:
 except ImportError:
     Image = None
 
+# Pillow is not optional, and it used to be treated as though it were.
+#
+# `jpeg()` returned None without it and `with_photo` quietly skipped the person, so the script still
+# exited 0 and still wrote a valid archive -- just one with no photographs in it. No CI runner has
+# ever had Pillow installed, so every fixture CI has ever built has been photo-less, and everything
+# downstream has been checking a tree that does not contain the one thing hardest to round-trip:
+# the binary payload. `check_writer.mjs` compares a written archive against what Android's reader
+# would see and never once saw a photo entry.
+#
+# A tool that silently emits different test data depending on what happens to be installed is worse
+# than one that will not run. So it will not run.
+def require_pillow():
+    if Image is None:
+        sys.exit(
+            "make_sample_tree.py needs Pillow to draw the photographs in the sample tree.\n"
+            "Without it this script would write a valid archive with no photographs in it, and\n"
+            "every check downstream would pass while never once reading a photo entry.\n\n"
+            "    python3 -m pip install pillow\n"
+        )
+
 
 def pid(seed):
     return str(uuid.uuid5(uuid.NAMESPACE_URL, f"f-tree/{seed}"))
@@ -74,8 +94,6 @@ class Tree:
 
 
 def jpeg(colour, label):
-    if Image is None:
-        return None
     img = Image.new("RGB", (200, 200), colour)
     draw = ImageDraw.Draw(img)
     draw.ellipse((40, 30, 160, 150), fill=(255, 255, 255, 60))
@@ -129,8 +147,6 @@ def sample():
     photos = {}
 
     def with_photo(key, colour, label):
-        if Image is None:
-            return None
         name = f"{pid(key)[:8]}.jpg"
         photos[name] = jpeg(colour, label)
         return name
@@ -300,6 +316,8 @@ def cousins():
 
 
 if __name__ == "__main__":
+    require_pillow()
+
     out = Path(sys.argv[1] if len(sys.argv) > 1 else ".")
     out.mkdir(parents=True, exist_ok=True)
 

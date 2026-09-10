@@ -58,6 +58,13 @@ jobs:
       # The layout is checked in both orientations here as well as in the site workflow. Both
       # shells draw rows today, but the engine keeps columns and so does this check: an
       # orientation nobody currently ships is exactly the one that rots unnoticed.
+      # Pillow, because `make_sample_tree.py` now refuses to run without it. It used to carry on and
+      # write a fixture with no photographs in it, which no runner has ever had the library to draw --
+      # so every check that reads the sample tree has, until now, been reading a tree with none. A
+      # photograph is the hardest thing in the format to round-trip and the one CI never saw.
+      - name: Pillow, for the photographs in the sample tree
+        run: python3 -m pip install --break-system-packages pillow || python3 -m pip install pillow
+
       - name: Check the layout, rows and columns
         run: |
           python3 tools/make_sample_tree.py "$RUNNER_TEMP/fixtures"
@@ -87,6 +94,14 @@ jobs:
           # unit-tested, but the thing that must not regress is that it *asks* -- a strong match
           # merges unless it is refused, and a merge is the one act here nobody can undo by hand.
           FTREE_SMOKE_IMPORT: ${{ runner.temp }}/fixtures/a-cousins-tree.ftree
+          # The four feature sections. These ran nowhere for four phases of work -- 52 of the
+          # harness's 95 assertions -- because the gates were added to the harness and not to here,
+          # which is a thing no file-level guard can see. `smoke-gates.test.js` now fails when the
+          # two disagree, so this list cannot fall behind the harness again.
+          FTREE_SMOKE_COMPACT: '1'
+          FTREE_SMOKE_RELATE: '1'
+          FTREE_SMOKE_SETTINGS: '1'
+          FTREE_SMOKE_PHOTO: '1'
         run: xvfb-run -a npx electron . --no-sandbox
 
   package:
@@ -133,6 +148,14 @@ jobs:
       # uploaded, reading the asar and the staged page that users will actually get. Building a
       # tree and saving it is part of it: a package can start and still be missing the half of
       # itself that only a real edit touches.
+      # Pillow, because `make_sample_tree.py` now refuses to run without it. It used to carry on and
+      # write a fixture with no photographs in it, which no runner has ever had the library to draw --
+      # so every check that reads the sample tree has, until now, been reading a tree with none. A
+      # photograph is the hardest thing in the format to round-trip and the one CI never saw.
+      - name: Pillow, for the photographs in the sample tree
+        if: matrix.os == 'ubuntu-latest'
+        run: python3 -m pip install --break-system-packages pillow || python3 -m pip install pillow
+
       - name: Start the packaged app and build a tree in it
         if: matrix.os == 'ubuntu-latest'
         working-directory: desktop
@@ -140,6 +163,19 @@ jobs:
           FTREE_SMOKE: ${{ runner.temp }}/fixtures/sample-family.ftree
           FTREE_SMOKE_SAVE_TO: ${{ runner.temp }}/built-in-the-package.ftree
           FTREE_SMOKE_IMPORT: ${{ runner.temp }}/fixtures/a-cousins-tree.ftree
+          # The updater against the packaged app, not only the checkout. The rule below has no
+          # exceptions on purpose -- and asking for this one turned out to be right rather than
+          # pedantic: the regression it guards reported itself as ERR_BLOCKED_BY_CLIENT, and the
+          # page-level refusal it reaches through is set up from a file that packaging moves.
+          FTREE_SMOKE_NETWORK: '1'
+          # Set here too, and this is the copy that matters most: this is the only run that reads the
+          # *staged* page rather than the checkout, and a page staged wrong is what shipped in 0.4.0.
+          # A feature whose assertions only run against the checkout is a feature that can be missing
+          # from the package and still report green.
+          FTREE_SMOKE_COMPACT: '1'
+          FTREE_SMOKE_RELATE: '1'
+          FTREE_SMOKE_SETTINGS: '1'
+          FTREE_SMOKE_PHOTO: '1'
         run: |
           python3 ../tools/make_sample_tree.py "$RUNNER_TEMP/fixtures"
           xvfb-run -a ./dist/linux-unpacked/f-tree-desktop --no-sandbox

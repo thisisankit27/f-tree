@@ -68,9 +68,16 @@ Everything happens in the tab. The file is never uploaded, there is no analytics
 the only thing stored is four display preferences in `localStorage`.
 
 ```bash
+python3 -m pip install pillow                     # needed: the sample tree has photographs in it
 python3 tools/make_sample_tree.py /tmp/fixtures   # .ftree files, including odd ones
 node tools/check_layout.mjs /tmp/fixtures         # layout invariants, run in CI
 ```
+
+The generator **refuses to run** without Pillow rather than writing a photo-less archive, which is
+what it used to do. No CI runner had the library, so every fixture CI built was missing the four
+photographs the sample family is supposed to have — and a photograph is the hardest thing in the
+format to round-trip. A tool that quietly emits different test data depending on what is installed
+is worse than one that will not start.
 
 To preview it locally:
 
