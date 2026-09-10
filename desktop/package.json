@@ -44,7 +44,8 @@
         "to": "page/site/playground",
         "filter": [
           "**/*",
-          "!*.test.mjs"
+          "!*.test.mjs",
+          "!kinship-golden.txt"
         ]
       },
       {
