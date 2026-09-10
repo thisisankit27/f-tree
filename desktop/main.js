@@ -18,6 +18,7 @@ const path = require('node:path');
 
 const { chooseUpdate } = require('./update');
 const { writeTreeFile } = require('./atomic');
+const { backUpBefore, folderFor } = require('./backups');
 const { installationId } = require('./identity');
 const {
   DEFAULT_SETTINGS,
@@ -101,6 +102,9 @@ if (process.env.FTREE_SMOKE) {
 const unsaved = new Map();
 
 const stateFile = () => path.join(app.getPath('userData'), 'session.json');
+
+/** The tree the session file last named, so an autosave every second does not rewrite it each time. */
+let sessionTree = null;
 const settingsFile = () => path.join(app.getPath('userData'), 'settings.json');
 
 /*
@@ -164,6 +168,7 @@ async function readSession() {
 }
 
 async function writeSession(session) {
+  sessionTree = session.lastTree ?? null;
   try {
     await fs.mkdir(path.dirname(stateFile()), { recursive: true });
     await fs.writeFile(stateFile(), JSON.stringify(session, null, 2));
@@ -181,19 +186,66 @@ async function readTree(file) {
 
 /* ------------------------------------------------------------------ saving */
 
-async function saveInto(win, target, bytes) {
+/** Where earlier versions of every tree are kept. See backups.js. */
+const backupRoot = () => path.join(app.getPath('userData'), 'backups');
+
+/** Trees already backed up since the app started, so the first write of a run always takes one. */
+const backedUpThisRun = new Set();
+
+/**
+ * Puts a tree's bytes on disk: a backup of what was there, then the atomic write.
+ *
+ * `quiet` is autosave's. A write the reader asked for gets a native error dialog when it fails; one
+ * that happens on its own a second after an edit reports back to the page instead, which says so in
+ * its own bar -- a modal dialog every few seconds while a drive is unplugged would be worse than the
+ * problem it reports.
+ */
+async function saveInto(win, target, bytes, { quiet = false } = {}) {
+  try {
+    await backUpBefore(target, { root: backupRoot(), takenThisRun: backedUpThisRun });
+  } catch (error) {
+    // Never a reason to refuse the write: that would lose the very edit the backup protects.
+    console.warn(`f-tree: could not back up ${target} — ${error.message}`);
+  }
+
   try {
     await writeTreeFile(target, bytes);
-    await writeSession({ lastTree: target });
+    if (sessionTree !== target) await writeSession({ lastTree: target });
     return { ok: true, path: target, name: path.basename(target) };
   } catch (error) {
-    await dialog.showMessageBox(win, {
-      type: 'error',
-      message: 'That tree could not be saved.',
-      detail: `${target}\n\n${error.message}\n\nThe file on disk has not been changed.`,
+    if (!quiet) {
+      await dialog.showMessageBox(win, {
+        type: 'error',
+        message: 'That tree could not be saved.',
+        detail: `${target}\n\n${error.message}\n\nThe file on disk has not been changed.`,
+        buttons: ['OK'],
+      });
+    }
+    return { ok: false, reason: error.message, code: error.code ?? null };
+  }
+}
+
+/**
+ * Opens the folder of earlier versions -- the open tree's own, if it has any yet.
+ *
+ * The folder rather than a restore screen, deliberately. A backup is a .ftree like any other: it
+ * opens with File > Open tree, and saving it under a new name keeps it. A picker that did that for
+ * the reader would be a second way to open a file, and one more thing to get wrong.
+ */
+async function showBackups() {
+  const { lastTree } = await readSession();
+  const own = lastTree ? folderFor(backupRoot(), lastTree) : null;
+  const exists = async (dir) => fs.access(dir).then(() => true, () => false);
+  const target = own && (await exists(own)) ? own : backupRoot();
+  await fs.mkdir(target, { recursive: true });
+  const problem = await shell.openPath(target);
+  if (problem) {
+    dialog.showMessageBox(window_, {
+      type: 'info',
+      message: 'Backups are kept in this folder.',
+      detail: target,
       buttons: ['OK'],
     });
-    return { ok: false, reason: error.message };
   }
 }
 
@@ -482,6 +534,9 @@ function buildMenu(win) {
           click: () => win.webContents.send('menu:command', 'file:save') },
         { label: 'Save as…', accelerator: 'CmdOrCtrl+Shift+S',
           click: () => win.webContents.send('menu:command', 'file:saveAs') },
+        // Earlier versions, kept by autosave's backups. Beside Save, because it is the answer to
+        // "autosave kept a mistake": the version before it is in here.
+        { label: 'Show backups', click: () => showBackups() },
         { type: 'separator' },
         { label: 'Undo', accelerator: 'CmdOrCtrl+Z',
           click: () => win.webContents.send('menu:command', 'edit:undo') },
@@ -630,54 +685,72 @@ function refuseTheNetwork(ses) {
 /*
  * A window with unsaved edits does not simply vanish.
  *
- * The page reports whether there is unsaved work; this refuses the close while there is, and asks.
- * "Save" hands the work back to the page, because the page is the only side that can serialise a
- * tree and verify it -- and then waits for it to report itself clean rather than assuming it did.
+ * With autosave (#149) "unsaved" is usually a second-long state -- a change still in its pause --
+ * so the first thing done on close is to ask the page to write it now. If that is all it was, the
+ * window closes without a question. Only what is still not on disk a moment later is asked about:
+ * a new tree that has never had a file, a person half-edited in the panel, or a write that failed.
  *
- * The wait has a deadline and the deadline has an honest ending: if the page has not saved by
- * then, the window stays open and says so. An editor that hung on closing would be a worse bug
- * than the one this prevents.
+ * "Save" hands the work to the page, which is the only side that can serialise and verify a tree,
+ * and then waits for the page to say how it went -- not for a flag to flip within a deadline. The
+ * old ten-second deadline expired while somebody was still choosing a folder in the Save dialog,
+ * and put a second dialog on top of the first.
  */
 function guardUnsavedWork(win) {
   let letItGo = false;
+  let handling = false;
 
   win.on('close', (event) => {
     if (letItGo || !unsaved.get(win.id)) return;
     event.preventDefault();
+    if (handling) return;
+    handling = true;
 
     (async () => {
-      const answer = await dialog.showMessageBox(win, {
-        type: 'warning',
-        message: 'This tree has changes you have not saved.',
-        detail: 'Closing now loses them. There is no copy of these edits anywhere else.',
-        buttons: ['Save', 'Discard the changes', 'Cancel'],
-        defaultId: 0,
-        cancelId: 2,
-      });
+      try {
+        win.webContents.send('menu:command', 'file:flush');
+        if (await waitUntilSaved(win, 3000)) {
+          letItGo = true;
+          win.close();
+          return;
+        }
 
-      if (answer.response === 2) return;
-      if (answer.response === 1) { letItGo = true; win.close(); return; }
+        const answer = await dialog.showMessageBox(win, {
+          type: 'warning',
+          message: 'This tree has changes you have not saved.',
+          detail: 'Closing now loses them. There is no copy of these edits anywhere else.',
+          buttons: ['Save', 'Discard the changes', 'Cancel'],
+          defaultId: 0,
+          cancelId: 2,
+        });
 
-      win.webContents.send('menu:command', 'file:save');
-      const saved = await waitUntilSaved(win);
-      if (!saved) {
+        if (answer.response === 2) return;
+        if (answer.response === 1) { letItGo = true; win.close(); return; }
+
+        win.webContents.send('menu:command', 'file:saveForClose');
+        const outcome = await saveOutcome(win);
+        if (outcome === 'saved' || !unsaved.get(win.id)) {
+          letItGo = true;
+          win.close();
+          return;
+        }
+        // Backing out of the Save dialog is an answer, not a failure: the window stays, quietly.
+        if (outcome === 'cancelled') return;
         await dialog.showMessageBox(win, {
           type: 'warning',
           message: 'The tree has not been saved.',
-          detail: 'The window has been left open so nothing is lost. Try File then Save.',
+          detail: 'The window has been left open so nothing is lost. The problem is shown in it.',
           buttons: ['OK'],
         });
-        return;
+      } finally {
+        handling = false;
       }
-      letItGo = true;
-      win.close();
     })();
   });
 
   win.on('closed', () => unsaved.delete(win.id));
 }
 
-/** Polls for the page reporting itself clean. Ten seconds, then the honest answer. */
+/** Polls for the page reporting itself clean, up to a deadline. */
 async function waitUntilSaved(win, deadlineMs = 10_000) {
   const until = Date.now() + deadlineMs;
   while (Date.now() < until) {
@@ -687,6 +760,39 @@ async function waitUntilSaved(win, deadlineMs = 10_000) {
   }
   return !unsaved.get(win.id);
 }
+
+/** Saves the quit prompt is waiting on, by window, until the page reports how they went. */
+const pendingSaves = new Map();
+
+/**
+ * Resolves with the page's own account of a save: 'saved', 'cancelled' or 'failed'.
+ *
+ * The deadline is a last resort for a page that has stopped answering, and long on purpose -- it
+ * has to outlast somebody reading a Save dialog.
+ */
+function saveOutcome(win, deadlineMs = 10 * 60_000) {
+  return new Promise((resolve) => {
+    const timer = setTimeout(() => {
+      if (pendingSaves.get(win.id) === finish) {
+        pendingSaves.delete(win.id);
+        resolve('failed');
+      }
+    }, deadlineMs);
+    function finish(outcome) {
+      clearTimeout(timer);
+      resolve(outcome);
+    }
+    pendingSaves.set(win.id, finish);
+  });
+}
+
+ipcMain.on('tree:saveOutcome', (event, outcome) => {
+  const win = BrowserWindow.fromWebContents(event.sender);
+  const finish = win && pendingSaves.get(win.id);
+  if (!finish) return;
+  pendingSaves.delete(win.id);
+  finish(outcome);
+});
 
 async function createWindow() {
   const win = new BrowserWindow({
@@ -852,10 +958,10 @@ ipcMain.handle('tree:forget', async () => { await writeSession({}); });
  * Handing a document across the bridge for the main process to encode would put a second encoder
  * in the app and give the verification something other than the real bytes to check.
  */
-ipcMain.handle('tree:save', async (event, { bytes, path: target }) => {
+ipcMain.handle('tree:save', async (event, { bytes, path: target, quiet = false }) => {
   const win = BrowserWindow.fromWebContents(event.sender);
   if (!target) return { ok: false, reason: 'NO_PATH' };
-  return saveInto(win, target, bytes);
+  return saveInto(win, target, bytes, { quiet });
 });
 
 ipcMain.handle('tree:saveAs', async (event, { bytes, suggest }) => {
@@ -1053,12 +1159,16 @@ async function runEditSmoke(win, check) {
 
   seen = await page(() => ({
     counts: document.getElementById('counts')?.textContent ?? '',
-    unsaved: document.getElementById('unsaved')?.hidden === false,
+    saveState: document.getElementById('save-state')?.dataset.state ?? '',
+    saveAction: document.getElementById('save-state-action')?.hidden === false
+      ? document.getElementById('save-state-action').textContent : null,
     canUndo: document.getElementById('undo')?.disabled === false,
   }));
   check('a person and a child are recorded', /2 people/.test(seen.counts) && /1 connection/.test(seen.counts),
     seen.counts);
-  check('the window knows there is work not on disk', seen.unsaved === true);
+  // A new tree has nowhere to autosave to, so the bar says so and offers the one way out (#149).
+  check('a tree with no file says it is not saved, and offers to save it',
+    seen.saveState === 'untitled' && seen.saveAction === 'Save…', `${seen.saveState} / ${seen.saveAction}`);
   check('there is something to undo', seen.canUndo === true);
 
   // The rules, through the interface rather than around it: a child cannot also be a partner.
@@ -1096,10 +1206,12 @@ async function runEditSmoke(win, check) {
   check('the tree was written to disk', wrote > 0, `${wrote} bytes at ${target}`);
 
   seen = await page(() => ({
-    unsaved: document.getElementById('unsaved')?.hidden === false,
-    toast: document.getElementById('toast')?.textContent ?? '',
+    saveState: document.getElementById('save-state')?.dataset.state ?? '',
+    toast: document.getElementById('toast-text')?.textContent ?? '',
   }));
-  check('saving clears the unsaved mark', seen.unsaved === false, seen.toast);
+  check('saving says so, and says that changes save themselves from now on',
+    seen.saveState === 'saved' && /every change is saved as you make it/.test(seen.toast),
+    `${seen.saveState} — ${seen.toast}`);
 
   /*
    * Read back through the app itself. A file the writer can produce and the reader cannot open
@@ -1113,6 +1225,59 @@ async function runEditSmoke(win, check) {
   }));
   check('the saved file reopens with both people and the connection',
     /2 people/.test(seen.counts) && /1 connection/.test(seen.counts), seen.counts);
+
+  /*
+   * Autosave (#149): a tree with a file is written without anybody pressing Save.
+   *
+   * Asserted against the disk, not the page -- the page saying "Saved" is the claim, and the file's
+   * own contents are the proof. Then read back through the app, and the version from before the
+   * change looked for among the backups, where nothing is added beside the reader's own file.
+   */
+  const openPerson = async (name) => {
+    await page(() => document.querySelector('[data-view="index"]').click());
+    await settle(200);
+    await page((who) => [...document.querySelectorAll('#index-list .index-row')]
+      .find((row) => row.querySelector('.who')?.textContent === who)?.click(), name);
+    await settle(250);
+  };
+  const before = await fs.stat(target).then((s) => s.mtimeMs, () => 0);
+  await openPerson('Shyam Lal');
+  await type('f-notes', 'Grandfather. Born in Ballia. Written without pressing Save.');
+  await page(() => document.getElementById('panel-save').click());
+
+  let written = { state: '', mtime: before };
+  for (let waited = 0; waited < 6000; waited += 200) {
+    await settle(200);
+    written = {
+      state: await page(() => document.getElementById('save-state')?.dataset.state ?? ''),
+      mtime: await fs.stat(target).then((s) => s.mtimeMs, () => 0),
+    };
+    if (written.state === 'saved' && written.mtime > before) break;
+  }
+  check('a change reaches the file by itself, and the bar says so',
+    written.state === 'saved' && written.mtime > before, JSON.stringify(written));
+
+  await openInto(win, target);
+  await settle(900);
+  await openPerson('Shyam Lal');
+  seen = await page(() => document.getElementById('f-notes')?.value ?? '');
+  check('the file holds the change, read back through the app', /without pressing Save/.test(seen), seen);
+  await page(() => document.getElementById('panel-close').click());
+  await settle(150);
+
+  const backupRoot = path.join(app.getPath('userData'), 'backups');
+  const kept = [];
+  for (const folder of await fs.readdir(backupRoot).catch(() => [])) {
+    for (const name of await fs.readdir(path.join(backupRoot, folder)).catch(() => [])) {
+      if (name.endsWith('.ftree')) kept.push(path.join(folder, name));
+    }
+  }
+  check('the version before the change is kept among the backups', kept.length >= 1,
+    kept.join(', ') || '(none)');
+  const beside = await fs.readdir(path.dirname(target));
+  check('and nothing is left beside the reader\'s file',
+    !beside.includes(`${path.basename(target)}.bak`) && !beside.some((n) => n.includes('.saving-')),
+    beside.filter((n) => n.includes(path.basename(target))).join(', '));
 
   /*
    * Deleting somebody with a connection asks, and offers to keep their place.
@@ -2031,7 +2196,23 @@ async function runSmoke(win, file) {
     if (level >= 2) console.log(`       page: ${message}  (${source}:${line})`);
   });
 
-  await openInto(win, file);
+  /*
+   * The fixture is opened as a copy, never itself.
+   *
+   * Autosave (#149) writes a tree back to the file it came from a second after any change, and the
+   * sections below change trees. Opened directly, the fixture would be edited by one section and
+   * read, already edited, by the next -- and by the next run. Each opening gets its own copy in the
+   * run's own data folder, so every section starts from the tree it was written against.
+   */
+  let copies = 0;
+  const workingCopy = async () => {
+    copies += 1;
+    const copy = path.join(app.getPath('userData'), `copy-${copies}-${path.basename(file)}`);
+    await fs.copyFile(file, copy);
+    return copy;
+  };
+
+  await openInto(win, await workingCopy());
   // The page reads the file, lays it out and paints; give it room on a slow runner.
   await new Promise((r) => setTimeout(r, 2500));
 
@@ -2175,7 +2356,7 @@ async function runSmoke(win, file) {
    * passes in one order and fails in another.
    */
   const reopenSample = async () => {
-    await openInto(win, file);
+    await openInto(win, await workingCopy());
     await new Promise((resolve) => setTimeout(resolve, 500));
   };
 
@@ -2235,6 +2416,60 @@ async function runSmoke(win, file) {
     await fs.writeFile(process.env.FTREE_SMOKE_SHOT, image.toPNG());
     console.log(`       wrote ${process.env.FTREE_SMOKE_SHOT}`);
   }
+
+  /*
+   * Closing the window a moment after a change (#149). Last, because it closes the window.
+   *
+   * Under autosave "unsaved" is usually a change still in its pause, and the close must write it and
+   * go -- not put up a dialog asking about work that was a second from being saved. So: a change,
+   * then an immediate close, inside the pause. The window has to be gone without a question, and
+   * the change has to be in the file.
+   *
+   * Not behind a gate: it costs a few seconds and guards the one path every session ends on.
+   */
+  console.log('\n  -- closing a moment after a change --');
+  const lastCopy = await workingCopy();
+  await openInto(win, lastCopy);
+  await new Promise((resolve) => setTimeout(resolve, 900));
+  const onDisk = await fs.readFile(lastCopy);
+  // Two steps: "Add a person" lets go of the panel first, which is asynchronous, so the new person's
+  // form is not there until a moment after the click.
+  await win.webContents.executeJavaScript(`document.getElementById('add-person').click()`);
+  await new Promise((resolve) => setTimeout(resolve, 250));
+  await win.webContents.executeJavaScript(`(() => {
+    const name = document.getElementById('f-name');
+    name.value = 'Added a moment before closing';
+    name.dispatchEvent(new Event('input', { bubbles: true }));
+    document.getElementById('panel-save').click();
+  })()`);
+  // The quit that follows a closed window would end this run before its last checks are printed.
+  app.removeAllListeners('window-all-closed');
+  const gone = new Promise((resolve) => win.once('closed', () => resolve('closed')));
+  win.close();
+  const outcome = await Promise.race([
+    gone, new Promise((resolve) => setTimeout(() => resolve('still open'), 6000))]);
+  check('a change a moment before closing is saved, and the window closes without asking',
+    outcome === 'closed', outcome);
+  /*
+   * Read with the app's own reader rather than compared as bytes: any rewrite changes the bytes --
+   * the export time is stamped in them -- so "different" would pass for a write that lost the edit.
+   * The reader is found beside the page, which is where packaging puts it as well, and loaded from
+   * a data: URL because this process's Node reads a bare `.js` as CommonJS; `archive.js` imports
+   * nothing, so it stands on its own.
+   */
+  const readerSource = await fs.readFile(
+    path.join(path.dirname(VIEWER), '..', '..', 'site', 'playground', 'archive.js'));
+  const reader = await import(`data:text/javascript;base64,${readerSource.toString('base64')}`);
+  const namesIn = async (bytes) => {
+    const archive = await reader.openArchive(
+      bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength));
+    return reader.parseDocument(await archive.readText('tree.json')).people.map((p) => p.name);
+  };
+  const namesBefore = await namesIn(onDisk);
+  const namesAfter = await namesIn(await fs.readFile(lastCopy));
+  check('and the change is in the file', namesAfter.includes('Added a moment before closing')
+    && namesAfter.length === namesBefore.length + 1,
+    `${namesBefore.length} people before, ${namesAfter.length} after`);
 
   console.log(failures.length === 0 ? '\nSmoke test passed.' : `\n${failures.length} FAILED.`);
   app.exit(failures.length === 0 ? 0 : 1);

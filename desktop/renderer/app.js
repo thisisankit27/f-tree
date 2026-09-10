@@ -41,6 +41,7 @@ import {
   DateProblem, draftFrom, withChange, dateProblems, isDirty, fieldsFrom, isBlankPerson,
   normaliseDateTyping,
 } from './person-draft.js';
+import { createAutosave, describeWriteFailure } from './autosave.js';
 
 const { PARENT, SPOUSE, SIBLING } = RelationshipType;
 
@@ -145,10 +146,103 @@ function draftIsDirty() {
   return Boolean(person && isDirty(draft.values, person));
 }
 
-/** Keeps the window, the menu and the dot in step with whether there is work not on disk. */
+/* ------------------------------------------------------------------ autosave */
+
+/*
+ * The open tree is written back to its file a moment after every change (#149).
+ *
+ * Only a tree that has a file. A new one has nowhere to go until somebody picks a place, so it
+ * keeps a Save button and the quit prompt until then -- and from its first save on, it is written
+ * like any other. See autosave.js for the scheduling and backups.js for the earlier versions kept
+ * on the way.
+ */
+const autosave = createAutosave({
+  write: writeToFile,
+  onStatus: () => paintSaveState(),
+  onFailure: (error) => toast(
+    `Couldn’t save ${state.name}: ${describeWriteFailure(error)}. `
+      + 'Your changes are still here, and f-tree will keep trying.',
+    'bad',
+    { action: { label: 'Save as…', run: () => save({ as: true }) } },
+  ),
+});
+
+/**
+ * Writes the open tree to its file, if it has one and anything has changed.
+ *
+ * The signature is taken before the write and handed to `markSaved` after it, so an edit made while
+ * the bytes were on their way is still unsaved afterwards and gets the next write -- see
+ * `Tree.markSaved`.
+ */
+async function writeToFile() {
+  const tree = state.tree;
+  const target = state.path;
+  if (!tree || !target || !tree.isDirty || !shell) return;
+
+  const signature = tree.signature();
+  let made;
+  try {
+    made = await bytesForTree(tree, photosStillUsed());
+  } catch (error) {
+    if (error instanceof SaveRefused) throw new Error(`${error.message} ${error.detail}`);
+    throw error;
+  }
+  const result = await shell.saveTree(made.bytes, target, { quiet: true });
+  if (!result?.ok) {
+    throw Object.assign(new Error(result?.reason ?? 'the write did not finish'),
+      { code: result?.code ?? null });
+  }
+  // Another file may have been opened while this one was being written; it is not this one's to mark.
+  if (state.tree === tree) {
+    tree.markSaved(signature);
+    reflectDirty();
+  }
+}
+
+/** Starts the pause before a write, for a tree with a file and something new in it. */
+function scheduleAutosave() {
+  if (state.tree?.isDirty && state.path) autosave.changed();
+}
+
+/**
+ * The bar's word on whether the tree is on disk: the unsaved dot, grown into a sentence.
+ *
+ * Saving… while a write is pending or under way, Saved when it is done, and the two states that
+ * need a hand: a tree that has never had a file, which offers Save…, and a write that failed, which
+ * offers Retry. It is not a live region -- it changes on every edit, and a screen reader announcing
+ * "Saving… Saved" after each keystroke would be noise. A failure is announced by its toast.
+ */
+function paintSaveState() {
+  const chip = $('save-state');
+  if (!chip || !state.tree) return;
+
+  const status = autosave.status;
+  const view = !state.path ? 'untitled'
+    : status.state === 'error' ? 'error'
+    : status.state === 'pending' || status.state === 'saving' || state.tree.isDirty ? 'saving'
+    : 'saved';
+
+  chip.dataset.state = view;
+  $('save-state-text').textContent = {
+    untitled: 'Not saved yet',
+    saving: 'Saving…',
+    saved: 'Saved',
+    error: 'Not saved',
+  }[view];
+  chip.title = view === 'saved' ? `Every change is saved to ${state.path}`
+    : view === 'error' ? `Couldn’t save: ${describeWriteFailure(status.error)}`
+    : view === 'untitled' ? 'This tree has no file yet. Save it once and changes save themselves.'
+    : '';
+
+  const action = $('save-state-action');
+  action.hidden = view !== 'untitled' && view !== 'error';
+  action.textContent = view === 'untitled' ? 'Save…' : 'Retry';
+}
+
+/** Keeps the window, the menu and the save state in step with whether there is work not on disk. */
 function reflectDirty() {
   const dirty = Boolean(state.tree?.isDirty) || draftIsDirty();
-  $('unsaved').hidden = !dirty;
+  paintSaveState();
   $('save').dataset.dirty = String(dirty);
   $('undo').disabled = !state.tree?.canUndo;
   $('redo').disabled = !state.tree?.canRedo;
@@ -203,6 +297,9 @@ function rebuild({ refit = false } = {}) {
    */
   state.trace = null;
   if (!$('relate').hidden) renderRelation();
+
+  // Every change to the tree comes through here, so this is the one place autosave has to hear it.
+  scheduleAutosave();
 }
 
 /**
@@ -1585,7 +1682,7 @@ function ask({ title, body, options = [], actions = [], focus = null }) {
     for (const action of actions) {
       const button = document.createElement('button');
       button.type = 'button';
-      button.className = `btn ${action.tone ?? 'quiet'}`;
+      button.className = action.tone === 'danger-quiet' ? 'btn-danger' : `btn ${action.tone ?? 'quiet'}`;
       button.textContent = action.label;
       button.addEventListener('click', () => finish(action.value ?? null));
       actionsBox.append(button);
@@ -1726,7 +1823,7 @@ function commitDraft() {
 
   state.fresh = null;
   state.draft = null;
-  flashPanel(fresh ? 'Added' : 'Saved');
+  flashPanel(fresh ? 'Added' : 'Updated');
   rebuild();
   return true;
 }
@@ -1908,7 +2005,7 @@ function redo() {
 /* ------------------------------------------------------------------ files */
 
 async function startNewTree() {
-  if (state.tree && !(await releasePanel())) return;
+  if (!(await releaseTree())) return;
   state.tree = new Tree({}, { ownTreeId: state.ownTreeId });
   state.draft = null;
   state.fresh = null;
@@ -1945,6 +2042,7 @@ async function openBytes(bytes, name, filePath) {
 
     state.tree = new Tree(doc, { ownTreeId: state.ownTreeId });
     state.tree.markSaved();
+    autosave.cancel();
     state.draft = null;
     state.fresh = null;
     state.photos = photos;
@@ -2198,45 +2296,119 @@ function photosStillUsed() {
   return kept;
 }
 
+/**
+ * Saves now, because somebody asked -- Ctrl+S, the menu, the bar, or the quit prompt.
+ *
+ * For a tree with a file this is autosave without the pause: the same write, just not waiting.
+ * For a tree without one, or Save as, it asks where; and from a tree's first save onwards every
+ * change is written by itself, which the confirmation says once, at the moment it becomes true.
+ *
+ * @returns {Promise<'saved'|'cancelled'|'failed'>} for the quit prompt, which has to know
+ */
 async function save({ as = false } = {}) {
-  if (!state.tree || state.saving) return;
+  if (!state.tree || state.saving) return 'failed';
   // Saving the file saves the person being edited too; a Ctrl+S that wrote everything except the
   // name on screen would be the one save somebody could not believe. A date that cannot be kept
   // stops the whole save, with the problem shown where it is.
-  if (!commitDraft()) return;
+  if (!commitDraft()) return 'failed';
+
+  if (!as && state.path) {
+    const ok = await autosave.flush();
+    if (ok) toast(`Every change is saved to ${state.name}.`);
+    return ok ? 'saved' : 'failed';
+  }
+
   state.saving = true;
   try {
+    const firstSave = !state.path;
+    const signature = state.tree.signature();
     let made;
     try {
       made = await bytesForTree(state.tree, photosStillUsed());
     } catch (error) {
       if (error instanceof SaveRefused) {
         toast(`${error.message}\n\n${error.detail}`, 'bad');
-        return;
+        return 'failed';
       }
       throw error;
     }
 
     const suggested = state.name?.endsWith('.ftree') ? state.name : `${state.name || 'family-tree'}.ftree`;
-    const result = (as || !state.path)
-      ? await shell.saveTreeAs(made.bytes, suggested)
-      : await shell.saveTree(made.bytes, state.path);
-
+    const result = await shell.saveTreeAs(made.bytes, suggested);
     if (!result?.ok) {
-      if (result?.reason !== 'CANCELLED') toast('That tree was not saved.', 'bad');
-      return;
+      if (result?.reason === 'CANCELLED') return 'cancelled';
+      toast('That tree was not saved.', 'bad');
+      return 'failed';
     }
 
     state.path = result.path;
     state.name = result.name;
     $('file-name').textContent = result.name;
-    state.tree.markSaved();
+    state.tree.markSaved(signature);
     reflectDirty();
     toast(`Saved ${count(made.people, 'person', 'people')} and `
-      + `${count(made.relationships, 'connection', 'connections')}.`);
+      + `${count(made.relationships, 'connection', 'connections')} to ${result.name}.`
+      + (firstSave ? ' From now on every change is saved as you make it.' : ''));
+    // Anything edited while the dialog was up goes to the new file straight away.
+    scheduleAutosave();
+    return 'saved';
   } finally {
     state.saving = false;
   }
+}
+
+/**
+ * Lets go of the open tree before another replaces it -- New tree, Open tree, Close tree.
+ *
+ * A tree with a file is flushed and let go without a word: that is what autosave means. What is
+ * left is asked about, because it is the one case where closing loses something: a tree that has
+ * never had a file, or one whose last write failed. Until this, opening another file while a new
+ * tree was unsaved simply threw the new tree away.
+ */
+async function releaseTree() {
+  if (!state.tree) return true;
+  if (!(await releasePanel())) return false;
+  if (!state.tree.isDirty) {
+    autosave.cancel();
+    return true;
+  }
+  if (state.path && (await autosave.flush())) {
+    autosave.cancel();
+    return true;
+  }
+
+  const untitled = !state.path;
+  const answer = await ask({
+    title: untitled ? 'Save this tree first?' : `${state.name} couldn’t be saved`,
+    body: untitled
+      ? 'It hasn’t been saved to a file yet, so closing it now loses it.'
+      : `${describeWriteFailure(autosave.status.error)}. Closing it now loses the changes made `
+        + 'since it was last saved.',
+    actions: [
+      { label: untitled ? 'Don’t save' : 'Discard changes', value: 'discard', tone: 'danger-quiet' },
+      { label: 'Cancel', value: null },
+      { label: untitled ? 'Save…' : 'Save as…', value: 'save', tone: 'primary' },
+    ],
+    focus: 2,
+  });
+  if (answer === 'save') return (await save({ as: true })) === 'saved';
+  if (answer === 'discard') {
+    autosave.cancel();
+    return true;
+  }
+  return false;
+}
+
+/**
+ * Before the window closes: write what autosave had not got to yet.
+ *
+ * The main process asks this first and only puts up its own question if the tree is still not on
+ * disk a moment later -- so a change made a second before closing is simply saved, not asked about.
+ * A person half-edited in the panel is not saved here: nobody pressed Save, and the quit prompt is
+ * how they get asked.
+ */
+function flushForClose() {
+  if (state.path && !draftIsDirty()) autosave.flush();
 }
 
 /* ------------------------------------------------------------------ wiring */
@@ -2250,6 +2422,11 @@ function wireChrome() {
   $('redo').addEventListener('click', redo);
   $('panel-close').addEventListener('click', () => select(null));
   $('panel-save').addEventListener('click', () => commitDraft());
+  // The bar's save state offers the one thing each of its two awkward states needs.
+  $('save-state-action').addEventListener('click', () => {
+    if (!state.path) save({ as: true });
+    else autosave.flush();
+  });
   $('panel-remove').addEventListener('click', () => removeFromPanel());
 
   // A toast with a button in it holds still while somebody is reaching for the button.
@@ -2324,8 +2501,12 @@ function wireShell() {
   if (!shell) return;
 
   shell.onOpenTree(async (tree) => {
-    // Opening another file closes the panel as surely as clicking away does, so it asks the same.
-    if (state.tree && !(await releasePanel())) return;
+    // Opening another file closes this one as surely as Close does, so it asks the same things.
+    const reopening = Boolean(tree.path) && tree.path === state.path && state.tree?.isDirty;
+    if (!(await releaseTree())) return;
+    // The bytes were read before this tree's last changes were flushed to that same file, so they
+    // are older than what is on screen -- which is now exactly what is on disk. Keep it.
+    if (reopening) return;
     openBytes(tree.bytes, tree.name, tree.path);
   });
 
@@ -2333,6 +2514,11 @@ function wireShell() {
     if (command === 'file:new') { startNewTree(); return; }
     if (command === 'file:import') { importTree(); return; }
     if (command === 'file:save') { save(); return; }
+    if (command === 'file:flush') { flushForClose(); return; }
+    if (command === 'file:saveForClose') {
+      save().then((outcome) => shell.reportSaveOutcome?.(outcome));
+      return;
+    }
     if (command === 'file:saveAs') { save({ as: true }); return; }
     if (command === 'edit:undo') { undo(); return; }
     if (command === 'edit:redo') { redo(); return; }
@@ -2347,13 +2533,15 @@ function wireShell() {
     if (command === 'search') { $('search').focus(); return; }
     if (command === 'theme') { $('theme-btn').click(); return; }
     if (command === 'close') {
-      releasePanel().then((released) => { if (released) closeTree(); });
+      releaseTree().then((released) => { if (released) closeTree(); });
     }
   });
 }
 
 function closeTree() {
+  autosave.cancel();
   state.tree = null;
+  state.path = null;
   state.selected = null;
   state.draft = null;
   state.fresh = null;

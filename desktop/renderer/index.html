@@ -52,8 +52,17 @@
 
     <div class="bar-file" data-when="loaded">
       <span class="file-name" id="file-name"></span>
-      <!-- Shown only while there is work not on disk. Quiet, and never a nag. -->
-      <span class="unsaved" id="unsaved" hidden title="Not saved yet">&bull;</span>
+      <!--
+        Whether the tree is on disk. This was a dot that appeared while there was unsaved work; with
+        autosave (#149) that is a second at a time, so the dot grew into a word -- Saving…, Saved --
+        and a button for the two states that need a hand: a new tree that has never had a file, and
+        a write that failed. Quiet, and never a nag.
+      -->
+      <span class="save-state" id="save-state" data-state="saved">
+        <i class="save-state-mark" aria-hidden="true"></i>
+        <span class="save-state-text" id="save-state-text">Saved</span>
+        <button type="button" class="save-state-action" id="save-state-action" hidden></button>
+      </span>
     </div>
 
     <div class="bar-spacer"></div>

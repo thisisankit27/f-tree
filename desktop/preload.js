@@ -74,11 +74,22 @@ contextBridge.exposeInMainWorld('ftreeDesktop', {
    * Bytes, never a document: the page owns the format -- the writer, the reader it checks itself
    * with, and the tree. Sending a document for the other side to encode would put a second
    * encoder in the app and leave the verification checking something other than what gets
-   * written. The main process writes to a temporary file, fsyncs it, keeps the previous contents
-   * as `.bak` and renames atomically over the target.
+   * written. The main process backs up what was there (backups.js), writes to a temporary file,
+   * fsyncs it and renames atomically over the target.
+   *
+   * `quiet` is autosave's: a failure comes back as `{ ok: false, reason, code }` for the page to
+   * show in its own bar, rather than as a native error dialog every few seconds.
    */
-  saveTree: (bytes, path) => ipcRenderer.invoke('tree:save', { bytes, path }),
+  saveTree: (bytes, path, { quiet = false } = {}) => ipcRenderer.invoke('tree:save', { bytes, path, quiet }),
   saveTreeAs: (bytes, suggest) => ipcRenderer.invoke('tree:saveAs', { bytes, suggest }),
+
+  /**
+   * How a save the quit prompt asked for ended: 'saved', 'cancelled' or 'failed'.
+   *
+   * The prompt used to poll for the tree turning clean and give up after ten seconds -- which, for a
+   * new tree, is while the reader is still choosing a folder in the Save dialog.
+   */
+  reportSaveOutcome: (outcome) => ipcRenderer.send('tree:saveOutcome', outcome),
 
   /** Lets the window refuse to close on unsaved work, and marks the title bar as edited. */
   setDirty: (dirty) => ipcRenderer.send('tree:dirty', dirty),
