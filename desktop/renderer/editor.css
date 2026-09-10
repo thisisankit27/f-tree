@@ -894,3 +894,17 @@
   .editor .band-group { flex-direction: column; align-items: flex-start; gap: 0; }
   .editor .band-join.married { width: 22px; margin: 0 0 0 9px; height: 5px; }
 }
+
+/* ------------------------------------------------------------------ how two people are related */
+
+/*
+ * The panel itself is styled by playground.css -- `.relate`, `.r-term`, `.r-chain` and the rest are
+ * the website's, and the markup here is the website's markup so that the two shells cannot drift
+ * into looking like different features. What follows is the one thing only this shell needs.
+ *
+ * The help text is for a reader who has not asked anything yet. Once two people are chosen it is
+ * three lines of advice about a thing already done, and it pushes the chain of people below the
+ * fold -- the chain being exactly what those three lines promised would explain a connection no
+ * single word covers.
+ */
+.editor .relate[data-answered='true'] .relate-help { display: none; }

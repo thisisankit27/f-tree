@@ -25,6 +25,8 @@ import { buildGraph, displayName, lifespan, relationsOf } from '../../site/playg
 import { layoutArchive } from '../../site/playground/layout.js';
 import { Chart } from '../../site/playground/chart.js';
 import { compactFamily } from '../../site/playground/compact.js';
+import { relate, peopleToDraw, restrictedGraph } from '../../site/playground/model.js';
+import { searchPeople } from '../../site/playground/search.js';
 import { mostConnected } from '../../site/playground/focus.js';
 
 import { Tree, RelationshipType, Rejection } from './document.js';
@@ -32,6 +34,7 @@ import { bytesForTree, SaveRefused } from './save.js';
 import { planImport, applyImport, ImportRefused } from './import.js';
 import { MatchTier } from './matching.js';
 import { renderBands } from './bands.js';
+import { sentenceFor, unrelatedWording, paintSentence, nameNode } from './relation.js';
 
 const { PARENT, SPOUSE, SIBLING } = RelationshipType;
 
@@ -62,6 +65,10 @@ const state = {
   focus: null,
   generationsUp: 3,
   generationsDown: 3,
+  /** The two people the relation finder is comparing, and whether the chart is cut down to them. */
+  relateA: null,
+  relateB: null,
+  trace: null,
   /** 'all' or 'living' -- the same filter the phone's people list offers. */
   who: 'all',
   saving: false,
@@ -131,6 +138,16 @@ function rebuild({ refit = false } = {}) {
   renderEmptyInvitation();
   reflectDirty();
   updateZoom();
+
+  /*
+   * An edit can change the answer, so an open question is asked again.
+   *
+   * `chart.load` above has already put the whole tree back, so the trace this is holding is gone
+   * from the screen whatever happens -- dropping it first is what stops `clearTrace` reloading a
+   * chart that is already correct, and what stops the trace surviving as a lie about what is drawn.
+   */
+  state.trace = null;
+  if (!$('relate').hidden) renderRelation();
 }
 
 /**
@@ -172,6 +189,233 @@ function setView(view) {
   if (view === 'chart') chart.resize();
   else if (view === 'compact') renderCompact();
   else renderPeople();
+}
+
+/* ------------------------------------------------------------------ how two people are related */
+
+/*
+ * Reached from the menu and the keyboard, and deliberately not from the bar.
+ *
+ * The website has a "Relate" button because a browser tab has nowhere else to put it. This bar
+ * already carries what the website's does *and* the editing tools, and it is full: measured on a
+ * 1095px window, adding one 26px icon took the header from 56px to 93px, because the row wraps.
+ * The desktop has the affordance a tab does not -- View > How are two people related?, on Ctrl+R --
+ * so the question is asked there, and the bar keeps the width it was designed for.
+ */
+
+/**
+ * Cuts the chart down to the line joining two people, and back again.
+ *
+ * `peopleToDraw` decides who has to be on the page for the answer to be drawable at all -- a
+ * sibling step carries no edge of its own, so two siblings would otherwise arrive as two loose
+ * cards with nothing between them, which is precisely the question the reader asked.
+ */
+function drawTrace(ids) {
+  state.trace = ids;
+  const cut = restrictedGraph(state.graph, ids);
+  chart.load(cut, layoutArchive(cut, { orientation: 'rows' }), archiveShim());
+  chart.fit();
+  updateZoom();
+}
+
+function clearTrace() {
+  if (!state.trace) return;
+  state.trace = null;
+  chart.load(state.graph, state.layout, archiveShim());
+  chart.fit();
+  updateZoom();
+}
+
+/**
+ * Ends the question, because it was about a tree that is no longer open.
+ *
+ * Two ids from the previous file would either name nobody or -- worse, since ids are stable across
+ * a save -- name two people in the new one, and answer confidently about a family nobody asked
+ * about.
+ */
+function forgetRelate() {
+  state.relateA = null;
+  state.relateB = null;
+  state.trace = null;
+  const panel = $('relate');
+  if (panel) {
+    panel.hidden = true;
+    $('relate-a').value = '';
+    $('relate-b').value = '';
+    $('relate-answer').replaceChildren();
+  }
+}
+
+function openRelate(seed = state.selected) {
+  // One question at a time. Both panels are positioned in the same corner, and two open at once
+  // would be two things claiming to be what the window is about.
+  if (state.selected) select(null);
+
+  $('relate').hidden = false;
+
+  // Seeded from whoever was selected, because "how is this person related to..." is the question
+  // somebody has in mind when they reach for this while looking at a person.
+  if (seed && state.graph?.people.has(seed) && !state.relateA) {
+    state.relateA = seed;
+    $('relate-a').value = displayName(state.graph.people.get(seed));
+  }
+  renderRelation();
+  $(state.relateA ? 'relate-b' : 'relate-a').focus();
+}
+
+function closeRelate() {
+  $('relate').hidden = true;
+  // The whole tree comes back. Leaving the chart cut down after the question is closed would strand
+  // somebody on a three-person chart with no obvious way out.
+  clearTrace();
+}
+
+/** One row of the chain: the step's label, and the person it reaches. */
+function chainRow(step) {
+  const li = document.createElement('li');
+
+  const label = document.createElement('span');
+  label.className = 'step';
+  label.textContent = step.label;
+
+  const who = document.createElement('span');
+  who.className = 'who';
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = 'link-btn';
+  button.append(nameNode(state.graph.people.get(step.id)));
+  button.addEventListener('click', () => {
+    chart.centreOn(step.id);
+    chart.selected = step.id;
+    chart.invalidate();
+  });
+  who.append(button);
+
+  li.append(label, who);
+  return li;
+}
+
+function renderRelation() {
+  const box = $('relate-answer');
+  box.replaceChildren();
+
+  // Somebody chosen here can be deleted while the question is open. Forget them rather than
+  // answering about a person the file no longer has.
+  for (const [slot, key] of [['a', 'relateA'], ['b', 'relateB']]) {
+    if (state[key] && !state.graph?.people.has(state[key])) {
+      state[key] = null;
+      $(`relate-${slot}`).value = '';
+    }
+  }
+
+  const { relateA: a, relateB: b } = state;
+
+  /*
+   * The instructions stand down once they have been followed.
+   *
+   * Three lines explaining what the panel is for are worth having on an empty panel and worth
+   * nothing on an answered one, where they push the chain of people below the fold -- and the
+   * chain is the part that explains an answer no single word covers, which is what those three
+   * lines promised.
+   */
+  $('relate').dataset.answered = String(Boolean(a && b));
+
+  if (!a || !b || !state.graph) { clearTrace(); return; }
+
+  const from = state.graph.people.get(a);
+  const to = state.graph.people.get(b);
+  const result = relate(state.graph, a, b);
+
+  const note = document.createElement('p');
+  note.className = 'r-term';
+
+  if (result.kind === 'same') {
+    note.classList.add('r-none');
+    note.textContent = 'Those are the same person.';
+    box.append(note);
+    clearTrace();
+    return;
+  }
+
+  if (result.kind === 'none' || !result.path) {
+    note.classList.add('r-none');
+    paintSentence(note, unrelatedWording(from, to));
+    box.append(note);
+    clearTrace();
+    return;
+  }
+
+  const parts = sentenceFor(result, from, to);
+  if (parts) {
+    paintSentence(note, parts);
+    box.append(note);
+  }
+
+  const chain = document.createElement('ol');
+  chain.className = 'r-chain';
+
+  const start = document.createElement('li');
+  const startLabel = document.createElement('span');
+  startLabel.className = 'step';
+  startLabel.textContent = 'start';
+  const startWho = document.createElement('span');
+  startWho.className = 'who';
+  startWho.append(nameNode(from));
+  start.append(startLabel, startWho);
+  chain.append(start);
+
+  for (const step of result.path) chain.append(chainRow(step));
+  box.append(chain);
+
+  // The chart shows this line and nothing else.
+  drawTrace(peopleToDraw(state.graph, a, result.path));
+}
+
+/** The two pickers, each its own little search over the same shared function. */
+function wireRelate() {
+  for (const slot of ['a', 'b']) {
+    const input = $(`relate-${slot}`);
+    const list = $(`relate-${slot}-results`);
+
+    input.addEventListener('input', () => {
+      list.replaceChildren();
+      if (!input.value.trim() || !state.graph) { list.hidden = true; return; }
+
+      const found = searchPeople(state.graph, input.value, 8);
+      if (!found.length) {
+        const none = document.createElement('li');
+        none.className = 'row-none';
+        none.textContent = 'Nobody by that name in this file.';
+        list.append(none);
+        list.hidden = false;
+        return;
+      }
+
+      for (const person of found) {
+        const li = document.createElement('li');
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.append(nameNode(person));
+        const dates = document.createElement('span');
+        dates.className = 'row-dates';
+        dates.textContent = lifespan(person) || '';
+        button.append(dates);
+        button.addEventListener('click', () => {
+          state[slot === 'a' ? 'relateA' : 'relateB'] = person.id;
+          input.value = displayName(person);
+          list.hidden = true;
+          renderRelation();
+        });
+        li.append(button);
+        list.append(li);
+      }
+      list.hidden = false;
+    });
+
+    input.addEventListener('focus', () => input.select());
+  }
+
+  $('relate-close').addEventListener('click', closeRelate);
 }
 
 /* ------------------------------------------------------------------ generations, as bands */
@@ -744,6 +988,7 @@ function startNewTree() {
   state.path = null;
   state.name = 'Untitled tree';
   state.selected = null;
+  forgetRelate();
   $('file-name').textContent = state.name;
   setState('loaded');
   chart.resize();
@@ -776,6 +1021,7 @@ async function openBytes(bytes, name, filePath) {
     state.path = filePath ?? null;
     state.name = name;
     state.selected = null;
+    forgetRelate();
     $('file-name').textContent = name;
     setState('loaded');
     chart.resize();
@@ -1140,12 +1386,14 @@ function wireShell() {
     if (command === 'zoom:fit') { chart.fit(); updateZoom(); return; }
     if (command === 'view:chart') { setView('chart'); return; }
     if (command === 'view:compact') { setView('compact'); return; }
+    if (command === 'view:relate') { setView('chart'); openRelate(); return; }
     if (command === 'view:index') { setView('index'); return; }
     if (command === 'search') { $('search').focus(); return; }
     if (command === 'theme') { $('theme-btn').click(); return; }
     if (command === 'close') {
       state.tree = null;
       state.selected = null;
+      forgetRelate();
       setState('empty');
       shell.setDirty(false);
     }
@@ -1157,6 +1405,9 @@ function wireKeys() {
     const typing = /^(INPUT|TEXTAREA|SELECT)$/.test(event.target.tagName);
     if (event.key === 'Escape') {
       if (state.adding) { state.adding = null; renderPanel(); return; }
+      // The question closes before the person does: it is the thing most recently opened, and it
+      // is the one holding the chart cut down to three people.
+      if (!$('relate').hidden) { closeRelate(); return; }
       if (state.selected) select(null);
       return;
     }
@@ -1167,6 +1418,9 @@ function wireKeys() {
     }
     if (event.key === 'c' || event.key === 'C') {
       setView(state.view === 'compact' ? 'chart' : 'compact');
+    }
+    if (event.key === 'r' || event.key === 'R') {
+      if ($('relate').hidden) { setView('chart'); openRelate(); } else closeRelate();
     }
     if (event.key === 'f' || event.key === 'F') { chart.fit(); updateZoom(); }
   });
@@ -1180,6 +1434,7 @@ async function boot() {
   chart.setTheme(document.documentElement.getAttribute('data-theme') ?? 'light');
 
   wireChrome();
+  wireRelate();
   wireShell();
   wireKeys();
 

@@ -27,6 +27,31 @@ which multiply a chart's width far faster than they add to what it tells you. Cl
 the reading to that person. Where the record goes further than the reading, it says so and offers
 to go on.
 
+## How two people are related
+
+`View > How are two people related?`, on `Ctrl+R`, or the `R` key. Pick two people; the answer is a
+sentence, a chain of people you can click through, and the chart cut down to just that line, with the
+whole tree back when the question is closed. It is seeded from whoever is selected, because "how is
+*this* person related to…" is the question somebody has in mind when they reach for it.
+
+The engine is `relate` in `site/playground/model.js` — the same one the website uses, held to
+`kinship-golden.txt`. It walks marriages and adoptions as well as blood, so it answers questions no
+blood-only search can: "my wife's mother" is exactly what this feature gets asked.
+
+Three sentences, and sometimes none:
+
+| | |
+|---|---|
+| a blood relationship | *"Priya is Ankit's **first cousin**."* |
+| a marriage at the far end | *"Madhu is married to Ankit's **first cousin once removed**."* — because "Ankit's first cousin once removed's wife" is a possessive chain nobody says out loud |
+| a relative of somebody's spouse | *"Rekha is the **mother** of Ankit's wife."* |
+| none of those | no sentence at all — the chain says it exactly, and a sentence amounting to "these two are related somehow" tells a reader nothing the chain does not |
+
+There is no button for it on the toolbar, deliberately. The website has one because a browser tab has
+nowhere else to put it; this bar already carries what the website's does *and* the editing tools, and
+it is full — measured on a 1095px window, adding one 26px icon took the header from 56px to 93px
+because the row wraps. The menu is the affordance a tab does not have, so that is where it lives.
+
 The rules about who appears live in `site/playground/focus.js` and `site/playground/compact.js`,
 ported from `graph/TreeLayoutEngine.kt` and `graph/CompactFamily.kt` with their test tables. On
 Android, compact is derived from the focused chart, so the two cannot disagree; the desktop's chart
