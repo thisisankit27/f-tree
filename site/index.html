@@ -428,22 +428,26 @@
     <p class="rule-label">On a laptop</p>
     <div class="split split-wide">
       <div>
-        <h2>The way the phone draws it, on a bigger screen <span class="beta-tag">Beta</span></h2>
+        <h2>The whole tree, on a screen wide enough for it <span class="beta-tag">New</span></h2>
         <p>
-          The desktop app opens the same <code>.ftree</code> and lays it out as the app does &mdash;
-          a generation is a column, ancestors at the left, so a family reads from left to right the
-          way you would say it out loud.
+          The desktop app opens the same <code>.ftree</code>, and builds one from nothing if you do not
+          have one yet. Here a generation is a <b>row</b>, ancestors at the top, so the tree runs across
+          the width; on the phone a generation is a <b>column</b>, ancestors at the left. Same tree,
+          turned to suit the screen &mdash; a phone is taller than it is wide and a laptop is not, and
+          the layout follows the shape rather than the other way round.
         </p>
         <p>
           Windows gets an installer. Ubuntu gets an AppImage or a <code>.deb</code>. Nothing leaves
           the machine and there is no account to make, on either.
         </p>
         <p style="max-width:34em">
-          It is an <b>early build</b> — new, barely tested, and liable to misbehave. It cannot harm
-          your tree, because it only ever reads the file you open and never writes to it.
+          It <b>writes to your tree</b> as well as reading it, which this page once promised it would
+          not. Every save replaces your file through a temporary one and keeps the previous version as
+          <code>.bak</code> — but it is new and lightly tested, so keep a copy of anything you care
+          about.
         </p>
         <p class="spec">
-          <span>Windows &amp; Ubuntu</span><span class="sep" aria-hidden="true">&middot;</span><span>Beta</span><span class="sep" aria-hidden="true">&middot;</span><span>Reads a tree today</span>
+          <span>Windows &amp; Ubuntu</span><span class="sep" aria-hidden="true">&middot;</span><span>New</span><span class="sep" aria-hidden="true">&middot;</span><span>Builds and reads a tree</span>
         </p>
         <div class="cta-row">
           <a class="btn btn-primary" href="desktop/">Get the desktop app</a>
