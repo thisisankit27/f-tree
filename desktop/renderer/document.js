@@ -144,9 +144,15 @@ export class Tree {
     return this.future.at(-1)?.label ?? null;
   }
 
-  /** Called after a successful save. */
-  markSaved() {
-    this.savedAt = this.signature();
+  /**
+   * Called after a successful save, with the signature of what was *written*.
+   *
+   * Not "now". A write takes a moment -- the bytes are verified, then put on disk -- and under
+   * autosave an edit can land in that moment. Marking the tree saved as it is by then would call
+   * that edit saved when it is not on disk, and the next autosave would find nothing to write.
+   */
+  markSaved(signature = this.signature()) {
+    this.savedAt = signature;
   }
 
   /* -------------------------------------------------------------- the graph, for the rules */

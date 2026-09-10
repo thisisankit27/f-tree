@@ -321,3 +321,17 @@ test('keeping someone as unknown clears every detail and keeps every connection'
 test('keeping nobody as unknown is refused', () => {
   assert.strictEqual(new Tree().clearDetails('nobody').reason, 'NO_SUCH_PERSON');
 });
+
+/* ---------------------------------------------------------------- saved, as of when */
+
+test('a tree is marked saved as of what was written, not as of now', () => {
+  // Autosave takes the signature, writes, and marks saved afterwards. An edit made meanwhile must
+  // still count as unsaved, or it is never written.
+  const { tree, child } = family();
+  const written = tree.signature();
+  tree.updatePerson(child, { notes: 'typed while the write was in flight' });
+  tree.markSaved(written);
+  assert.ok(tree.isDirty);
+  tree.markSaved();
+  assert.ok(!tree.isDirty);
+});

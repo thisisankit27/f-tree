@@ -27,6 +27,50 @@ which multiply a chart's width far faster than they add to what it tells you. Cl
 the reading to that person. Where the record goes further than the reading, it says so and offers
 to go on.
 
+## Saving: once, then automatic
+
+A tree with a file is **written back to it about a second after each change**
+([#149](https://github.com/thisisankit27/f-tree/issues/149)). The bar beside the file name says
+where things stand:
+
+| | |
+|---|---|
+| **Saved** | every change is on disk |
+| **Saving…** | a change is in its pause, or being written |
+| **Not saved yet** · *Save…* | a new tree that has never had a file. Save it once and it autosaves from then on |
+| **Not saved** · *Retry* | a write failed. The reason is in a toast, once, and f-tree keeps retrying with backoff |
+
+Changes are batched rather than written one by one (`renderer/autosave.js`). A write reads the
+whole tree back to verify it (`renderer/save.js`), and a burst of edits needs one write, not ten. A
+change that lands during a write is picked up straight after it. `Tree.markSaved` takes the
+signature of what was *written*, so an edit made mid-write is never marked saved by mistake.
+
+`Ctrl+S` still works, and just skips the pause. Closing the window first asks the page to write
+anything still in its pause, and closes without a question if that was all. The quit prompt is left
+for work that really isn't on disk: a new tree with no file yet, a person half-edited in the panel,
+or a failed write. Opening or starting another tree asks the same question in those cases. Before
+0.6 it quietly threw away a new tree that had never been saved.
+
+The phone does not autosave either: its tree lives in a database, so there is never an unsaved tree
+there. Writing back to the open file is the desktop's closest equivalent.
+
+### Backups
+
+Autosave makes a mistake permanent almost immediately, so earlier versions are kept
+(`desktop/backups.js`), following Android's rule for pre-import backups: *keep a few, not a growing
+pile*.
+
+- One copy of the file as it was **before the first write of each run**, so opening a tree and
+  spoiling it always leaves the version you opened.
+- Then **at most one every ten minutes** while writes continue.
+- The **newest five** per tree.
+
+They live in the app's own data folder, one folder per tree. The folder is named after the file,
+plus a hash of its path, so two `family.ftree`s never share one. Nothing is added beside your own
+file. The old sibling `<name>.bak` is gone, because under autosave it would have been overwritten
+every second. **File › Show backups** opens the folder. A backup is an ordinary `.ftree`: open it,
+and use Save as to keep it.
+
 ## Editing a person
 
 The person panel keeps its edits as a draft and writes them to the tree on **Save**, which is how
@@ -36,7 +80,7 @@ taken, and closing the panel with a field still focused depended on the browser 
 
 | | |
 |---|---|
-| **Save** | keeps the draft as one step in the history; disabled while there is nothing unsaved |
+| **Save** | keeps the draft as one step in the history (the panel then says *Updated*); disabled while there is nothing unsaved |
 | **Add** | the same button for somebody "Add a person" has just created, still blank |
 | **Discard** | backs out of that addition. The blank card goes, with no trace in the history (`Tree.withdraw`) |
 | **Delete this person** | for anybody already in the tree. Asks first when they have connections |

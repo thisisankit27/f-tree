@@ -15,7 +15,7 @@
     "smoke": "electron . --no-sandbox",
     "pack:linux": "electron-builder --linux",
     "pack:win": "electron-builder --win nsis",
-    "test": "node --test update.test.js atomic.test.js identity.test.js settings.test.js smoke-gates.test.js suite.test.js \"renderer/*.test.js\" \"../site/playground/*.test.mjs\"",
+    "test": "node --test update.test.js atomic.test.js backups.test.js identity.test.js settings.test.js smoke-gates.test.js suite.test.js \"renderer/*.test.js\" \"../site/playground/*.test.mjs\"",
     "test:package": "node --test package.test.js"
   },
   "devDependencies": {
