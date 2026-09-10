@@ -729,6 +729,42 @@ ipcMain.handle('app:installationId', () => installationId(app.getPath('userData'
  * apply whichever surface made the change, and the menu is rebuilt from the result. A checkbox
  * whose `checked:` was a snapshot is exactly how two surfaces start disagreeing.
  */
+/*
+ * A picked image, as bytes.
+ *
+ * Bytes rather than a path, for the same reason the app copies rather than references: a path is a
+ * promise about somebody else's filesystem that this app cannot keep. The reader may move the
+ * picture, rename the folder, or unplug the drive it was on, and a tree full of pictures that
+ * silently stop loading is worse than one with none.
+ *
+ * The renderer does the rest. It has a canvas and this side does not, and adding an image codec to
+ * the process that holds the file handles is not a trade worth making.
+ */
+ipcMain.handle('photo:choose', async (event) => {
+  const win = BrowserWindow.fromWebContents(event.sender);
+  const chosen = await dialog.showOpenDialog(win, {
+    title: 'Choose a photograph',
+    properties: ['openFile'],
+    filters: [{ name: 'Images', extensions: ['jpg', 'jpeg', 'png', 'webp', 'gif', 'bmp'] }],
+  });
+  if (chosen.canceled || !chosen.filePaths.length) return null;
+
+  const file = chosen.filePaths[0];
+  try {
+    const bytes = await fs.readFile(file);
+    return { name: path.basename(file), bytes: bytes.buffer.slice(
+      bytes.byteOffset, bytes.byteOffset + bytes.byteLength) };
+  } catch (error) {
+    await dialog.showMessageBox(win, {
+      type: 'error',
+      message: 'That picture could not be read.',
+      detail: error.message,
+      buttons: ['OK'],
+    });
+    return null;
+  }
+});
+
 ipcMain.handle('settings:get', () => ({ ...settings }));
 
 ipcMain.handle('settings:set', async (event, { key, value }) => {
@@ -1150,6 +1186,196 @@ async function runCompactSmoke(win, check) {
  * "the dialog opens" but "changing it here changed the menu too", and the cross-setting rules that
  * would otherwise be silently wrong.
  */
+/*
+ * Putting a face on somebody, and getting the same file the phone would have written.
+ *
+ * The picker cannot be clicked from here, so the bytes are handed straight to the renderer's own
+ * encoder -- everything after that is the real path: the real canvas, the real crop, the real
+ * `state.photos`, the real save. What is asserted is the part that has to match Android exactly,
+ * because the same tree is carried back and forth: 512px square, JPEG, and never scaled up.
+ */
+async function runPhotoSmoke(win, check) {
+  const page = (fn, ...args) => win.webContents.executeJavaScript(
+    `(${fn.toString()})(${args.map((a) => JSON.stringify(a)).join(',')})`);
+  const settle = (ms = 400) => new Promise((r) => setTimeout(r, ms));
+
+  console.log('\n  -- a photograph --');
+
+  // A wide picture, so the square has to be cut and the framing has something to do.
+  const made = await page(async () => {
+    const source = document.createElement('canvas');
+    source.width = 1200;
+    source.height = 600;
+    const ctx = source.getContext('2d');
+    ctx.fillStyle = '#2a5138';
+    ctx.fillRect(0, 0, 1200, 600);
+    ctx.fillStyle = '#f7f6f1';
+    ctx.fillRect(900, 100, 200, 200);
+    const blob = await new Promise((r) => source.toBlob(r, 'image/png'));
+    window.__pickedPhoto = new Uint8Array(await blob.arrayBuffer());
+    return window.__pickedPhoto.length;
+  });
+  check('a picture was made to pick', made > 0, `${made} bytes`);
+
+  const stored = await page(async () => {
+    const photo = await import('./photo.js');
+    const bitmap = await photo.decode(window.__pickedPhoto);
+    const bytes = await photo.encode(bitmap, 1);          // dragged all the way to the right
+    const centre = await photo.encode(bitmap, 0.5);
+    const shot = await createImageBitmap(new Blob([bytes], { type: 'image/jpeg' }));
+    return {
+      width: shot.width,
+      height: shot.height,
+      jpeg: bytes[0] === 0xff && bytes[1] === 0xd8,      // SOI marker
+      size: bytes.length,
+      // The drag has to actually change the picture, or it is decoration.
+      moved: bytes.length !== centre.length || !bytes.every((b, i) => b === centre[i]),
+    };
+  });
+
+  check('a photograph is stored 512px square, as PhotoStore does',
+    stored.width === 512 && stored.height === 512, `${stored.width}x${stored.height}`);
+  check('and as a JPEG', stored.jpeg, `${stored.size} bytes`);
+  check('the framing actually changes what is kept', stored.moved, String(stored.moved));
+
+  // Never scaled up: a 200px picture stays 200px rather than being stored four times as heavy for
+  // no more detail than it started with.
+  const small = await page(async () => {
+    const photo = await import('./photo.js');
+    const source = document.createElement('canvas');
+    source.width = 200;
+    source.height = 200;
+    source.getContext('2d').fillRect(0, 0, 200, 200);
+    const blob = await new Promise((r) => source.toBlob(r, 'image/png'));
+    const bitmap = await photo.decode(new Uint8Array(await blob.arrayBuffer()));
+    const bytes = await photo.encode(bitmap, 0.5);
+    const shot = await createImageBitmap(new Blob([bytes], { type: 'image/jpeg' }));
+    return { width: shot.width, height: shot.height };
+  });
+  check('a small photograph is left at its own size, not blown up to 512',
+    small.width === 200 && small.height === 200, `${small.width}x${small.height}`);
+
+  /*
+   * Onto a person, and off again.
+   *
+   * The pruning is what matters on the way out: a removed photograph must stop being written into
+   * every future save, or the file grows with pictures of nobody.
+   */
+  const attached = await page(async () => {
+    const photo = await import('./photo.js');
+    const bitmap = await photo.decode(window.__pickedPhoto);
+    const bytes = await photo.encode(bitmap, 0.5);
+    const row = document.querySelector('#index-list .index-row');
+    row?.click();
+    await new Promise((r) => setTimeout(r, 250));
+    window.__setPhotoForTest(bytes);
+    await new Promise((r) => setTimeout(r, 350));
+    const face = document.querySelector('#panel .photo-face img');
+    return {
+      shown: Boolean(face),
+      entries: window.__photoCountForTest(),
+      used: window.__photoUsedForTest(),
+    };
+  });
+
+  check('the person panel shows the face', attached.shown, String(attached.shown));
+  check('the photograph is stored in the tree', attached.entries > 0,
+    `${attached.entries} entries, ${attached.used} in use`);
+
+  if (process.env.FTREE_SMOKE_SHOT_PHOTO) {
+    const shot = process.env.FTREE_SMOKE_SHOT_PHOTO;
+    await fs.writeFile(shot, (await win.webContents.capturePage()).toPNG());
+    console.log(`       wrote ${shot}`);
+
+    await page(() => document.getElementById('theme-btn').click());
+    await settle(400);
+    const other = shot.replace(/(\.png)?$/, '-other-theme.png');
+    await fs.writeFile(other, (await win.webContents.capturePage()).toPNG());
+    console.log(`       wrote ${other}`);
+    await page(() => document.getElementById('theme-btn').click());
+    await settle(300);
+  }
+
+  const roundTrip = await page(() => window.__photoRoundTripForTest());
+  check('a photograph added here is written into the .ftree and reads back',
+    roundTrip.inArchive && roundTrip.size > 0,
+    `${roundTrip.named} — ${roundTrip.size} bytes, ${roundTrip.count} photos in the archive`);
+
+  /*
+   * The framing dialog, which the picker cannot be clicked to reach.
+   *
+   * Worth opening for its own sake: it is the one surface here with an interaction in it, and the
+   * drag has to be shown to move something. Arrow keys are used rather than synthesised pointer
+   * events, because the keyboard path is the one that would otherwise never be exercised.
+   */
+  const framed = await page(async () => {
+    const opened = await window.__openFrameForTest(window.__pickedPhoto);
+    await new Promise((r) => setTimeout(r, 350));
+    const stage = document.getElementById('frame-stage');
+    const before = window.__frameOffsetForTest();
+    stage.focus();
+    stage.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowLeft', bubbles: true }));
+    await new Promise((r) => setTimeout(r, 150));
+    return {
+      opened,
+      open: document.getElementById('frame').open === true,
+      before,
+      after: window.__frameOffsetForTest(),
+      outcome: document.getElementById('frame-outcome').textContent.trim(),
+      focused: document.activeElement === stage,
+    };
+  });
+
+  check('the framing dialog opens on a picked picture', framed.opened && framed.open,
+    JSON.stringify({ opened: framed.opened, open: framed.open }));
+  check('it says what will be kept', /square/.test(framed.outcome), framed.outcome);
+  check('the framing can be moved with the keyboard, not only dragged',
+    framed.focused && framed.after < framed.before,
+    `${framed.before} -> ${framed.after}, focused ${framed.focused}`);
+
+  if (process.env.FTREE_SMOKE_SHOT_FRAME) {
+    const shot = process.env.FTREE_SMOKE_SHOT_FRAME;
+    await fs.writeFile(shot, (await win.webContents.capturePage()).toPNG());
+    console.log(`       wrote ${shot}`);
+    await page(() => document.getElementById('theme-btn').click());
+    await settle(400);
+    const other = shot.replace(/(\.png)?$/, '-other-theme.png');
+    await fs.writeFile(other, (await win.webContents.capturePage()).toPNG());
+    console.log(`       wrote ${other}`);
+    await page(() => document.getElementById('theme-btn').click());
+    await settle(300);
+  }
+
+  await page(() => document.getElementById('frame-cancel').click());
+  await settle(400);
+  const cancelled = await page(() => document.getElementById('frame').open === true);
+  check('cancelling the framing changes nothing', !cancelled, String(cancelled));
+
+  const removed = await page(async () => {
+    window.__setPhotoForTest(null);
+    await new Promise((r) => setTimeout(r, 350));
+    return {
+      face: Boolean(document.querySelector('#panel .photo-face img')),
+      used: window.__photoUsedForTest(),
+    };
+  });
+  check('removing it takes the face off the person', !removed.face, String(removed.face));
+
+  /*
+   * One fewer, not none.
+   *
+   * The first version of this asserted zero and failed on a correct app: `sample-family.ftree`
+   * already carries four photographs belonging to other people, and `photosStillUsed` is a question
+   * about the whole tree rather than about this edit. What matters is that the one just removed
+   * stops being written, and that the other four keep being written.
+   */
+  check('the removed photograph stops being written into every future save',
+    removed.used === attached.used - 1,
+    `${attached.used} in use before, ${removed.used} after`);
+  check('and nobody else’s photograph is dropped with it', removed.used > 0,
+    `${removed.used} still in use`);
+}
+
 async function runSettingsSmoke(win, check) {
   const { Menu } = require('electron');
   const page = (fn, ...args) => win.webContents.executeJavaScript(
@@ -1689,6 +1915,8 @@ async function runSmoke(win, file) {
   if (process.env.FTREE_SMOKE_RELATE) await runRelateSmoke(win, check);
 
   if (process.env.FTREE_SMOKE_SETTINGS) await runSettingsSmoke(win, check);
+
+  if (process.env.FTREE_SMOKE_PHOTO) await runPhotoSmoke(win, check);
 
   if (process.env.FTREE_SMOKE_IMPORT) await runImportSmoke(win, check);
 

@@ -21,7 +21,7 @@
  */
 
 import { openArchive, parseDocument, ArchiveError } from '../../site/playground/archive.js';
-import { buildGraph, displayName, lifespan, relationsOf } from '../../site/playground/model.js';
+import { buildGraph, displayName, lifespan, initials, relationsOf } from '../../site/playground/model.js';
 import { layoutArchive } from '../../site/playground/layout.js';
 import { Chart } from '../../site/playground/chart.js';
 import { compactFamily } from '../../site/playground/compact.js';
@@ -35,6 +35,7 @@ import { planImport, applyImport, ImportRefused } from './import.js';
 import { MatchTier } from './matching.js';
 import { renderBands } from './bands.js';
 import { sentenceFor, unrelatedWording, paintSentence, nameNode } from './relation.js';
+import { decode, encode, asImageUrl, freeName, squareCrop } from './photo.js';
 
 const { PARENT, SPOUSE, SIBLING } = RelationshipType;
 
@@ -119,6 +120,10 @@ function reflectDirty() {
  * editing every time you typed their name would be its own bug.
  */
 function rebuild({ refit = false } = {}) {
+  // Every photograph drawn last time is handed back before any is drawn again; otherwise a page
+  // that redraws on every edit keeps every face it has ever shown alive in memory.
+  releasePhotos();
+
   const doc = state.tree.toExchange();
   state.graph = buildGraph(doc);
   state.layout = layoutArchive(state.graph, { orientation: 'rows' });
@@ -200,6 +205,279 @@ function setView(view) {
   if (view === 'chart') chart.resize();
   else if (view === 'compact') renderCompact();
   else renderPeople();
+}
+
+/* ------------------------------------------------------------------ photographs */
+
+/**
+ * Object URLs handed out for showing stored bytes, so they can be handed back.
+ *
+ * A page that makes one of these per render and never revokes them keeps every photograph it has
+ * ever drawn alive in memory, which on a tree of any size is the difference between an app and a
+ * leak.
+ */
+const shownPhotos = new Set();
+
+function photoUrl(name) {
+  const bytes = state.photos.get(name);
+  if (!bytes) return null;
+  const url = asImageUrl(bytes);
+  shownPhotos.add(url);
+  return url;
+}
+
+function releasePhotos() {
+  for (const url of shownPhotos) URL.revokeObjectURL(url);
+  shownPhotos.clear();
+}
+
+/** The face in the person panel, and the way to change it. */
+function photoField(person) {
+  const box = document.createElement('div');
+  box.className = 'photo-field';
+
+  const url = person.photo ? photoUrl(person.photo) : null;
+
+  if (url) {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'photo-face';
+    // Uncropped when opened: every other place shows this inside a circle, and a square cut from a
+    // group photograph is often the wrong square.
+    button.title = 'See the whole photograph';
+    const img = document.createElement('img');
+    img.src = url;
+    img.alt = `${displayName(person)}`;
+    button.append(img);
+    button.addEventListener('click', () => openPhotoView(person, url));
+    box.append(button);
+  } else {
+    const empty = document.createElement('div');
+    empty.className = 'photo-face empty';
+    empty.setAttribute('aria-hidden', 'true');
+    empty.textContent = initials(person);
+    box.append(empty);
+  }
+
+  const actions = document.createElement('div');
+  actions.className = 'photo-actions';
+
+  const choose = document.createElement('button');
+  choose.type = 'button';
+  choose.className = 'btn quiet';
+  choose.textContent = person.photo ? 'Replace' : 'Add a photograph';
+  choose.addEventListener('click', () => choosePhotoFor(person.id));
+  actions.append(choose);
+
+  if (person.photo) {
+    const remove = document.createElement('button');
+    remove.type = 'button';
+    remove.className = 'btn quiet';
+    remove.textContent = 'Remove';
+    remove.addEventListener('click', () => setPhoto(person.id, null));
+    actions.append(remove);
+  }
+
+  box.append(actions);
+  return box;
+}
+
+function openPhotoView(person, url) {
+  $('photo-view-img').src = url;
+  $('photo-view-img').alt = `Photograph of ${displayName(person)}`;
+  $('photo-view-who').textContent = displayName(person);
+  $('photo-view').showModal();
+}
+
+/**
+ * Writes a photograph onto a person, or takes one off.
+ *
+ * The bytes are stored under a name nothing else is using; the old entry is left to
+ * `photosStillUsed` to prune on the next save, because a photograph is only unused once nobody
+ * points at it, and that is a question about the whole tree rather than about this edit.
+ */
+function setPhoto(id, bytes) {
+  const person = state.tree.people.find((p) => p.id === id);
+  if (!person) return;
+
+  let name = null;
+  if (bytes) {
+    name = freeName(new Set(state.photos.keys()));
+    if (!name) { toast('That photograph could not be stored.', 'bad'); return; }
+    state.photos.set(name, bytes);
+  }
+
+  // `updatePerson` leaves every field it is not given alone, so naming only `photo` here cannot
+  // wipe the dates or the notes this panel is not currently showing.
+  const result = state.tree.updatePerson(id, { photo: name });
+  if (!result?.ok) {
+    toast(REFUSALS[result?.reason] ?? 'That photograph could not be set.', 'bad');
+    return;
+  }
+  rebuild();
+  toast(bytes ? 'Photograph added. Undo with Ctrl+Z.' : 'Photograph removed. Undo with Ctrl+Z.');
+}
+
+/** The framing step: pick a file, choose what the circle shows, then store it. */
+async function choosePhotoFor(id) {
+  if (!shell?.choosePhoto) return;
+
+  const picked = await shell.choosePhoto();
+  if (!picked) return;
+
+  const bitmap = await decode(picked.bytes);
+  if (!bitmap) { toast('That file is not a picture this app can read.', 'bad'); return; }
+
+  openFrame(bitmap, id, picked.name);
+}
+
+/** How far along the long edge the square sits, 0 to 1. Reset for every new picture. */
+let framing = { bitmap: null, personId: null, offset: 0.5, url: null };
+
+function paintFrame() {
+  const { bitmap, offset } = framing;
+  if (!bitmap) return;
+  const stage = $('frame-stage');
+  const img = $('frame-img');
+
+  // The stage shows a square; the picture slides behind it. Expressed as a percentage so the
+  // drawing follows the same fraction the crop will use, at whatever size the dialog happens to be.
+  const landscape = bitmap.width >= bitmap.height;
+  stage.dataset.orientation = landscape ? 'landscape' : 'portrait';
+  img.style.objectPosition = landscape ? `${offset * 100}% 50%` : `50% ${offset * 100}%`;
+
+  const crop = squareCrop(bitmap.width, bitmap.height, offset);
+  $('frame-outcome').textContent = crop.size === Math.max(bitmap.width, bitmap.height)
+    ? 'Already square — nothing to frame.'
+    : `${bitmap.width} × ${bitmap.height}, kept as ${Math.min(crop.size, 512)}px square.`;
+}
+
+function openFrame(bitmap, personId, fileName) {
+  releaseFraming();
+  framing = { bitmap, personId, offset: 0.5, url: asImageUrl(null) };
+
+  const img = $('frame-img');
+  img.src = bitmapUrl(bitmap);
+  img.alt = fileName ?? '';
+  paintFrame();
+  $('frame').showModal();
+  $('frame-head').focus();
+}
+
+/** A drawable URL for the picked image, kept so it can be revoked when the dialog closes. */
+function bitmapUrl(bitmap) {
+  const canvas = document.createElement('canvas');
+  canvas.width = bitmap.width;
+  canvas.height = bitmap.height;
+  canvas.getContext('2d').drawImage(bitmap, 0, 0);
+  const url = canvas.toDataURL('image/png');
+  framing.url = url;
+  return url;
+}
+
+function releaseFraming() {
+  framing.bitmap?.close?.();
+  framing = { bitmap: null, personId: null, offset: 0.5, url: null };
+}
+
+/*
+ * Hooks for the smoke harness, and only for it.
+ *
+ * The picker is a native dialog that cannot be clicked from a test, so the harness hands bytes
+ * straight to the encoder and then needs a way to put the result on somebody and read back what the
+ * tree holds. `shell.smoke` comes from the main process's own environment, which a page cannot set,
+ * so a build somebody is using never carries any of this.
+ */
+function exposeTestHooks() {
+  if (!shell?.smoke) return;
+  window.__setPhotoForTest = (bytes) => setPhoto(state.selected, bytes);
+  window.__openFrameForTest = async (bytes) => {
+    const bitmap = await decode(bytes);
+    if (bitmap) openFrame(bitmap, state.selected, 'a-photograph.png');
+    return Boolean(bitmap);
+  };
+  window.__frameOffsetForTest = () => framing.offset;
+
+  /*
+   * Write the tree and read it back, through the real writer and the real reader.
+   *
+   * The point of authoring a photograph is that it ends up in the file. Everything else here checks
+   * the app's own state, which would look perfect while the archive went out empty.
+   */
+  window.__photoRoundTripForTest = async () => {
+    // `bytesForTree` hands back the bytes *and* what it counted, not the bytes alone.
+    const { bytes } = await bytesForTree(state.tree, photosStillUsed());
+    const archive = await openArchive(bytes.buffer.slice(
+      bytes.byteOffset, bytes.byteOffset + bytes.byteLength));
+    const doc = parseDocument(await archive.readText('tree.json'));
+    const person = doc.people.find((p) => p.id === state.selected);
+    const entries = archive.names().filter((n) => n.startsWith('photos/'));
+    return {
+      named: person?.photo ?? null,
+      inArchive: person?.photo ? entries.includes(person.photo) : false,
+      count: entries.length,
+      size: person?.photo ? (await archive.read(person.photo))?.byteLength ?? 0 : 0,
+    };
+  };
+  window.__photoCountForTest = () => state.photos.size;
+  window.__photoUsedForTest = () => photosStillUsed().size;
+}
+
+function wirePhotos() {
+  const frame = $('frame');
+  if (!frame) return;
+  exposeTestHooks();
+
+  $('photo-view-close').addEventListener('click', () => $('photo-view').close());
+  $('frame-cancel').addEventListener('click', () => frame.close());
+  frame.addEventListener('close', releaseFraming);
+
+  $('frame-save').addEventListener('click', async () => {
+    const { bitmap, personId, offset } = framing;
+    if (!bitmap) { frame.close(); return; }
+    const bytes = await encode(bitmap, offset);
+    frame.close();
+    if (!bytes) { toast('That photograph could not be stored.', 'bad'); return; }
+    setPhoto(personId, bytes);
+  });
+
+  // Dragging across the stage moves the square along the long edge. Pointer events rather than
+  // mouse ones, so a trackpad and a touchscreen both work.
+  const stage = $('frame-stage');
+  let dragging = null;
+  stage.addEventListener('pointerdown', (event) => {
+    if (!framing.bitmap) return;
+    dragging = { x: event.clientX, y: event.clientY, from: framing.offset };
+    stage.setPointerCapture(event.pointerId);
+  });
+  stage.addEventListener('pointermove', (event) => {
+    if (!dragging || !framing.bitmap) return;
+    const box = stage.getBoundingClientRect();
+    const landscape = framing.bitmap.width >= framing.bitmap.height;
+    const moved = landscape
+      ? (event.clientX - dragging.x) / box.width
+      : (event.clientY - dragging.y) / box.height;
+    // Dragging right shows what is further right, so the offset moves against the pointer.
+    framing.offset = Math.min(1, Math.max(0, dragging.from - moved));
+    paintFrame();
+  });
+  const stop = () => { dragging = null; };
+  stage.addEventListener('pointerup', stop);
+  stage.addEventListener('pointercancel', stop);
+
+  // The keyboard reaches it too: a drag is not the only way somebody uses this app.
+  stage.tabIndex = 0;
+  stage.addEventListener('keydown', (event) => {
+    if (!framing.bitmap) return;
+    const step = event.shiftKey ? 0.2 : 0.05;
+    if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') {
+      framing.offset = Math.max(0, framing.offset - step);
+    } else if (event.key === 'ArrowRight' || event.key === 'ArrowDown') {
+      framing.offset = Math.min(1, framing.offset + step);
+    } else return;
+    event.preventDefault();
+    paintFrame();
+  });
 }
 
 /* ------------------------------------------------------------------ preferences */
@@ -760,6 +1038,12 @@ function field({ label, id, value = '', type = 'text', wide = false, hint = null
 function personForm(person) {
   const form = document.createElement('div');
   form.className = 'form-grid';
+
+  // The face first, because it is how somebody recognises they have the right person open before
+  // reading a word of the form.
+  const photo = photoField(person);
+  photo.classList.add('field', 'wide');
+  form.append(photo);
 
   form.append(field({
     label: 'Name', id: 'f-name', value: person.name ?? '', wide: true,
@@ -1551,6 +1835,7 @@ async function boot() {
   wireChrome();
   wireRelate();
   wirePrefs();
+  wirePhotos();
   wireShell();
   wireKeys();
 
