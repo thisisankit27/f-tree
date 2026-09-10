@@ -11,6 +11,8 @@
  */
 
 import { displayName, spouseLabel } from '../../site/playground/model.js';
+import { hindiTerm } from '../../site/playground/kinship-hindi.js';
+import { hindiWord } from '../../site/playground/kinship-hi.js';
 
 /**
  * The sentence for an answer, as parts rather than as a string.
@@ -59,6 +61,23 @@ export function sentenceFor(result, from, to) {
    * and the chain says it better than any invented word.
    */
   return null;
+}
+
+/**
+ * The Hindi word for an answer, with its gloss, or null where Hindi has none.
+ *
+ * `word (gloss)` is how bilingual families actually speak, and it is what lets a younger relative
+ * who does not know फूफा still read the answer. The gloss is more precise than English's own kinship
+ * words on purpose: English says "uncle" five ways and the gloss says which one.
+ *
+ * Null everywhere Hindi genuinely has no word -- a second cousin, a relative through two marriages
+ * -- and the panel then says the English sentence it would have said anyway. That is the same thing
+ * a Hindi speaker does mid-conversation, and better than a Devanagari compound nobody says.
+ */
+export function hindiFor(result, from, to) {
+  const term = hindiTerm(result?.kinship, from?.gender ?? 'UNSPECIFIED', to?.gender ?? 'UNSPECIFIED');
+  const entry = hindiWord(term);
+  return entry ? { ...entry, term } : null;
 }
 
 /** What to say when the file does not connect them at all. */

@@ -34,7 +34,7 @@ import { bytesForTree, SaveRefused } from './save.js';
 import { planImport, applyImport, ImportRefused } from './import.js';
 import { MatchTier } from './matching.js';
 import { renderBands } from './bands.js';
-import { sentenceFor, unrelatedWording, paintSentence, nameNode } from './relation.js';
+import { sentenceFor, unrelatedWording, paintSentence, nameNode, hindiFor } from './relation.js';
 import { decode, encode, asImageUrl, freeName, squareCrop } from './photo.js';
 
 const { PARENT, SPOUSE, SIBLING } = RelationshipType;
@@ -553,6 +553,8 @@ async function setPref(key, value) {
   // Photographs change what the chart is given, so that one needs a rebuild; the rest do not.
   applyPrefs({ redraw: before?.photosOnChart !== prefs.photosOnChart });
   paintPrefs();
+  // A change of language is a change to an answer already on screen.
+  if (before?.familyWords !== prefs.familyWords && !$('relate').hidden) renderRelation();
 }
 
 function openPrefs() {
@@ -654,6 +656,41 @@ function closeRelate() {
   clearTrace();
 }
 
+/**
+ * `word (gloss)`, and where the record cannot settle a birth order, the nudge that would.
+ *
+ * The three descriptive terms are correct as they stand -- "पिता के भाई" is what he is -- so this
+ * does not apologise for them. It says which two birth years would sharpen the word, because that
+ * is a thing the reader can actually go and do, and the alternative was guessing between ताऊ and
+ * चाचा and being wrong half the time in a way the family notices immediately.
+ */
+function hindiLine(hindi) {
+  const line = document.createElement('p');
+  line.className = 'r-hindi';
+  // `lang` so a screen reader reaches for a Hindi voice rather than spelling Devanagari in English.
+  line.lang = 'hi';
+
+  const word = document.createElement('b');
+  word.className = 'r-hindi-word';
+  word.textContent = hindi.word;
+  line.append(word);
+
+  const gloss = document.createElement('span');
+  gloss.className = 'r-hindi-gloss';
+  gloss.lang = 'en';
+  gloss.textContent = ` (${hindi.gloss})`;
+  line.append(gloss);
+
+  if (hindi.needsBirthYears) {
+    const nudge = document.createElement('span');
+    nudge.className = 'r-hindi-nudge';
+    nudge.lang = 'en';
+    nudge.textContent = 'Birth years for both brothers would say whether that is ताऊ or चाचा.';
+    line.append(nudge);
+  }
+  return line;
+}
+
 /** One row of the chain: the step's label, and the person it reaches. */
 function chainRow(step) {
   const li = document.createElement('li');
@@ -733,6 +770,19 @@ function renderRelation() {
   if (parts) {
     paintSentence(note, parts);
     box.append(note);
+  }
+
+  /*
+   * The Hindi word, under the English sentence, when Family words is हिन्दी.
+   *
+   * Under rather than instead: the English wording does not change anywhere. This is a second thing
+   * said, not a translation of the first, because the two are not the same statement -- English says
+   * "uncle" and Hindi says which uncle -- and a reader who set this preference is usually the one
+   * being asked to explain the word to somebody else.
+   */
+  if (prefs?.familyWords === 'hi') {
+    const hindi = hindiFor(result, from, to);
+    if (hindi) box.append(hindiLine(hindi));
   }
 
   const chain = document.createElement('ol');
@@ -1851,6 +1901,15 @@ async function boot() {
       applyPrefs();
     } catch { /* the page already has the defaults on it */ }
   }
+
+  // Whoever changed it -- this dialog, the native menu, another window -- the page follows.
+  shell?.onSettingsChanged?.((next) => {
+    const before = prefs;
+    prefs = next;
+    applyPrefs({ redraw: before?.photosOnChart !== prefs.photosOnChart });
+    paintPrefs();
+    if (before?.familyWords !== prefs.familyWords && !$('relate').hidden) renderRelation();
+  });
 
   if (shell) {
     document.body.dataset.shell = 'desktop';

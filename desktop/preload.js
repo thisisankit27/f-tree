@@ -35,6 +35,14 @@ contextBridge.exposeInMainWorld('ftreeDesktop', {
   choosePhoto: () => ipcRenderer.invoke('photo:choose'),
 
   settings: () => ipcRenderer.invoke('settings:get'),
+
+  /**
+   * Told whenever a setting changes, whoever changed it.
+   *
+   * The native menu can change these without the page knowing, and so can another window. One
+   * value that is one per app should not become one copy per surface.
+   */
+  onSettingsChanged: (fn) => ipcRenderer.on('settings:changed', (_event, next) => fn(next)),
   setSetting: (key, value) => ipcRenderer.invoke('settings:set', { key, value }),
 
   /**
