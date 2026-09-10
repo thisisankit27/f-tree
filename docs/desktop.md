@@ -27,6 +27,44 @@ which multiply a chart's width far faster than they add to what it tells you. Cl
 the reading to that person. Where the record goes further than the reading, it says so and offers
 to go on.
 
+## Settings
+
+`Updates > Preferences…`, on `Ctrl+,`. Family words, photographs on the chart, appearance, and the
+two update settings. Every one of them is also in the native menu, and **both surfaces go through
+the same `settings:set`**, which rebuilds the menu from the result.
+
+That rebuild is the point rather than a detail. A native menu checkbox's `checked:` is a snapshot
+taken when the menu was built: one surface over one value is fine forever, and two is fine until
+somebody uses the second one. Before this, switching betas on in a dialog would have left the menu
+saying they were off until the app restarted.
+
+The rules live in `desktop/settings.js` — pure, no disk and no Electron, ported from
+`update/UpdatePreferences.kt` with its reasoning. Some settings are not independent of each other:
+
+| | |
+|---|---|
+| turning update checking **off** | clears the last-checked time and any skipped version — *"leaving a remembered result behind would let a stale banner outlive the setting"* |
+| changing **channel** | clears the skipped version — *"a version skipped on one channel means nothing on the other: leaving it behind would silently hide the first release the reader has just asked to be offered"* |
+
+Both `lastCheckedAt` and `skippedVersion` are new here. The desktop stored neither, so its update
+dialog's "Not now" remembered nothing and the same release was offered on every launch until it was
+taken — which teaches people to dismiss the dialog unread, and then the one release that matters is
+dismissed the same way. **Skip this version** is now a separate answer from **Not now**: one is about
+today, the other about this release. Only the automatic check honours a skip; asking from the menu
+always gets an answer, because a question deserves one.
+
+The two settings that reach the network are off until switched on. This app makes no request of any
+kind unless somebody has asked it to, and a default of "on" would quietly make that untrue for
+everybody who never opened the menu. Betas and checking are separate settings rather than three
+states of one, because they answer different questions — whether the app may ask GitHub anything,
+and which answer it will accept — so betas with checking off makes no request at all, and the
+checkbox is greyed rather than merely useless.
+
+The theme lives in that file too, with everything else. `localStorage` keeps a mirror of it, and
+only for the inline script that sets the theme before the first paint: the settings file is read
+over IPC and there is no asking it anything that early. A cleared mirror costs one launch in the
+system's colours, not a lost setting.
+
 ## How two people are related
 
 `View > How are two people related?`, on `Ctrl+R`, or the `R` key. Pick two people; the answer is a

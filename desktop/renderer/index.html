@@ -20,6 +20,12 @@
 /*
  * The theme, before the first paint. app.js is a module and therefore deferred, so leaving this
  * to it would flash a bone-white screen at somebody who asked for dark.
+ *
+ * This reads a *cache*, not the setting. The theme lives in the settings file with everything else,
+ * which is the only copy the preferences dialog and the menu consult -- but that file is read over
+ * IPC, which is asynchronous, and there is no asking it anything before the first paint. So the
+ * chosen theme is mirrored here on every launch and every change, and this reads the mirror. A
+ * cleared cache costs one launch in the system's colours, not a lost setting.
  */
 (function () {
   var theme = null;
@@ -235,6 +241,79 @@
       <div class="review-actions">
         <button type="button" class="btn quiet" id="review-cancel">Cancel</button>
         <button type="button" class="btn primary" id="review-confirm">Import</button>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- ------------------------------------------------------------ preferences -->
+  <!--
+    Modelled on the review dialog above, and a <dialog> for the same reason: it is a question about
+    the whole app rather than about anything on the page behind it.
+
+    Every control here is also in the native menu, and both go through the same `settings:set`, so
+    the menu is rebuilt whenever this changes something. A menu checkbox's `checked:` is a snapshot
+    taken when the menu was built, and two surfaces over one value is exactly how that snapshot
+    starts lying.
+  -->
+  <dialog class="review prefs" id="prefs" aria-labelledby="prefs-title">
+    <div class="review-head" id="prefs-head" tabindex="-1">
+      <h2 class="review-title" id="prefs-title">Preferences</h2>
+      <p class="review-lead">Kept on this machine, with the trees. Nothing here is sent anywhere.</p>
+    </div>
+
+    <div class="review-body prefs-body">
+      <section class="prefs-group">
+        <h3 class="prefs-heading">Reading</h3>
+
+        <div class="prefs-row">
+          <label class="prefs-label" for="pref-words">Family words</label>
+          <select id="pref-words" class="prefs-control">
+            <option value="en">English</option>
+            <option value="hi">हिन्दी</option>
+          </select>
+          <p class="prefs-note" id="pref-words-note"></p>
+        </div>
+
+        <div class="prefs-row">
+          <label class="prefs-label" for="pref-photos">Photographs on the chart</label>
+          <input type="checkbox" id="pref-photos" class="prefs-check">
+          <p class="prefs-note">
+            Off draws names only, which a large family reads faster.
+          </p>
+        </div>
+
+        <div class="prefs-row">
+          <label class="prefs-label" for="pref-theme">Appearance</label>
+          <select id="pref-theme" class="prefs-control">
+            <option value="light">Light</option>
+            <option value="dark">Dark</option>
+          </select>
+        </div>
+      </section>
+
+      <section class="prefs-group">
+        <h3 class="prefs-heading">Updates</h3>
+
+        <div class="prefs-row">
+          <label class="prefs-label" for="pref-updates">Check for updates</label>
+          <input type="checkbox" id="pref-updates" class="prefs-check">
+          <p class="prefs-note" id="pref-updates-note"></p>
+        </div>
+
+        <div class="prefs-row">
+          <label class="prefs-label" for="pref-beta">Offer me beta releases</label>
+          <input type="checkbox" id="pref-beta" class="prefs-check">
+          <p class="prefs-note">
+            Unfinished builds, offered early. Turning this off or on forgets any version you skipped.
+          </p>
+        </div>
+      </section>
+    </div>
+
+    <div class="review-foot">
+      <p class="review-outcome" id="prefs-outcome" aria-live="polite"></p>
+      <div class="review-actions">
+        <button type="button" class="btn primary" id="prefs-done">Done</button>
       </div>
     </div>
   </dialog>
