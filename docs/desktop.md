@@ -63,6 +63,38 @@ stops riding along in every future write.
 Honours **Photographs on the chart**: when it is off the chart is passed *no archive at all*, rather
 than the real one and an instruction to ignore it.
 
+## Family words: English or हिन्दी
+
+Set in Preferences. When it is हिन्दी, an answer in the relation panel gains a second line under the
+English one — `word (gloss)` — and **the English wording does not change anywhere**.
+
+Under rather than instead, because the two are not the same statement. English says "uncle"; Hindi
+says *which* uncle. A reader who set this preference is usually the one being asked to explain the
+word to somebody else, and `दादी (father's mother)` is how a bilingual family actually says it.
+
+Hindi has five words where English has one, and none of them can be reached by translating the
+English. The choice reads `relate(...).kinship`: which parent the line went up through, who it came
+back down through, and — for चाचा against ताऊ — which of the two was born first. That is why the path
+model exists at all.
+
+| | |
+|---|---|
+| `site/playground/kinship-hindi.js` | which word, ported from `graph/HindiKinship.kt` |
+| `site/playground/kinship-hi.js` | how each of the 65 terms is spelled and what it means |
+
+**Null is a real answer.** Hindi has no single word for a second cousin, or a relative through two
+marriages. Where it has none the panel says the English sentence it would have said anyway — which is
+what a Hindi speaker does in the same conversation, and better than a Devanagari compound nobody says.
+
+Where the record cannot settle a birth order, the word is the descriptive one — पिता के भाई, which is
+exactly what he is — and the panel says which two birth years would sharpen it. It does not guess:
+ताऊ and चाचा are told apart by nothing but a date, and being wrong is noticed immediately.
+
+Three tests hold it: the 43-case table from `HindiKinshipTest.kt`; a parity test that reads
+`app/src/main/res/values/kinship_hi.xml` and asserts the JS table matches it exactly in both
+directions; and the every-pair sweep, which cannot be satisfied by luck — *if B is A's मामा then A
+must be B's भांजा or भांजी*, computed independently from opposite ends of the graph.
+
 ## Settings
 
 `Updates > Preferences…`, on `Ctrl+,`. Family words, photographs on the chart, appearance, and the

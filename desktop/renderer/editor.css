@@ -1141,3 +1141,43 @@
   box-shadow: 0 0 0 9999px rgba(10, 28, 18, .34);
   pointer-events: none;
 }
+
+/* ------------------------------------------------------------ the Hindi word, under the English */
+
+/*
+ * A second thing said, not a translation of the first.
+ *
+ * English says "uncle"; Hindi says *which* uncle. So this sits under the English sentence rather
+ * than replacing it, and reads as an addition -- which is also how a bilingual family says it out
+ * loud, the word and then the gloss for whoever does not have it.
+ */
+.editor .r-hindi {
+  font-family: var(--serif);
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--ink);
+  margin: 8px 0 0;
+  padding: 10px 12px;
+  background: var(--brass-surface);
+  border-radius: 4px;
+}
+
+/* Devanagari carries more above and below the line than Latin does; it wants the room. */
+.editor .r-hindi-word { font-size: 18px; font-weight: 700; line-height: 1.7; }
+
+/* Spaced with a margin rather than the space in the string: Devanagari's advance swallows it. */
+.editor .r-hindi-gloss { color: var(--ink-soft); font-size: 14px; margin-left: 5px; }
+
+/*
+ * The nudge, where a birth order cannot be settled.
+ *
+ * Not an apology. "पिता के भाई" is what he is; this says which two birth years would sharpen it,
+ * because that is a thing the reader can go and do.
+ */
+.editor .r-hindi-nudge {
+  display: block;
+  margin-top: 6px;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--ink-faint);
+}

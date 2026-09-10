@@ -131,6 +131,18 @@ async function changeSetting(key, value, win) {
   if (JSON.stringify(before) === JSON.stringify(settings)) return settings;
   await writeSettings();
   if (win && !win.isDestroyed()) buildMenu(win);
+
+  /*
+   * And the page, which is the third surface over these values.
+   *
+   * The menu rebuild above stops a native checkbox going stale. This stops the *page* going stale
+   * the same way: change "Offer me beta releases" from the native menu, then open Preferences, and
+   * without this the dialog paints from a copy fetched at launch and shows the opposite of the
+   * truth. Every window is told, because a value that is one per app should not be one per window.
+   */
+  for (const open of BrowserWindow.getAllWindows()) {
+    if (!open.isDestroyed()) open.webContents.send('settings:changed', { ...settings });
+  }
   return settings;
 }
 
@@ -1663,6 +1675,69 @@ async function runRelateSmoke(win, check) {
     await page(() => document.getElementById('theme-btn').click());
     await settle(200);
   }
+
+  /*
+   * The same answer in Hindi, from the same panel.
+   *
+   * English says "uncle"; Hindi says which uncle. So what is asserted is not that a word appeared
+   * but that the *English wording did not change* -- the Hindi is a second thing said, not a
+   * translation of the first -- and that the word comes and goes with the setting.
+   */
+  // Back to a pair that *is* related: the checks above deliberately left the panel on the
+  // "nothing connects them" answer, which has no relationship for any language to name.
+  await pick('b', relative);
+  await page(async () => {
+    await window.ftreeDesktop.setSetting('familyWords', 'hi');
+  });
+  await settle(600);
+
+  const hindi = await page(() => {
+    const box = document.getElementById('relate-answer');
+    return {
+      english: box.querySelector('.r-term')?.textContent.trim() ?? '',
+      word: box.querySelector('.r-hindi-word')?.textContent.trim() ?? '',
+      gloss: box.querySelector('.r-hindi-gloss')?.textContent.trim() ?? '',
+      lang: box.querySelector('.r-hindi')?.lang ?? '',
+      devanagari: /[\u0900-\u097F]/.test(box.querySelector('.r-hindi-word')?.textContent ?? ''),
+    };
+  });
+
+  if (hindi.word) {
+    check('the Hindi word is written in Devanagari', hindi.devanagari, hindi.word);
+    check('it carries a gloss, so somebody without the word can still read it',
+      hindi.gloss.length > 2, hindi.gloss);
+    check('and is marked as Hindi, so a screen reader does not spell it in English',
+      hindi.lang === 'hi', hindi.lang);
+  } else {
+    // Not every pair has a Hindi word, and that is a real answer rather than a failure.
+    check('no Hindi word is offered where Hindi has none, and English still answers',
+      hindi.english.length > 0, hindi.english);
+  }
+
+  // Photographed here, with the word on screen: this is the surface worth looking at, and the
+  // English one is already captured above.
+  if (process.env.FTREE_SMOKE_SHOT_HINDI && hindi.word) {
+    const shot = process.env.FTREE_SMOKE_SHOT_HINDI;
+    await fs.writeFile(shot, (await win.webContents.capturePage()).toPNG());
+    console.log(`       wrote ${shot}`);
+    await page(() => document.getElementById('theme-btn').click());
+    await settle(400);
+    const other = shot.replace(/(\.png)?$/, '-other-theme.png');
+    await fs.writeFile(other, (await win.webContents.capturePage()).toPNG());
+    console.log(`       wrote ${other}`);
+    await page(() => document.getElementById('theme-btn').click());
+    await settle(300);
+  }
+
+  await page(async () => { await window.ftreeDesktop.setSetting('familyWords', 'en'); });
+  await settle(600);
+  const back = await page(() => ({
+    english: document.getElementById('relate-answer').querySelector('.r-term')?.textContent.trim() ?? '',
+    word: document.querySelector('#relate-answer .r-hindi-word')?.textContent.trim() ?? '',
+  }));
+  check('the English wording does not change when the language does',
+    back.english === hindi.english, `"${hindi.english}" then "${back.english}"`);
+  check('and the Hindi goes away again with the setting', back.word === '', back.word);
 
   // Closing puts the whole tree back, rather than stranding somebody on a three-person chart.
   await page(() => document.getElementById('relate-close').click());
