@@ -944,24 +944,101 @@ async function runEditSmoke(win, check) {
   check('a new tree starts with somebody to name', seen.panelOpen && seen.nameField,
     seen.counts);
 
-  // Typing a name and leaving the field: one edit, one undo step.
+  /*
+   * The panel commits when asked, not when a field loses focus (#148).
+   *
+   * Typing goes into a draft; Add or Save keeps it. So these steps type the way a person does --
+   * `input` events -- and then press the button, and the assertions are about what the panel says
+   * at each point: that a new person is offered Add and Discard rather than Save and Delete, that
+   * leaving with a typed name asks first, and that nothing reaches the tree until Add.
+   */
+  const type = (id, value) => page((field, text) => {
+    const input = document.getElementById(field);
+    input.focus();
+    input.value = text;
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+  }, id, value);
+  const buttons = () => page(() => ({
+    save: document.getElementById('panel-save')?.textContent ?? null,
+    saveEnabled: document.getElementById('panel-save')?.disabled === false,
+    remove: document.getElementById('panel-remove')?.textContent ?? null,
+    status: document.getElementById('panel-status')?.textContent ?? '',
+    title: document.getElementById('panel-title')?.textContent ?? '',
+  }));
+
+  let panel = await buttons();
+  check('a person being added is offered Add, not Save', panel.save === 'Add' && panel.saveEnabled,
+    `${panel.title}: ${panel.save}`);
+  check('and Discard, not Delete, while there is nothing to lose', panel.remove === 'Discard',
+    String(panel.remove));
+
+  // A name, a date typed with spaces the way #90 asked for, and a note. The import step later needs
+  // two records that agree on enough to be a candidate and disagree on something that cannot rule
+  // the pairing out.
+  await type('f-name', 'Shyam Lal');
+  await type('f-birth', '1938');
+  await type('f-notes', 'Grandfather. Born in Ballia.');
+  await settle(150);
+
+  panel = await buttons();
+  seen = await page(() => ({ counts: document.getElementById('counts')?.textContent ?? '' }));
+  check('typing is not a commit: the tree still holds nobody named', panel.status === 'Unsaved'
+    && /1 person/.test(seen.counts), `${panel.status} — ${seen.counts}`);
+
+  // Leaving with the name typed asks first, in Android's words, and Escape is the safe answer.
+  await page(() => document.getElementById('panel-close').click());
+  await settle(200);
+  seen = await page(() => ({
+    open: document.getElementById('ask')?.open === true,
+    title: document.getElementById('ask-title')?.textContent ?? '',
+  }));
+  check('closing a panel with unsaved edits asks first', seen.open && seen.title === 'Discard changes?',
+    seen.title);
+  await page(() => document.querySelector('#ask-actions button').click());   // Keep editing
+  await settle(200);
+  seen = await page(() => ({
+    open: document.getElementById('panel')?.hidden === false,
+    name: document.getElementById('f-name')?.value ?? '',
+  }));
+  check('keeping on editing keeps every letter', seen.open && seen.name === 'Shyam Lal', seen.name);
+
+  // #90: a space is the dash, typed in, and a date that cannot be understood stops the Add.
+  await type('f-death', '19x');
+  await page(() => document.getElementById('panel-save').click());
+  await settle(200);
+  seen = await page(() => ({
+    error: document.getElementById('f-death-error')?.textContent ?? '',
+    counts: document.getElementById('counts')?.textContent ?? '',
+  }));
+  check('a date that cannot be understood is refused, in words that say how to fix it',
+    /1938-04-17/.test(seen.error), seen.error);
+  await type('f-death', '');
+  await page((id) => {
+    const input = document.getElementById(id);
+    input.value = '1938 04';
+    input.setSelectionRange(7, 7);
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+  }, 'f-birth');
+  seen = await page(() => document.getElementById('f-birth').value);
+  check('a space typed in a date becomes the dash', seen === '1938-04', seen);
+  await type('f-birth', '1938');
+  // Clearing the death date leaves "no longer living" ticked, as the phone does; untick it so the
+  // record is the living grandfather the rest of this test was written against.
   await page(() => {
-    const input = document.getElementById('f-name');
-    input.value = 'Shyam Lal';
-    input.dispatchEvent(new Event('change', { bubbles: true }));
+    const box = document.getElementById('f-deceased');
+    if (box.checked) box.click();
   });
+
+  await page(() => document.getElementById('panel-save').click());
   await settle();
 
-  // A date and a note as well as a name. The import step later needs two records that agree on
-  // enough to be a candidate and disagree on something that cannot rule the pairing out.
-  await page(() => {
-    for (const [id, value] of [['f-birth', '1938'], ['f-notes', 'Grandfather. Born in Ballia.']]) {
-      const input = document.getElementById(id);
-      input.value = value;
-      input.dispatchEvent(new Event('change', { bubbles: true }));
-    }
-  });
-  await settle();
+  panel = await buttons();
+  seen = await page(() => ({ counts: document.getElementById('counts')?.textContent ?? '' }));
+  check('Add keeps the person, and the panel says so', /1 person/.test(seen.counts)
+    && panel.status === 'Added' && panel.title === 'Edit person', `${panel.title} — ${panel.status}`);
+  check('after which it offers Save and Delete, as for anybody already in the tree',
+    panel.save === 'Save' && !panel.saveEnabled && panel.remove === 'Delete this person',
+    `${panel.save} (${panel.saveEnabled ? 'enabled' : 'disabled'}) / ${panel.remove}`);
 
   // Add a child, by name, as a new person.
   await page(() => {
@@ -1036,6 +1113,45 @@ async function runEditSmoke(win, check) {
   }));
   check('the saved file reopens with both people and the connection',
     /2 people/.test(seen.counts) && /1 connection/.test(seen.counts), seen.counts);
+
+  /*
+   * Deleting somebody with a connection asks, and offers to keep their place.
+   *
+   * Android's dialog: "Keep as unknown" beside "Delete completely", because the person you know
+   * least about is often the one joining two branches. Cancelled here, so the import that follows
+   * still merges into the two-person tree it was written for.
+   */
+  // Through the people list, named explicitly: the search box behaves differently in each view (it
+  // filters the list in place there), and the first half of this harness leaves the list up.
+  await page(() => document.querySelector('[data-view="index"]').click());
+  await settle(200);
+  await page(() => [...document.querySelectorAll('#index-list .index-row')]
+    .find((row) => row.textContent.includes('Ravi'))?.click());
+  await settle(300);
+  await page(() => document.getElementById('panel-remove').click());
+  await settle(250);
+  seen = await page(() => ({
+    // Read only while open: the dialog keeps the last question's words after it closes, and a
+    // check that read those would pass on a dialog that never appeared.
+    open: document.getElementById('ask')?.open === true,
+    title: document.getElementById('ask')?.open ? document.getElementById('ask-title').textContent : '',
+    options: [...document.querySelectorAll('.ask-option-label')].map((o) => o.textContent),
+  }));
+  check('deleting somebody with a connection asks first', seen.open && /^Delete Ravi/.test(seen.title),
+    seen.title);
+  check('and offers to keep their place in the family',
+    seen.options.join(' / ') === 'Keep as unknown / Delete completely', seen.options.join(' / '));
+  await page(() => [...document.querySelectorAll('#ask-actions button')]
+    .find((b) => b.textContent === 'Cancel')?.click());
+  await settle(200);
+  seen = await page(() => ({
+    open: document.getElementById('ask')?.open === true,
+    counts: document.getElementById('counts')?.textContent ?? '',
+  }));
+  check('and Cancel changes nothing', !seen.open && /2 people/.test(seen.counts)
+    && /1 connection/.test(seen.counts), seen.counts);
+  await page(() => document.getElementById('panel-close').click());
+  await settle(200);
 }
 
 /*

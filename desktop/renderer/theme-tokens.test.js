@@ -4,7 +4,7 @@
  * #145: four tokens -- --paper, --danger, --accent and --sunk -- were used seventeen times and
  * defined nowhere. Each use carried an inline fallback, and every fallback was a daytime colour, so
  * the page looked right by day purely by accident and drew near-white text on a near-white toast by
- * night (about 1.09:1). Nothing was looking, which is the part worth fixing.
+ * night (1.19:1). Nothing was looking, which is the part worth fixing.
  *
  * So this reads the two stylesheets the desktop loads and asserts the whole class rather than the
  * four instances: nothing used is undefined, nothing hides behind a fallback, every colour the day
@@ -118,8 +118,10 @@ const PAIRS = [
   ['--paper', '--ink', 'the ordinary toast'],
   ['--on-danger', '--danger', 'a refusal toast'],
   ['--ink', '--brass-surface', 'a warning toast'],
-  ['--danger', '--raised', '"Delete this person" on the panel'],
+  ['--danger', '--raised', 'a date problem, under its field'],
   ['--ink', '--raised', 'the panel itself'],
+  ['--inverse-accent', '--ink', 'the Undo button on a toast'],
+  ['--danger', '--bone-dim', '"Delete this person", in the foot of the panel'],
 ];
 
 for (const [label, overrides] of [['day', new Map()], ['night', DARK]]) {

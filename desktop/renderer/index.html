@@ -203,9 +203,22 @@
     </aside>
 
     <!-- ------------------------------------------------------------ one person, editable -->
-    <aside class="panel edit-panel" id="panel" hidden aria-label="Edit this person">
-      <button type="button" class="panel-close" id="panel-close" aria-label="Close">&times;</button>
+    <!--
+      Three parts, and only the middle one scrolls. The heading says whether this is somebody being
+      added or somebody being edited, and the actions stay in reach however long the family list
+      below the form grows -- a Save button that has scrolled out of sight is one nobody presses.
+    -->
+    <aside class="panel edit-panel" id="panel" hidden aria-labelledby="panel-title">
+      <div class="panel-head">
+        <h2 class="panel-title" id="panel-title">Edit person</h2>
+        <button type="button" class="panel-close" id="panel-close" aria-label="Close">&times;</button>
+      </div>
       <div class="panel-body" id="panel-body"></div>
+      <div class="panel-actions" id="panel-actions">
+        <button type="button" class="btn-danger" id="panel-remove">Delete this person</button>
+        <p class="panel-status" id="panel-status" aria-live="polite"></p>
+        <button type="button" class="btn primary" id="panel-save">Save</button>
+      </div>
     </aside>
 
     <div class="busy" id="busy" hidden><span></span> Reading the file&hellip;</div>
@@ -355,8 +368,29 @@
     </div>
   </dialog>
 
+  <!-- ------------------------------------------------------------ a question before an act -->
+  <!--
+    One dialog for the app's two short questions -- "Discard changes?" and "Delete this person?" --
+    filled in by `ask()` in app.js. It borrows the review dialog's box so every question this app
+    asks looks like the same app asking, and it is native for the same reason: the focus trap and
+    Escape come with it, and Escape here always means the safe answer.
+  -->
+  <dialog class="review ask" id="ask" aria-labelledby="ask-title" aria-describedby="ask-body">
+    <div class="review-head" id="ask-head" tabindex="-1">
+      <h2 class="review-title" id="ask-title"></h2>
+      <p class="review-lead" id="ask-body"></p>
+    </div>
+    <div class="ask-options" id="ask-options"></div>
+    <div class="review-foot">
+      <div class="review-actions" id="ask-actions"></div>
+    </div>
+  </dialog>
+
   <!-- Said once, where the eye already is, and gone again. Never a dialog for a saved file. -->
-  <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+  <div class="toast" id="toast" role="status" aria-live="polite" hidden>
+    <span class="toast-text" id="toast-text"></span>
+    <button type="button" class="toast-action" id="toast-action" hidden></button>
+  </div>
 </div>
 
 <script type="module" src="app.js"></script>
