@@ -154,7 +154,9 @@
 .wordmark rect { fill: var(--forest); }
 .wordmark circle { fill: var(--bone); }
 .wordmark path { stroke: var(--bone); stroke-width: 1.5; fill: none; }
-.wordmark:hover b { text-decoration: underline; text-underline-offset: 3px; }
+/* Scoped to the element, not the class: the desktop app uses the same class on a <span> that goes
+   nowhere, and a link affordance on something that is not a link is a promise it cannot keep (#146). */
+a.wordmark:hover b { text-decoration: underline; text-underline-offset: 3px; }
 
 .bar-tag {
   font-family: var(--mono);
