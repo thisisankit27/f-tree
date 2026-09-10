@@ -167,6 +167,35 @@
       <div class="compact-inner" id="compact-inner"></div>
     </section>
 
+    <!-- ------------------------------------------------------------ how two people are related -->
+    <!--
+      The same markup and the same class names as the website's panel, on purpose: `.relate`,
+      `.r-term` and `.r-chain` are already styled in playground.css, which this app loads, so the
+      two shells cannot drift into looking like different features. The engine underneath is the
+      same `relate` as well; what differs is only that this one is seeded from whoever is selected.
+    -->
+    <aside class="relate" id="relate" hidden aria-labelledby="relate-heading">
+      <button type="button" class="panel-close" id="relate-close" aria-label="Close">&times;</button>
+      <h2 id="relate-heading">How are two people related?</h2>
+      <p class="relate-help">
+        Pick two people. The answer works through marriages and adoptions as well as blood, so it
+        can explain a connection no single word covers.
+      </p>
+      <div class="relate-picks">
+        <div class="relate-pick" data-slot="a">
+          <label for="relate-a">First person</label>
+          <input type="search" id="relate-a" autocomplete="off" placeholder="Search">
+          <ul class="search-results" id="relate-a-results" hidden></ul>
+        </div>
+        <div class="relate-pick" data-slot="b">
+          <label for="relate-b">Second person</label>
+          <input type="search" id="relate-b" autocomplete="off" placeholder="Search">
+          <ul class="search-results" id="relate-b-results" hidden></ul>
+        </div>
+      </div>
+      <div class="relate-answer" id="relate-answer"></div>
+    </aside>
+
     <!-- ------------------------------------------------------------ one person, editable -->
     <aside class="panel edit-panel" id="panel" hidden aria-label="Edit this person">
       <button type="button" class="panel-close" id="panel-close" aria-label="Close">&times;</button>

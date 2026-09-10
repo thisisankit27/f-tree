@@ -14,6 +14,7 @@ import {
 } from './model.js';
 import { layoutArchive } from './layout.js';
 import { Chart } from './chart.js';
+import { searchPeople as findPeople } from './search.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -326,24 +327,8 @@ function renderPanel(id) {
 
 /* ------------------------------------------------------------------ search */
 
-function searchPeople(query, limit = 14) {
-  if (!state.graph) return [];
-  const q = query.trim().toLowerCase();
-  if (!q) return [];
-  const hits = [];
-  for (const person of state.graph.people.values()) {
-    const name = person.name?.toLowerCase() ?? '';
-    let rank = -1;
-    if (name.startsWith(q)) rank = 0;
-    else if (name.includes(q)) rank = 1;
-    else if (!person.name && ('unknown'.startsWith(q) || 'unnamed'.startsWith(q))) rank = 2;
-    else if ((person.birthDate ?? '').startsWith(q) || (person.deathDate ?? '').startsWith(q)) rank = 3;
-    if (rank >= 0) hits.push({ person, rank });
-  }
-  hits.sort((a, b) => a.rank - b.rank
-    || (a.person.name ?? '').localeCompare(b.person.name ?? ''));
-  return hits.slice(0, limit).map((h) => h.person);
-}
+/** The shared one, over this page's graph. Moved to search.js so the desktop uses the same. */
+const searchPeople = (query, limit = 14) => findPeople(state.graph, query, limit);
 
 function renderResults(listEl, people, onPick) {
   if (!people.length) {

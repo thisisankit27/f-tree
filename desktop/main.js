@@ -449,6 +449,8 @@ function buildMenu(win) {
         // Third, and third in the numbering, so nobody's Cmd+2 changes meaning under them.
         { label: 'Compact', accelerator: 'CmdOrCtrl+3', click: () => win.webContents.send('menu:command', 'view:compact') },
         { type: 'separator' },
+        { label: 'How are two people related?', accelerator: 'CmdOrCtrl+R', click: () => win.webContents.send('menu:command', 'view:relate') },
+        { type: 'separator' },
         { label: 'Zoom in', accelerator: 'CmdOrCtrl+Plus', click: () => win.webContents.send('menu:command', 'zoom:in') },
         { label: 'Zoom out', accelerator: 'CmdOrCtrl+-', click: () => win.webContents.send('menu:command', 'zoom:out') },
         { label: 'Fit to window', accelerator: 'CmdOrCtrl+0', click: () => win.webContents.send('menu:command', 'zoom:fit') },
@@ -1066,6 +1068,168 @@ async function runCompactSmoke(win, check) {
   await settle(300);
 }
 
+/*
+ * How two people are related, asked in the app.
+ *
+ * The engine has a golden of its own (`kinship-golden.txt`), so nothing here re-checks *what* the
+ * answer is. What it checks is the panel's own decisions: that the question is seeded from whoever
+ * was selected, that the chart is cut down to the line joining the two, that the whole tree comes
+ * back when the question is closed, and -- the one worth having -- that two people the file does
+ * not connect are told exactly that rather than shown an empty box.
+ */
+async function runRelateSmoke(win, check) {
+  const page = (fn, ...args) => win.webContents.executeJavaScript(
+    `(${fn.toString()})(${args.map((a) => JSON.stringify(a)).join(',')})`);
+  const settle = (ms = 400) => new Promise((r) => setTimeout(r, ms));
+
+  console.log('\n  -- how two people are related --');
+
+  // Somebody selected first, so the seeding is checked rather than assumed. The people list is the
+  // reliable way to click a person: the chart needs coordinates.
+  win.webContents.send('menu:command', 'view:index');
+  await settle();
+  const seeded = await page(() => {
+    const row = document.querySelector('#index-list .index-row');
+    row?.click();
+    return {
+      selected: document.getElementById('panel')?.hidden === false,
+      name: row?.querySelector('.who')?.textContent.trim() ?? '',
+    };
+  });
+  await settle();
+
+  win.webContents.send('menu:command', 'view:relate');
+  await settle(600);
+
+  const opened = await page(() => ({
+    shown: document.getElementById('relate').hidden === false,
+    a: document.getElementById('relate-a').value,
+    editorOpen: document.getElementById('panel').hidden === false,
+  }));
+
+  // The bar is deliberately not a way in -- see the note in app.js. Pinned, so that adding one
+  // later is a decision somebody makes on purpose rather than a header that quietly grows a row.
+  const header = await page(() => ({
+    height: Math.round(document.querySelector('header').getBoundingClientRect().height),
+    button: Boolean(document.getElementById('relate-btn')),
+  }));
+  check('the bar stays one row', header.height <= 60 && !header.button, JSON.stringify(header));
+
+  check('the relation finder opens', opened.shown, String(opened.shown));
+  check('it is seeded from the person that was selected',
+    seeded.selected && opened.a === seeded.name, `selected "${seeded.name}", seeded "${opened.a}"`);
+  check('one question at a time: the editor stands down', !opened.editorOpen,
+    String(opened.editorOpen));
+
+  const chartSize = () => page(() => document.getElementById('canvas').dataset.people ?? '');
+
+  /** Types a name into a picker and takes the first person it offers. */
+  const pick = async (slot, name) => {
+    const offered = await page((s, n) => {
+      const input = document.getElementById(`relate-${s}`);
+      input.value = n;
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+      return document.querySelectorAll(`#relate-${s}-results li button`).length;
+    }, slot, name);
+    await settle(250);
+    await page((s) => document.querySelector(`#relate-${s}-results li button`)?.click(), slot);
+    await settle(500);
+    return offered;
+  };
+
+  // A relative of the seeded person: whoever their panel listed. Guaranteed to be connected.
+  const relative = await page(() => {
+    const rows = [...document.querySelectorAll('#index-list .index-row')];
+    const first = document.getElementById('relate-a').value;
+    const group = rows.find((r) => r.querySelector('.who')?.textContent.trim() === first)
+      ?.closest('li')?.parentElement;
+    const other = rows
+      .map((r) => r.querySelector('.who')?.textContent.trim())
+      .find((n) => n && n !== first);
+    return other ?? '';
+  });
+
+  const offered = await pick('b', relative);
+  check('the picker offers people by name', offered > 0, `${offered} offered for "${relative}"`);
+
+  const answer = await page(() => {
+    const box = document.getElementById('relate-answer');
+    return {
+      sentence: box.querySelector('.r-term')?.textContent.trim() ?? '',
+      unrelated: Boolean(box.querySelector('.r-term.r-none')),
+      steps: box.querySelectorAll('.r-chain li').length,
+      links: box.querySelectorAll('.r-chain .link-btn').length,
+      scripted: box.innerHTML.includes('<script'),
+    };
+  });
+
+  check('the question is answered', answer.steps > 0 || answer.unrelated,
+    `${answer.steps} steps, sentence "${answer.sentence}"`);
+  check('the chain starts with the first person and every step after is clickable',
+    answer.steps === answer.links + 1, `${answer.steps} rows, ${answer.links} clickable`);
+  check('no markup is built out of a name', !answer.scripted, String(answer.scripted));
+
+  /*
+   * Two people the file does not connect.
+   *
+   * The sample family deliberately contains people connected to nobody -- it is the reason the
+   * people list exists at all -- so this case is reachable, and it is the one where an empty box
+   * would be worst. The claim is that the app says the *record* is silent, not that they are
+   * unrelated, which no file can know.
+   */
+  const alone = await page(() => {
+    const headings = [...document.querySelectorAll('#index-list .index-group')];
+    const isolated = headings.find((h) => /Not connected/.test(h.textContent));
+    return isolated?.nextElementSibling?.querySelector('.who')?.textContent.trim() ?? '';
+  });
+
+  if (alone) {
+    await pick('b', alone);
+    const said = await page(() => {
+      const note = document.getElementById('relate-answer').querySelector('.r-term');
+      return {
+        text: note?.textContent.trim() ?? '',
+        flagged: note?.classList.contains('r-none') ?? false,
+        steps: document.querySelectorAll('#relate-answer .r-chain li').length,
+      };
+    });
+    check('two people the file does not connect are told exactly that',
+      said.flagged && /does not say how/.test(said.text), said.text);
+    check('and are not shown a chain that does not exist', said.steps === 0, `${said.steps} steps`);
+  } else {
+    check('the sample family has somebody connected to nobody', false,
+      'none found — this case went unchecked');
+  }
+
+  if (process.env.FTREE_SMOKE_SHOT_RELATE) {
+    const shot = process.env.FTREE_SMOKE_SHOT_RELATE;
+    // Back to a real answer for the picture: the unrelated case is checked above, not photographed.
+    await pick('b', relative);
+    await fs.writeFile(shot, (await win.webContents.capturePage()).toPNG());
+    console.log(`       wrote ${shot}`);
+
+    await page(() => document.getElementById('theme-btn').click());
+    await settle(300);
+    const other = shot.replace(/(\.png)?$/, '-other-theme.png');
+    await fs.writeFile(other, (await win.webContents.capturePage()).toPNG());
+    console.log(`       wrote ${other}`);
+    await page(() => document.getElementById('theme-btn').click());
+    await settle(200);
+  }
+
+  // Closing puts the whole tree back, rather than stranding somebody on a three-person chart.
+  await page(() => document.getElementById('relate-close').click());
+  await settle(600);
+  const closed = await page(() => ({
+    shown: document.getElementById('relate').hidden === false,
+    a: document.getElementById('relate-a').value,
+  }));
+  check('closing the question puts the panel away', !closed.shown, String(closed.shown));
+
+  win.webContents.send('menu:command', 'view:chart');
+  await settle(300);
+}
+
 async function runImportSmoke(win, check) {
   const page = (fn, ...args) => win.webContents.executeJavaScript(
     `(${fn.toString()})(${args.map((a) => JSON.stringify(a)).join(',')})`);
@@ -1300,6 +1464,8 @@ async function runSmoke(win, file) {
   if (process.env.FTREE_SMOKE_SAVE_TO) await runEditSmoke(win, check);
 
   if (process.env.FTREE_SMOKE_COMPACT) await runCompactSmoke(win, check);
+
+  if (process.env.FTREE_SMOKE_RELATE) await runRelateSmoke(win, check);
 
   if (process.env.FTREE_SMOKE_IMPORT) await runImportSmoke(win, check);
 
