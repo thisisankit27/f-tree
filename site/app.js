@@ -55,17 +55,24 @@
   }
 
   /*
-   * The newest desktop release.
+   * The newest *stable* desktop release.
    *
    * Found by its tag rather than by being newest, because desktop releases are published as
    * pre-releases on purpose - it is what keeps `releases/latest` answering with the newest
    * Android release for the app's own updater. See docs/desktop.md.
+   *
+   * And only a tag with no suffix. GitHub's pre-release flag cannot say "beta" for the desktop -
+   * every desktop release carries it - so the suffix does: `desktop-v0.6.0-beta.1` is a beta, as the
+   * desktop's own updater reads it (desktop/update.js). Matching any `desktop-v` tag would hand a
+   * beta to everybody who clicks Download, which is a stable release in all but name.
    */
+  var STABLE_DESKTOP = /^desktop-v\d+(\.\d+)*$/;
+
   function desktopFrom(releases) {
     var rel = null;
     for (var i = 0; i < releases.length; i++) {
       if (releases[i].draft) continue;
-      if (/^desktop-v/.test(releases[i].tag_name || '')) { rel = releases[i]; break; }
+      if (STABLE_DESKTOP.test(releases[i].tag_name || '')) { rel = releases[i]; break; }
     }
     if (!rel) return null;
 
