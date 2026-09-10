@@ -58,6 +58,13 @@ jobs:
       # The layout is checked in both orientations here as well as in the site workflow. Both
       # shells draw rows today, but the engine keeps columns and so does this check: an
       # orientation nobody currently ships is exactly the one that rots unnoticed.
+      # Pillow, because `make_sample_tree.py` now refuses to run without it. It used to carry on and
+      # write a fixture with no photographs in it, which no runner has ever had the library to draw --
+      # so every check that reads the sample tree has, until now, been reading a tree with none. A
+      # photograph is the hardest thing in the format to round-trip and the one CI never saw.
+      - name: Pillow, for the photographs in the sample tree
+        run: python3 -m pip install --break-system-packages pillow || python3 -m pip install pillow
+
       - name: Check the layout, rows and columns
         run: |
           python3 tools/make_sample_tree.py "$RUNNER_TEMP/fixtures"
@@ -141,6 +148,14 @@ jobs:
       # uploaded, reading the asar and the staged page that users will actually get. Building a
       # tree and saving it is part of it: a package can start and still be missing the half of
       # itself that only a real edit touches.
+      # Pillow, because `make_sample_tree.py` now refuses to run without it. It used to carry on and
+      # write a fixture with no photographs in it, which no runner has ever had the library to draw --
+      # so every check that reads the sample tree has, until now, been reading a tree with none. A
+      # photograph is the hardest thing in the format to round-trip and the one CI never saw.
+      - name: Pillow, for the photographs in the sample tree
+        if: matrix.os == 'ubuntu-latest'
+        run: python3 -m pip install --break-system-packages pillow || python3 -m pip install pillow
+
       - name: Start the packaged app and build a tree in it
         if: matrix.os == 'ubuntu-latest'
         working-directory: desktop

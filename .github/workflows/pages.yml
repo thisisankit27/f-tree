@@ -54,6 +54,13 @@ jobs:
       - name: The engine's rules, ported out of the Kotlin
         run: node --test "site/playground/*.test.mjs"
 
+      # Pillow, because `make_sample_tree.py` now refuses to run without it. It used to carry on and
+      # write a fixture with no photographs in it, which no runner has ever had the library to draw --
+      # so every check that reads the sample tree has, until now, been reading a tree with none. A
+      # photograph is the hardest thing in the format to round-trip and the one CI never saw.
+      - name: Pillow, for the photographs in the sample tree
+        run: python3 -m pip install --break-system-packages pillow || python3 -m pip install pillow
+
       - name: Check the viewer parses and lays out a real archive
         run: |
           set -euo pipefail
