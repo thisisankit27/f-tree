@@ -2040,17 +2040,54 @@ async function runSmoke(win, file) {
 
   await runMenuSmoke(win, check);
 
+  /*
+   * Back to the sample family before each feature section.
+   *
+   * `runEditSmoke` clicks "start a new tree", so every section after it was reading a two-person
+   * tree built from nothing rather than the 23-person fixture whose contents its assertions
+   * describe. It went unseen because each section was only ever run on its own, with its own gate,
+   * while it was being written -- and CI set none of those four gates (#140), so until now no run
+   * had ever contained both halves at once.
+   *
+   * Turning the gates on made two assertions fail immediately, and both were right to:
+   *
+   *   "the sample family has somebody connected to nobody"  -- a tree of two related people has not
+   *   "nobody else's photograph is dropped with it"         -- nor has it four to prune around
+   *
+   * So each section reopens the fixture it was written against instead of inheriting whatever the
+   * section before it left on screen. Sections that share state by accident are the reason a suite
+   * passes in one order and fails in another.
+   */
+  const reopenSample = async () => {
+    await openInto(win, file);
+    await new Promise((resolve) => setTimeout(resolve, 500));
+  };
+
   if (process.env.FTREE_SMOKE_SAVE_TO) await runEditSmoke(win, check);
 
-  if (process.env.FTREE_SMOKE_COMPACT) await runCompactSmoke(win, check);
-
-  if (process.env.FTREE_SMOKE_RELATE) await runRelateSmoke(win, check);
-
-  if (process.env.FTREE_SMOKE_SETTINGS) await runSettingsSmoke(win, check);
-
-  if (process.env.FTREE_SMOKE_PHOTO) await runPhotoSmoke(win, check);
-
+  // Import stays directly after the edit: merging a relative's file into *the tree just built* is
+  // the case it was written for, and it is the one section that wants what the edit left behind.
   if (process.env.FTREE_SMOKE_IMPORT) await runImportSmoke(win, check);
+
+  if (process.env.FTREE_SMOKE_COMPACT) {
+    await reopenSample();
+    await runCompactSmoke(win, check);
+  }
+
+  if (process.env.FTREE_SMOKE_RELATE) {
+    await reopenSample();
+    await runRelateSmoke(win, check);
+  }
+
+  if (process.env.FTREE_SMOKE_SETTINGS) {
+    await reopenSample();
+    await runSettingsSmoke(win, check);
+  }
+
+  if (process.env.FTREE_SMOKE_PHOTO) {
+    await reopenSample();
+    await runPhotoSmoke(win, check);
+  }
 
   if (process.env.FTREE_SMOKE_SHOT) {
     const image = await win.webContents.capturePage();

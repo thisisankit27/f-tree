@@ -87,6 +87,14 @@ jobs:
           # unit-tested, but the thing that must not regress is that it *asks* -- a strong match
           # merges unless it is refused, and a merge is the one act here nobody can undo by hand.
           FTREE_SMOKE_IMPORT: ${{ runner.temp }}/fixtures/a-cousins-tree.ftree
+          # The four feature sections. These ran nowhere for four phases of work -- 52 of the
+          # harness's 95 assertions -- because the gates were added to the harness and not to here,
+          # which is a thing no file-level guard can see. `smoke-gates.test.js` now fails when the
+          # two disagree, so this list cannot fall behind the harness again.
+          FTREE_SMOKE_COMPACT: '1'
+          FTREE_SMOKE_RELATE: '1'
+          FTREE_SMOKE_SETTINGS: '1'
+          FTREE_SMOKE_PHOTO: '1'
         run: xvfb-run -a npx electron . --no-sandbox
 
   package:
@@ -140,6 +148,19 @@ jobs:
           FTREE_SMOKE: ${{ runner.temp }}/fixtures/sample-family.ftree
           FTREE_SMOKE_SAVE_TO: ${{ runner.temp }}/built-in-the-package.ftree
           FTREE_SMOKE_IMPORT: ${{ runner.temp }}/fixtures/a-cousins-tree.ftree
+          # The updater against the packaged app, not only the checkout. The rule below has no
+          # exceptions on purpose -- and asking for this one turned out to be right rather than
+          # pedantic: the regression it guards reported itself as ERR_BLOCKED_BY_CLIENT, and the
+          # page-level refusal it reaches through is set up from a file that packaging moves.
+          FTREE_SMOKE_NETWORK: '1'
+          # Set here too, and this is the copy that matters most: this is the only run that reads the
+          # *staged* page rather than the checkout, and a page staged wrong is what shipped in 0.4.0.
+          # A feature whose assertions only run against the checkout is a feature that can be missing
+          # from the package and still report green.
+          FTREE_SMOKE_COMPACT: '1'
+          FTREE_SMOKE_RELATE: '1'
+          FTREE_SMOKE_SETTINGS: '1'
+          FTREE_SMOKE_PHOTO: '1'
         run: |
           python3 ../tools/make_sample_tree.py "$RUNNER_TEMP/fixtures"
           xvfb-run -a ./dist/linux-unpacked/f-tree-desktop --no-sandbox
