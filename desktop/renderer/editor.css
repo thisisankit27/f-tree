@@ -1001,3 +1001,143 @@
 .editor .prefs-control:disabled { opacity: .38; cursor: default; }
 
 .editor .prefs-row:has(.prefs-check:disabled) .prefs-label { color: var(--ink-faint); }
+
+/* ------------------------------------------------------------------ photographs */
+
+/*
+ * A face is shown in a circle everywhere in this app, and stored as a square.
+ *
+ * The circle is a matter of display, not of storage: a round image would have to be a PNG with an
+ * alpha channel, several times the size of the JPEG, to save a shape that every place showing it
+ * already draws for itself. So the stored file is the square, and `border-radius` does the rest.
+ */
+
+/*
+ * The face beside its two buttons, on the form's own left edge.
+ *
+ * Stated in full because this element also carries `.field`, which sets a column direction for
+ * every other row of the form -- inheriting that quietly gave a centred stack that broke the left
+ * edge every other label lines up on.
+ */
+.editor .photo-field {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 14px;
+  margin-bottom: 4px;
+}
+
+.editor .photo-face {
+  width: 64px;
+  height: 64px;
+  flex: none;
+  padding: 0;
+  border: 1px solid var(--rule);
+  border-radius: 50%;
+  overflow: hidden;
+  background: var(--bone-dim);
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+}
+
+.editor .photo-face img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+.editor .photo-face:hover, .editor .photo-face:focus-visible {
+  border-color: var(--forest);
+  outline: none;
+}
+
+/* No photograph: initials, as the chart draws them, rather than an empty hole or a stock avatar. */
+.editor .photo-face.empty {
+  cursor: default;
+  font-family: var(--serif);
+  font-size: 21px;
+  font-weight: 600;
+  color: var(--ink-faint);
+}
+
+.editor .photo-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.editor .photo-actions .btn { font-size: 12px; padding: 7px 13px; }
+
+/* ------------------------------------------------------------ a photograph, whole */
+
+.editor .photo-view[open] {
+  border: 1px solid var(--rule);
+  border-radius: 14px;
+  background: var(--raised);
+  color: var(--ink);
+  padding: 16px;
+  max-width: min(560px, calc(100vw - 48px));
+  box-shadow: var(--shadow);
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+}
+
+.editor .photo-view::backdrop { background: rgba(10, 28, 18, .58); backdrop-filter: blur(2px); }
+
+/*
+ * Uncropped, and that is the whole point of this dialog.
+ *
+ * Every other surface squares the picture into a circle. A square cut from a group photograph is
+ * often the wrong square, and this is where somebody checks what the file actually holds.
+ */
+.editor .photo-view img {
+  max-width: 100%;
+  max-height: min(62vh, 460px);
+  border-radius: 6px;
+  display: block;
+}
+
+.editor .photo-view-who {
+  font-family: var(--serif);
+  font-size: 15px;
+  color: var(--ink-soft);
+  margin: 0;
+}
+
+/* ------------------------------------------------------------ framing */
+
+.editor .frame[open] { width: min(440px, calc(100vw - 48px)); }
+.editor .frame-body { display: grid; place-items: center; padding: 20px; }
+
+/*
+ * The stage is the square that will be kept, and the picture slides behind it.
+ *
+ * Deliberately not a crop tool: there is no zoom and no free rectangle. The square is always the
+ * largest that fits, and dragging only chooses where along the long edge it sits -- enough to move
+ * a face out of a corner, and well short of rebuilding an image editor.
+ */
+.editor .frame-stage {
+  position: relative;
+  width: min(300px, 60vw);
+  aspect-ratio: 1;
+  overflow: hidden;
+  border-radius: 8px;
+  background: var(--bone-dim);
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+
+.editor .frame-stage:active { cursor: grabbing; }
+.editor .frame-stage:focus-visible { outline: 2px solid var(--forest); outline-offset: 2px; }
+
+.editor .frame-stage img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  pointer-events: none;
+}
+
+/* The circle the face will actually be shown in, drawn over the square being kept. */
+.editor .frame-mask {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  box-shadow: 0 0 0 9999px rgba(10, 28, 18, .34);
+  pointer-events: none;
+}

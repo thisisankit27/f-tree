@@ -27,6 +27,42 @@ which multiply a chart's width far faster than they add to what it tells you. Cl
 the reading to that person. Where the record goes further than the reading, it says so and offers
 to go on.
 
+## Photographs
+
+A face in the person panel, and **click it to see the photograph whole** — every other surface shows
+it inside a circle, and a square cut from a group photograph is often the wrong square, so this is
+where somebody checks what the file actually holds.
+
+Add, replace or remove from the same panel. The picker returns **bytes, not a path**: a path is a
+promise about somebody else's filesystem that this app cannot keep, and a tree full of pictures that
+silently stop loading is worse than one with none.
+
+The renderer does the encoding, and the numbers are not this app's to choose:
+
+| | |
+|---|---|
+| square about the drag, longest edge | **512px** — `PhotoStore.STORED_EDGE` |
+| JPEG quality | **85** — `PhotoStore.QUALITY` |
+| smaller than 512 | left alone, never scaled up |
+
+A desktop-written file has to be indistinguishable from a phone-written one, because the same tree is
+carried back and forth and a photograph that changes size and weight every crossing is a file that
+grows without anybody adding anything.
+
+**Framing is not cropping.** The square is always the largest that fits, and dragging only chooses
+where along the long edge it sits — enough to move a face out of a corner, and well short of
+rebuilding an image editor. Arrow keys do it too. The circle drawn over the square is the shape every
+surface will show it in; it is not stored that way, because a round image would need a PNG with an
+alpha channel, several times the size, to save a shape that everything showing it already draws.
+
+Stored as `photos/<uuid>.jpg` under a name nothing else in the tree is using — import brings
+photographs in under names chosen by another machine, and two people sharing an entry means replacing
+one person's face replaces the other's. `photosStillUsed()` prunes on save, so a removed photograph
+stops riding along in every future write.
+
+Honours **Photographs on the chart**: when it is off the chart is passed *no archive at all*, rather
+than the real one and an instruction to ignore it.
+
 ## Settings
 
 `Updates > Preferences…`, on `Ctrl+,`. Family words, photographs on the chart, appearance, and the

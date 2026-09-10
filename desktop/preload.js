@@ -21,6 +21,19 @@ contextBridge.exposeInMainWorld('ftreeDesktop', {
    * clears what the last check found -- and turning betas on asks a question the reader can answer
    * no to. A dialog that assumed its own value would then show the opposite of the truth.
    */
+  /**
+   * True only when the app was started by the smoke harness.
+   *
+   * The page hangs a few test hooks on `window` when this is set -- reaching into module scope from
+   * `executeJavaScript` is otherwise impossible, because app.js is a module. Read from the
+   * environment of the *main* process, which a page cannot set, so a build somebody is using never
+   * carries them.
+   */
+  smoke: Boolean(process.env.FTREE_SMOKE),
+
+  /** Opens the picture picker and hands back the bytes, or null if nobody chose one. */
+  choosePhoto: () => ipcRenderer.invoke('photo:choose'),
+
   settings: () => ipcRenderer.invoke('settings:get'),
   setSetting: (key, value) => ipcRenderer.invoke('settings:set', { key, value }),
 

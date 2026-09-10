@@ -245,6 +245,43 @@
     </div>
   </dialog>
 
+  <!-- ------------------------------------------------------------ a photograph, whole -->
+  <!--
+    Uncropped, on purpose. Every other place this app shows a face shows it inside a circle, and a
+    square cut from a group photograph is often the wrong square. This is where somebody checks.
+  -->
+  <dialog class="photo-view" id="photo-view" aria-label="Photograph">
+    <img id="photo-view-img" alt="">
+    <p class="photo-view-who" id="photo-view-who"></p>
+    <button type="button" class="btn quiet" id="photo-view-close">Close</button>
+  </dialog>
+
+  <!-- ------------------------------------------------------------ framing a photograph -->
+  <!--
+    Not a crop dialog. The square is always the largest that fits and the drag only decides where
+    along the long edge it sits, which is enough to move a face out of a corner and stops well short
+    of rebuilding an image editor.
+  -->
+  <dialog class="review frame" id="frame" aria-labelledby="frame-title">
+    <div class="review-head" id="frame-head" tabindex="-1">
+      <h2 class="review-title" id="frame-title">Frame the photograph</h2>
+      <p class="review-lead" id="frame-lead">Drag to choose what the circle shows.</p>
+    </div>
+    <div class="review-body frame-body">
+      <div class="frame-stage" id="frame-stage">
+        <img id="frame-img" alt="" draggable="false">
+        <div class="frame-mask" aria-hidden="true"></div>
+      </div>
+    </div>
+    <div class="review-foot">
+      <p class="review-outcome" id="frame-outcome" aria-live="polite"></p>
+      <div class="review-actions">
+        <button type="button" class="btn quiet" id="frame-cancel">Cancel</button>
+        <button type="button" class="btn primary" id="frame-save">Use this photograph</button>
+      </div>
+    </div>
+  </dialog>
+
   <!-- ------------------------------------------------------------ preferences -->
   <!--
     Modelled on the review dialog above, and a <dialog> for the same reason: it is a question about
