@@ -386,21 +386,85 @@ function standInAncestors(graph) {
   return groupOf;
 }
 
-/** Ancestors of a person, with the number of generations up to each. */
-function ancestorDistances(graph, id, standIns) {
-  const dist = new Map([[id, 0]]);
+/**
+ * The stand-ins for one graph, worked out once.
+ *
+ * `standInAncestors` walks every explicit sibling edge in the file and unions them into groups. It
+ * was being called on every `relate`, and again inside `bloodTerm` for the same graph, which on a
+ * large tree is the same union-find run over and over to produce the same answer.
+ *
+ * Hung off the graph rather than kept in a module-level cache, so it lives exactly as long as the
+ * graph does. `buildGraph` makes a new one on every edit, and a cache that outlived an edit would
+ * answer about a tree that no longer exists.
+ */
+function standInsFor(graph) {
+  if (!graph.__standIns) {
+    Object.defineProperty(graph, '__standIns', {
+      value: standInAncestors(graph), enumerable: false, writable: false,
+    });
+  }
+  return graph.__standIns;
+}
+
+/**
+ * Ancestors of a person: how many generations up each one is, and the way there.
+ *
+ * The route is what this adds. The arithmetic that names an English relationship needs only two
+ * numbers -- steps up and steps down -- and throws the path away, but Hindi asks questions the
+ * numbers cannot answer: which side of the family, and through whom. मामा and चाचा are both
+ * "uncle" at (2, 1); which word is right depends on whether the route ran through a mother or a
+ * father.
+ *
+ * Nothing reads `route` yet. It is here so that the search happens once, in one place, rather than
+ * being written a third time when the Hindi vocabulary lands.
+ */
+function ancestorRoutes(graph, id, standIns) {
+  const routes = new Map([[id, { up: 0, route: [] }]]);
   const queue = [id];
   while (queue.length) {
     const current = queue.shift();
-    const step = dist.get(current) + 1;
+    const here = routes.get(current);
     const above = graph.parents(current).map((p) => p.id);
     const standIn = standIns.get(current);
     if (standIn !== undefined) above.push(standIn);
     for (const parent of above) {
-      if (!dist.has(parent)) { dist.set(parent, step); queue.push(parent); }
+      if (routes.has(parent)) continue;
+      routes.set(parent, { up: here.up + 1, route: [...here.route, parent] });
+      queue.push(parent);
     }
   }
-  return dist;
+  return routes;
+}
+
+/**
+ * The ancestor two people are best measured through, or null if they share none.
+ *
+ * "Best" is the nearest -- fewest steps in total -- and where two are equally near, the most
+ * symmetric pair of distances. That second rule matters in a family that has married within itself:
+ * two people can share a grandfather on one side and a great-great-grandmother on another, and
+ * naming the relationship through the nearer one is what makes them cousins rather than something
+ * nobody says.
+ *
+ * This loop was written out twice, here and in `bloodTerm`, character for character. Two copies of
+ * a tie-break rule is one copy waiting to be changed alone.
+ */
+function nearestSharedAncestor(graph, fromId, toId, standIns) {
+  const mine = ancestorRoutes(graph, fromId, standIns);
+  const theirs = ancestorRoutes(graph, toId, standIns);
+
+  let best = null;
+  for (const [ancestor, here] of mine) {
+    const there = theirs.get(ancestor);
+    if (there === undefined) continue;
+    const u = here.up;
+    const d = there.up;
+    const score = u + d;
+    if (!best || score < best.score
+        || (score === best.score && Math.abs(u - d) < Math.abs(best.u - best.d))) {
+      best = { ancestor, u, d, score, ascent: here.route, descent: there.route };
+    }
+  }
+  return best;
 }
 
 /**
@@ -416,22 +480,9 @@ export function relate(graph, fromId, toId) {
   const to = graph.people.get(toId);
   if (!graph.people.get(fromId) || !to) return { kind: 'none' };
 
-  let term = null;
-  const standIns = standInAncestors(graph);
-  const mine = ancestorDistances(graph, fromId, standIns);
-  const theirs = ancestorDistances(graph, toId, standIns);
-  let best = null;
-  for (const [ancestor, u] of mine) {
-    const d = theirs.get(ancestor);
-    if (d === undefined) continue;
-    // Prefer the nearest shared ancestor, then the most symmetric pair of distances.
-    const score = u + d;
-    if (!best || score < best.score
-        || (score === best.score && Math.abs(u - d) < Math.abs(best.u - best.d))) {
-      best = { ancestor, u, d, score };
-    }
-  }
-  if (best) term = kinshipTerm(best.u, best.d, to);
+  const standIns = standInsFor(graph);
+  const best = nearestSharedAncestor(graph, fromId, toId, standIns);
+  const term = best ? kinshipTerm(best.u, best.d, to) : null;
 
   const path = shortestPath(graph, fromId, toId);
   if (!path) return { kind: 'none', term, path, via: best?.ancestor ?? null };
@@ -450,18 +501,7 @@ export function relate(graph, fromId, toId) {
 
 /** The blood term between two people, ignoring the line the search happened to take. */
 function bloodTerm(graph, fromId, toId, standIns, other) {
-  const mine = ancestorDistances(graph, fromId, standIns);
-  const theirs = ancestorDistances(graph, toId, standIns);
-  let best = null;
-  for (const [ancestor, u] of mine) {
-    const d = theirs.get(ancestor);
-    if (d === undefined) continue;
-    const score = u + d;
-    if (!best || score < best.score
-        || (score === best.score && Math.abs(u - d) < Math.abs(best.u - best.d))) {
-      best = { ancestor, u, d, score };
-    }
-  }
+  const best = nearestSharedAncestor(graph, fromId, toId, standIns);
   return best ? kinshipTerm(best.u, best.d, other) : null;
 }
 
