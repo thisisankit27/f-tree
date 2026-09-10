@@ -531,7 +531,22 @@ function inLawTerm(relative, other, direction) {
   return null;
 }
 
-/** Breadth-first over every edge kind, so in-laws and step-relations are reachable too. */
+/**
+ * The shortest chain of relationships joining two people, over every kind of edge.
+ *
+ * Breadth-first over every edge kind, so in-laws and step-relations are reachable too. Marriage is
+ * walked as well as blood, because "my wife's mother" is exactly the sort of question this feature
+ * is asked, and no blood-only search can answer it.
+ *
+ * The order the neighbours are enqueued in is the Kotlin's, and it is load-bearing rather than
+ * arbitrary -- see `Kinship.kt:441-444` and the note above it. Blood steps go in before marriage
+ * ones so that where two routes are the same length the one through the family wins: arriving at a
+ * cousin through their spouse would be a true answer and a useless one.
+ *
+ * It can only matter where two routes tie, since this is breadth-first and a shorter route wins
+ * whatever the order. Ties are not rare -- two brothers marrying two sisters produces one -- and
+ * `kinship-golden.txt` holds that shape on purpose.
+ */
 function shortestPath(graph, fromId, toId) {
   const previous = new Map([[fromId, null]]);
   const queue = [fromId];
@@ -543,8 +558,9 @@ function shortestPath(graph, fromId, toId) {
     const steps = [];
     for (const p of graph.parents(current)) steps.push({ id: p.id, via: 'parent', subtype: p.subtype });
     for (const c of graph.children(current)) steps.push({ id: c.id, via: 'child', subtype: c.subtype });
-    for (const s of graph.spouses(current)) steps.push({ id: s.id, via: 'spouse', subtype: s.subtype });
+    // Siblings before spouses: blood before marriage, matching Kinship.kt:441-444.
     for (const s of graph.siblings(current)) steps.push({ id: s.id, via: 'sibling', half: s.half });
+    for (const s of graph.spouses(current)) steps.push({ id: s.id, via: 'spouse', subtype: s.subtype });
 
     for (const step of steps) {
       if (previous.has(step.id)) continue;
