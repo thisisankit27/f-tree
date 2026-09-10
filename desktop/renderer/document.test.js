@@ -335,3 +335,28 @@ test('a tree is marked saved as of what was written, not as of now', () => {
   tree.markSaved();
   assert.ok(!tree.isDirty);
 });
+
+/* ---------------------------------------------------------------- one act, one step */
+
+test('combining steps makes one act one undo', () => {
+  const { tree, father } = family();
+  const before = tree.signature();
+  const { id } = tree.addPerson({ name: 'Asha' });
+  tree.addRelationship({ from: father, to: id, type: PARENT });
+
+  assert.deepStrictEqual(tree.combine(2, 'Add Asha as a child'), { ok: true });
+  assert.strictEqual(tree.undoLabel, 'Add Asha as a child');
+  tree.undo();
+  assert.strictEqual(tree.signature(), before, 'one undo takes back the person and the connection');
+  tree.redo();
+  assert.ok(tree.person(id), 'and one redo puts both back');
+  assert.strictEqual(tree.relationships.filter((r) => r.to === id).length, 1);
+});
+
+test('there is nothing to combine without at least two steps', () => {
+  const tree = new Tree();
+  tree.addPerson({ name: 'Solo' });
+  assert.strictEqual(tree.combine(2, 'x').reason, 'NOTHING_TO_COMBINE');
+  assert.strictEqual(tree.combine(1, 'x').reason, 'NOTHING_TO_COMBINE');
+  assert.strictEqual(tree.undoLabel, 'Add Solo', 'and the history is untouched');
+});

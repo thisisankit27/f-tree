@@ -20,6 +20,7 @@
  */
 
 import { displayName, birthYear, lifespan } from '../../site/playground/model.js';
+import { relateIcon } from './icons.js';
 
 /**
  * What a generation is called, worked out from its distance rather than looked up.
@@ -111,7 +112,7 @@ function groupRow(group) {
  * different clicks on the same name would make both of them uncertain. So editing is offered once,
  * from the block for the person already centred, and the walk stays a single unambiguous action.
  */
-function focusBlock(focus, { onEdit }) {
+function focusBlock(focus, { onEdit, onRelate }) {
   const block = document.createElement('div');
   block.className = 'band-focus';
 
@@ -137,6 +138,17 @@ function focusBlock(focus, { onEdit }) {
   edit.textContent = 'Edit this person';
   edit.addEventListener('click', () => onEdit(focus.person.id));
   head.append(edit);
+
+  // The question the phone offers from every person, offered here from the person centred (#151).
+  if (onRelate) {
+    const relate = document.createElement('button');
+    relate.type = 'button';
+    relate.className = 'btn quiet band-edit band-relate';
+    relate.append(relateIcon(15));
+    relate.append(document.createTextNode('How are we related?'));
+    relate.addEventListener('click', () => onRelate(focus.person.id));
+    head.append(relate);
+  }
 
   block.append(head);
 
@@ -182,10 +194,11 @@ function bandSection(band) {
  * Draws a `CompactFamily` into `container`.
  *
  * `onFocus` is given a person's id when somebody clicks a name; `onEdit` when the centred person is
- * to be edited; `onMore` when the reader asks for another generation. All three are the caller's,
- * so this file holds no state and can be rendered twice with the same result.
+ * to be edited; `onRelate` when the reader asks how the centred person is related to somebody;
+ * `onMore` when the reader asks for another generation. All are the caller's, so this file holds no
+ * state and can be rendered twice with the same result.
  */
-export function renderBands(container, family, { onFocus, onEdit, onMore, generations }) {
+export function renderBands(container, family, { onFocus, onEdit, onRelate, onMore, generations }) {
   container.replaceChildren();
 
   if (family.isEmpty) {
@@ -210,7 +223,7 @@ export function renderBands(container, family, { onFocus, onEdit, onMore, genera
   container.append(head);
 
   for (const band of family.ancestors) container.append(bandSection(band));
-  container.append(focusBlock(family.focus, { onEdit }));
+  container.append(focusBlock(family.focus, { onEdit, onRelate }));
   if (family.siblings) container.append(bandSection(family.siblings));
   for (const band of family.descendants) container.append(bandSection(band));
 
@@ -223,10 +236,12 @@ export function renderBands(container, family, { onFocus, onEdit, onMore, genera
     container.append(more);
   }
 
-  container.addEventListener('click', (event) => {
+  // A property, not `addEventListener`: this runs on every render into the same container, and a
+  // listener added each time would walk the reading once per render so far on a single click.
+  container.onclick = (event) => {
     const name = event.target.closest('.band-name');
     if (name) onFocus(name.dataset.id);
-  });
+  };
 }
 
 /**

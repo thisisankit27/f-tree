@@ -93,23 +93,13 @@
   margin-right: auto;
 }
 
-.editor .undo-pair {
-  display: inline-flex;
-  gap: 2px;
-}
-
-.editor .icon[disabled] {
-  opacity: 0.32;
-  cursor: default;
-}
-
 .editor .primary-tool {
   font-weight: 600;
 }
 
-.editor .save-btn[data-dirty='true'] {
-  font-weight: 600;
-}
+/* The relation finder's button stays lit while the question is open, as a toggle should. */
+.editor #relate-btn[aria-pressed='true'] { border-color: var(--forest); color: var(--forest); }
+.editor .bar .icon:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 /* ------------------------------------------------------------------ the person form */
 
@@ -1465,3 +1455,116 @@
 
 /* The quiet destructive answer sits apart at the left, the way the panel's own foot sets it. */
 .editor .ask .review-actions { flex: 1; justify-content: flex-end; }
+
+/* ------------------------------------------------------------------ how are we related, from a person */
+
+/*
+ * The question offered from a person (#151), in the three places a person is read.
+ *
+ * One mark everywhere -- Android's `compare_arrows` -- so it reads as one feature reached four ways.
+ * In the panel it is a quiet row under the family list: it continues from the person open, which
+ * makes it part of reading them rather than an action on them, and it keeps clear of the footer
+ * where the buttons that keep or delete the person live.
+ */
+.editor .relate-row {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--rule);
+}
+
+.editor .relate-from {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  font-family: var(--serif);
+  font-size: calc(14px * var(--ui));
+  color: var(--forest);
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  padding: calc(9px * var(--ui)) calc(10px * var(--ui));
+  margin: 0 -10px;
+  width: calc(100% + 20px);
+  text-align: left;
+  cursor: pointer;
+  transition: background .12s;
+}
+
+.editor .relate-from:hover { background: var(--sunk); }
+.editor .relate-from:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.editor .relate-from svg { flex: none; }
+
+/*
+ * On a row of the people list: beside the row, not inside it, because the row is itself a button.
+ *
+ * Shown on hover and on focus rather than always, so a list of two hundred people is not two hundred
+ * identical icons down its right edge -- but it takes its place in the tab order all the time, so
+ * a keyboard reaches it without hovering anything.
+ */
+.editor .index-item { position: relative; }
+.editor .index-item .index-row { padding-right: 52px; }
+
+.editor .index-relate {
+  position: absolute;
+  top: 50%;
+  right: 8px;
+  transform: translateY(-50%);
+  width: calc(32px * var(--ui));
+  height: calc(32px * var(--ui));
+  display: grid;
+  place-items: center;
+  padding: 0;
+  color: var(--ink-soft);
+  background: var(--raised);
+  border: 1px solid var(--rule);
+  border-radius: 50%;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity .12s, border-color .12s, color .12s;
+}
+
+.editor .index-item:hover .index-relate,
+.editor .index-relate:focus-visible { opacity: 1; }
+.editor .index-relate:hover { border-color: var(--forest); color: var(--forest); }
+.editor .index-relate:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.editor .band-relate { display: inline-flex; align-items: center; gap: 7px; }
+
+/* ------------------------------------------------------------------ the bar, narrower */
+
+/*
+ * One row down to 1000px, and nothing dropped that has no other home.
+ *
+ * With Undo, Redo and Save gone the bar has two new icons and the save state; at 1095px -- the width
+ * the old objection to a relation button was measured at -- that is one row only if something gives.
+ * What gives is what is said twice: the file name, which the window's title bar carries at every
+ * width (see `showFileName`), and the zoom percentage, which the chart itself shows by what it
+ * draws. The search box narrows rather than going. The save state stays, because a failed write in
+ * a narrow window is exactly the thing that must not be hidden.
+ *
+ * Below 960px, with a tree open, the theme button steps aside as well: Preferences is on the bar
+ * now and holds Appearance, and the menu has it on Ctrl+Shift+D. The opener keeps it, because
+ * nothing else is on that screen.
+ *
+ * Measured with the sample family, in both themes: one 56px row at every width from 1440 down to
+ * 900. Below that the tools take a second row, which the window allows down to its 820px minimum.
+ */
+.editor .bar .icon { flex: none; }   /* never squeezed: a 28px circle reads as a different control */
+
+@media (max-width: 1240px) {
+  .editor .file-name { display: none; }
+  .editor .zoom-level { display: none; }
+  .editor .search { flex-basis: calc(180px * var(--ui)); }
+}
+
+@media (max-width: 1060px) {
+  .editor .bar { column-gap: 10px; }
+  .editor .bar-tools { gap: 7px; }
+  .editor .search { flex-basis: calc(150px * var(--ui)); min-width: calc(120px * var(--ui)); }
+  .editor .segmented button { padding-inline: calc(10px * var(--ui)); }
+  .editor .zoom { gap: 4px; }
+}
+
+@media (max-width: 960px) {
+  .editor.viewer[data-state='loaded'] .theme-btn { display: none; }
+}

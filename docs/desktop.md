@@ -175,7 +175,7 @@ must be B's भांजा or भांजी*, computed independently from opp
 
 ## Settings
 
-`Settings > Preferences…`, on `Ctrl+,`. Family words, photographs on the chart, appearance, and the
+The gear on the bar, `Settings > Preferences…`, or `Ctrl+,`. Family words, photographs on the chart, appearance, and the
 two update settings. Every one of them is also in the native menu, and **both surfaces go through
 the same `settings:set`**, which rebuilds the menu from the result.
 
@@ -213,7 +213,7 @@ system's colours, not a lost setting.
 
 ## How two people are related
 
-`View > How are two people related?`, on `Ctrl+R`, or the `R` key. Pick two people; the answer is a
+The bar's relation button, `View > How are two people related?`, `Ctrl+R`, or the `R` key. Pick two people; the answer is a
 sentence, a chain of people you can click through, and the chart cut down to just that line, with the
 whole tree back when the question is closed. It is seeded from whoever is selected, because "how is
 *this* person related to…" is the question somebody has in mind when they reach for it.
@@ -231,10 +231,20 @@ Three sentences, and sometimes none:
 | a relative of somebody's spouse | *"Rekha is the **mother** of Ankit's wife."* |
 | none of those | no sentence at all — the chain says it exactly, and a sentence amounting to "these two are related somehow" tells a reader nothing the chain does not |
 
-There is no button for it on the toolbar, deliberately. The website has one because a browser tab has
-nowhere else to put it; this bar already carries what the website's does *and* the editing tools, and
-it is full — measured on a 1095px window, adding one 26px icon took the header from 56px to 93px
-because the row wraps. The menu is the affordance a tab does not have, so that is where it lives.
+It is reached four ways. The bar's **Find a relation** button (Android's `compare_arrows` mark and
+its `relation_find` words) starts a fresh question. **How are we related?** starts from somebody
+already on screen, which is the commoner form of the question
+([#151](https://github.com/thisisankit27/f-tree/issues/151)): from the person panel, from any row of
+the people list, and from the person the compact view is centred on. Starting from a person puts
+them in the first slot even if an earlier question left somebody else there, and empties the second
+for you to fill.
+
+For a while the bar deliberately had no button for it. Measured on a 1095px window, one more icon
+took the header from 56px to 93px because the row wrapped. #150 removed Undo, Redo and Save from the
+bar. Saving is automatic, and undo lives in Ctrl+Z, the menu, and an Undo button in every toast that
+announces something undoable. That freed the room, and the bar now also has **Preferences**.
+Re-measured: one 56px row from 1440 down to 880px. Below 1240px the file name moves to the window's
+title bar, and the bar keeps the save state.
 
 The rules about who appears live in `site/playground/focus.js` and `site/playground/compact.js`,
 ported from `graph/TreeLayoutEngine.kt` and `graph/CompactFamily.kt` with their test tables. On

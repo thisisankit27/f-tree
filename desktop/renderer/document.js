@@ -196,6 +196,20 @@ export class Tree {
     return result ?? { ok: true };
   }
 
+  /**
+   * Makes the newest `count` steps one, under `label`.
+   *
+   * For an act the interface thinks of as one thing but the tree records as several -- "add Ravi as
+   * a child" is a person and then a relationship. Left as two, one undo takes back only the
+   * relationship and leaves a stranger floating in the tree that nobody asked for.
+   */
+  combine(count, label) {
+    if (count < 2 || this.past.length < count) return { ok: false, reason: 'NOTHING_TO_COMBINE' };
+    const steps = this.past.splice(-count);
+    this.past.push({ label, state: steps[0].state });
+    return { ok: true };
+  }
+
   undo() {
     if (!this.past.length) return { ok: false, reason: 'NOTHING_TO_UNDO' };
     const step = this.past.pop();
