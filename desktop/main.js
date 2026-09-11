@@ -2318,11 +2318,16 @@ async function runSmoke(win, file) {
    * sections below change trees. Opened directly, the fixture would be edited by one section and
    * read, already edited, by the next -- and by the next run. Each opening gets its own copy in the
    * run's own data folder, so every section starts from the tree it was written against.
+   *
+   * A folder per copy rather than a prefix on the name, because the name is on screen: in the bar,
+   * in the window title, and so in every FTREE_SMOKE_SHOT picture that ends up on the website.
    */
   let copies = 0;
   const workingCopy = async () => {
     copies += 1;
-    const copy = path.join(app.getPath('userData'), `copy-${copies}-${path.basename(file)}`);
+    const folder = path.join(app.getPath('userData'), 'copies', String(copies));
+    await fs.mkdir(folder, { recursive: true });
+    const copy = path.join(folder, path.basename(file));
     await fs.copyFile(file, copy);
     return copy;
   };
