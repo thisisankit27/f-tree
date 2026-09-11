@@ -80,23 +80,6 @@
       source, no account, and it works with the network off.
     </p>
 
-    <div class="beta-note">
-      <span class="badge">New</span>
-      <span>
-        <strong>Keep a copy of anything you care about before you edit it.</strong> Not because a
-        save is careless — every one writes to a temporary file first and only then replaces yours,
-        and your previous version is kept beside it as <code>.bak</code> — but because this app is
-        new, and has been tested by far fewer people than the phone one. A second copy somewhere
-        else is worth more than either safeguard.
-        <span style="display:block;margin-top:10px">
-          Every download here is labelled a <strong>pre-release</strong> on GitHub. That is
-          deliberate, and it is not a verdict on how finished this is: it is the mechanism that
-          keeps the Android app’s update channel answering with Android releases, so nobody’s phone
-          is ever offered a desktop installer.
-        </span>
-      </span>
-    </div>
-
     <!--
       One card per system, every file a row of its own.
       Detection marks a recommendation and nothing more: a reader on a machine the page guessed
@@ -173,6 +156,33 @@
     </details>
 
     <details class="folded">
+      <summary>How is my tree kept safe?</summary>
+      <p style="margin:14px 0 0;max-width:40em">
+        Save a new tree once, choosing where it lives, and from then on <b>every change is saved as
+        you make it</b> — there is no Save button to forget, and closing the window finishes any save
+        still under way first. Each save is written to a temporary file first and only then swapped in for yours, so
+        a crash or a full disk mid-save leaves the last good version in place, not half a tree. If a
+        save does fail, the bar says so and offers to try again.
+      </p>
+      <p style="margin:12px 0 0;max-width:40em">
+        The app also keeps the <b>last five versions</b> of every tree in its own folder: one from
+        before the first save each time the app starts, then at most one every ten minutes.
+        <b>File › Show backups</b> opens that folder. Your own copy somewhere else is still worth
+        having for anything you care about — a second disk, a USB stick, or the phone.
+      </p>
+    </details>
+
+    <details class="folded">
+      <summary>Why does GitHub call it a pre-release?</summary>
+      <p style="margin:14px 0 0;max-width:40em">
+        Because the Android app looks for its updates in the same list of releases, and it reads
+        whichever one GitHub calls the latest. Every desktop release is filed as a pre-release so
+        that the latest is always an Android one, and no phone is ever offered a desktop installer.
+        It is a filing rule, not a verdict: the builds offered on this page are the stable ones.
+      </p>
+    </details>
+
+    <details class="folded">
       <summary>Is there a macOS build?</summary>
       <p style="margin:14px 0 0;max-width:40em">
         Not yet. Windows and Linux are what is built and tested today.
@@ -206,8 +216,8 @@
       <p style="margin:14px 0 0;max-width:40em">
         Everything the phone app does with a tree. It <b>reads</b> one — the chart, a compact
         reading you can follow at any size, the people index and the search — and it <b>builds and
-        edits</b> one: add a person, add a relative, correct a fact, remove a relationship, undo,
-        save. It <b>imports</b> a relative’s file into the tree you have, matching people rather
+        edits</b> one: add a person, add a relative, correct a fact, remove a relationship, and undo
+        any of it, with every change saved as you make it. It <b>imports</b> a relative’s file into the tree you have, matching people rather
         than duplicating them. It answers <b>how two people are related</b>, in English and in
         <span lang="hi">हिन्दी</span>. It adds and frames <b>photographs</b>. Updates are checked
         against a SHA-256 if you ask for them.

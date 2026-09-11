@@ -79,18 +79,6 @@
       It should be in your Downloads folder in a moment. Here is what to do with it.
     </p>
 
-    <div class="beta-note">
-      <span class="badge">New</span>
-      <span>
-        <strong>This app writes to your tree.</strong> This page used to promise the opposite — that
-        it only ever read the <code>.ftree</code> you opened — and that is no longer true: it builds
-        and edits trees now, and saves over the file you opened. Every save writes to a temporary
-        file first and only then replaces yours, keeping the version before it as <code>.bak</code>.
-        Even so, <strong>keep a copy of anything you care about</strong>: this app is new and has been
-        tested by far fewer people than the phone one.
-      </span>
-    </div>
-
     <div class="slab" style="margin-top:26px">
       <p style="font-family:var(--mono);font-size:15px;margin:0 0 6px" id="dl-name">the latest build</p>
       <p style="font-family:var(--mono);font-size:12.5px;color:var(--ink-faint);margin:0 0 14px" id="dl-meta"></p>
@@ -133,6 +121,18 @@
 </section>
 
 <section class="band">
+  <div class="shell" style="max-width:780px">
+    <p class="rule-label">How your work is kept</p>
+    <p style="max-width:40em">
+      Save a new tree once and every change after that is saved as you make it. Each save goes
+      through a temporary file, so a crash can never leave half a tree behind, and the last five
+      versions of every tree are kept in the app’s own folder — <b>File › Show backups</b> opens
+      it. For anything you care about, keep a copy of your own somewhere else as well.
+    </p>
+  </div>
+</section>
+
+<section class="band band-sunk">
   <div class="shell" style="max-width:780px">
     <p class="rule-label">Nothing leaves your computer</p>
     <p style="max-width:40em">

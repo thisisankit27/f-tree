@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>f-tree — a private family tree app for Android, with a relationship finder</title>
-<meta name="description" content="A free, offline family tree app for Android. Ask how any two people are related and it names the relationship and shows the line. Record relatives whose names nobody remembers, keep everything on your phone, and share a branch as a file. No account, no server. English and Hindi kinship terms.">
+<title>f-tree — a private family tree app for Android, Windows and Linux, with a relationship finder</title>
+<meta name="description" content="A free, offline family tree app for Android, Windows and Linux. Ask how any two people are related and it names the relationship and shows the line. Record relatives whose names nobody remembers, keep everything on your own device, and share a branch as a file. No account, no server. English and Hindi kinship terms.">
 <meta name="theme-color" content="#f7f6f1" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#10150f" media="(prefers-color-scheme: dark)">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
@@ -14,7 +14,7 @@
 <meta property="og:site_name" content="f-tree">
 <meta property="og:url" content="https://ftree.vibethroughcode.com/">
 <meta property="og:title" content="f-tree — your family tree, including the people nobody can name">
-<meta property="og:description" content="Ask how any two people are related and f-tree answers, then shows you the line. Free for Android. No account, no server — your family stays on your phone.">
+<meta property="og:description" content="Ask how any two people are related and f-tree answers, then shows you the line. Free for Android, Windows and Linux. No account, no server — your family stays on your device.">
 <meta property="og:image" content="https://ftree.vibethroughcode.com/og-card.png">
 <meta property="og:image:type" content="image/png">
 <meta property="og:image:width" content="1200">
@@ -22,7 +22,7 @@
 <meta property="og:image:alt" content="f-tree — your family tree, including the people nobody can name. Beside it, the picture the app makes of a relationship: Rohit is Aarav Kumar's first cousin once removed.">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="f-tree — your family tree, including the people nobody can name">
-<meta name="twitter:description" content="Ask how any two people are related and f-tree answers, then shows you the line. Free for Android. No account, no server.">
+<meta name="twitter:description" content="Ask how any two people are related and f-tree answers, then shows you the line. Free for Android, Windows and Linux. No account, no server.">
 <meta name="twitter:image" content="https://ftree.vibethroughcode.com/og-card.png">
 
 <!--
@@ -35,10 +35,10 @@
   "@context": "https://schema.org",
   "@type": "SoftwareApplication",
   "name": "f-tree",
-  "description": "A local-first family tree app for Android. Records relatives whose names are not known, names the relationship between any two people and shows the line between them, and keeps everything on the device.",
+  "description": "A local-first family tree app for Android, Windows and Linux. Records relatives whose names are not known, names the relationship between any two people and shows the line between them, and keeps everything on the device.",
   "url": "https://ftree.vibethroughcode.com/",
   "applicationCategory": "LifestyleApplication",
-  "operatingSystem": "Android 8.0+",
+  "operatingSystem": "Android 8.0+, Windows 10+, Linux",
   "downloadUrl": "https://github.com/thisisankit27/f-tree/releases/latest",
   "installUrl": "https://ftree.vibethroughcode.com/thanks/",
   "license": "https://github.com/thisisankit27/f-tree/blob/main/LICENSE",
@@ -107,7 +107,52 @@
           <path d="M12 2.6v2.2M12 19.2v2.2M4.35 4.35l1.55 1.55M18.1 18.1l1.55 1.55M2.6 12h2.2M19.2 12h2.2M4.35 19.65 5.9 18.1M18.1 5.9l1.55-1.55"/>
         </svg>
       </button>
-      <a class="nav-cta" href="thanks/">Download</a>
+      <!--
+        Download asks which system before it starts anything. It used to go straight to the
+        Android install guide, which downloads an APK on arrival — so a reader on a laptop who
+        pressed the most prominent button on the page got a file their machine cannot run.
+
+        Without JavaScript this is the plain link to #get, where every platform is listed. With
+        it, the link gives way to a button that opens the same choice on the spot (app.js).
+      -->
+      <div class="dl-menu" id="dl-menu">
+        <a class="nav-cta dl-fallback" href="#get">Download</a>
+        <button type="button" class="nav-cta dl-toggle" id="dl-toggle"
+                aria-expanded="false" aria-controls="dl-panel">
+          Download
+          <svg class="dl-chevron" width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 4.5 6 7.5l3-3"/></svg>
+        </button>
+        <div class="dl-panel" id="dl-panel" hidden>
+          <a class="dl-option" href="thanks/" data-os="android">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.6 9.48l1.84-3.18a.63.63 0 0 0-.26-.85.64.64 0 0 0-.83.22l-1.88 3.24a11.43 11.43 0 0 0-8.94 0L5.65 5.67a.64.64 0 0 0-.87-.2.64.64 0 0 0-.22.83L6.4 9.48A10.78 10.78 0 0 0 1 18h22a10.78 10.78 0 0 0-5.4-8.52zM7 15.25a1.25 1.25 0 1 1 0-2.5 1.25 1.25 0 0 1 0 2.5zm10 0a1.25 1.25 0 1 1 0-2.5 1.25 1.25 0 0 1 0 2.5z"/></svg>
+            <span class="dl-text">
+              <span class="dl-name">Android <span class="dl-yours" hidden>Your system</span></span>
+              <span class="dl-sub">For Android 8.0 or newer</span>
+            </span>
+            <span class="dl-meta" data-dl-meta="android"></span>
+          </a>
+          <a class="dl-option" href="desktop/thanks/?f=win" data-os="windows">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3 5.6l7.4-1v7.1H3V5.6zm8.6-1.2L21 3v8.7h-9.4V4.4zM3 12.8h7.4v7.1L3 18.9v-6.1zm8.6 0H21V21l-9.4-1.3v-6.9z"/></svg>
+            <span class="dl-text">
+              <span class="dl-name">Windows <span class="dl-yours" hidden>Your system</span></span>
+              <span class="dl-sub">Installer for Windows 10 and 11</span>
+            </span>
+            <span class="dl-meta" data-dl-meta="windows"></span>
+          </a>
+          <a class="dl-option" href="desktop/thanks/?f=deb" data-os="linux">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2c-2.2 0-3.4 1.8-3.4 4 0 1.6.3 2.3-.5 3.6C7 11.4 5.6 13 5.6 15.4c0 .9.3 1.5-.3 2.3-.5.7-.4 1.5.4 1.8.9.3 1.6-.2 2.4.3 1 .6 2.3 1 3.9 1s2.9-.4 3.9-1c.8-.5 1.5 0 2.4-.3.8-.3.9-1.1.4-1.8-.6-.8-.3-1.4-.3-2.3 0-2.4-1.4-4-2.5-5.8-.8-1.3-.5-2-.5-3.6 0-2.2-1.2-4-3.4-4z"/></svg>
+            <span class="dl-text">
+              <span class="dl-name">Linux <span class="dl-yours" hidden>Your system</span></span>
+              <span class="dl-sub">A <code>.deb</code> for Ubuntu, Debian and Mint</span>
+            </span>
+            <span class="dl-meta" data-dl-meta="linux"></span>
+          </a>
+          <div class="dl-foot">
+            <a href="desktop/">Other Linux files, and checksums</a>
+            <a href="playground/">Open a tree in the browser instead</a>
+          </div>
+        </div>
+      </div>
     </nav>
   </div>
 </header>
@@ -117,7 +162,7 @@
 <!-- ============================================================ hero -->
 <section class="shell hero">
   <div>
-    <p class="eyebrow">For Android · Free · No account · Open source</p>
+    <p class="eyebrow">Android, Windows &amp; Linux · Free · No account · Open source</p>
     <h1>Your family tree, <em>including the people nobody can name.</em></h1>
     <p class="lede">
       f-tree keeps your family on your phone — every branch, every marriage, and the
@@ -428,7 +473,7 @@
     <p class="rule-label">On a laptop</p>
     <div class="split split-wide">
       <div>
-        <h2>The whole tree, on a screen wide enough for it <span class="beta-tag">New</span></h2>
+        <h2>The whole tree, on a screen wide enough for it.</h2>
         <p>
           The desktop app opens the same <code>.ftree</code>, and builds one from nothing if you do not
           have one yet. Here a generation is a <b>row</b>, ancestors at the top, so the tree runs across
@@ -437,25 +482,25 @@
           the layout follows the shape rather than the other way round.
         </p>
         <p>
-          Windows gets an installer. Ubuntu gets an AppImage or a <code>.deb</code>. Nothing leaves
+          Windows gets an installer; Ubuntu, Debian and Mint get a <code>.deb</code>. Nothing leaves
           the machine and there is no account to make, on either.
         </p>
         <p style="max-width:34em">
-          It <b>writes to your tree</b> as well as reading it, which this page once promised it would
-          not. Every save replaces your file through a temporary one and keeps the previous version as
-          <code>.bak</code> — but it is new and lightly tested, so keep a copy of anything you care
-          about.
+          Save a tree once and from then on <b>every change is saved as you make it</b>, with no Save
+          button to forget. Each save goes through a temporary file, so a crash can never leave half a
+          tree behind, and the app keeps the last five versions of every tree in its own folder, a
+          click away under <b>File &rsaquo; Show backups</b>.
         </p>
         <p class="spec">
-          <span>Windows &amp; Ubuntu</span><span class="sep" aria-hidden="true">&middot;</span><span>New</span><span class="sep" aria-hidden="true">&middot;</span><span>Builds and reads a tree</span>
+          <span>Windows &amp; Ubuntu</span><span class="sep" aria-hidden="true">&middot;</span><span>Builds and reads a tree</span><span class="sep" aria-hidden="true">&middot;</span><span>Saves as you go</span>
         </p>
         <div class="cta-row">
           <a class="btn btn-primary" href="desktop/">Get the desktop app</a>
         </div>
       </div>
       <div>
-        <img class="shot shot-wide" src="shots/desktop.webp" width="1855" height="940" loading="lazy"
-             alt="The desktop app: five generations of a family as rows running top to bottom, labelled G1 to G5, ancestors at the top, with a dashed block below labelled 'Not connected to anyone, 4 people'.">
+        <img class="shot shot-wide" src="shots/desktop.webp" width="1855" height="963" loading="lazy"
+             alt="The desktop app with sample-family.ftree open and marked Saved: five generations of a family as rows running top to bottom, labelled G1 to G5, ancestors at the top, with a dashed block below labelled 'Not connected to anyone, 4 people'.">
       </div>
     </div>
   </div>
@@ -532,34 +577,69 @@
 </section>
 
 <!-- ============================================================ download -->
+<!--
+  Every platform, side by side. This is also where the masthead's Download lands with JavaScript
+  off, so nothing here may depend on the release data arriving: the live facts only replace text
+  that is already true without them.
+-->
 <section class="band band-sunk" id="get">
   <div class="shell">
     <p class="rule-label">Get it</p>
-    <div class="slab">
-      <h2 style="margin-bottom:14px">Install it from here.</h2>
-      <p style="max-width:44em">
-        f-tree isn't on the Play Store, so you install the APK yourself. It takes about a
-        minute, and the next page walks you through every prompt Android will show you —
-        including the scary-looking ones.
-      </p>
-      <p style="margin-bottom:0">
-        <a class="btn btn-primary" href="thanks/">
-          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M12 3v12m0 0l-4.5-4.5M12 15l4.5-4.5M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/>
-          </svg>
-          Download for Android
-        </a>
-      </p>
+    <div class="get-grid">
+      <div class="slab">
+        <h2 class="get-title">On your phone</h2>
+        <p>
+          f-tree isn't on the Play Store, so you install the APK yourself. It takes about a
+          minute, and the next page walks you through every prompt Android will show you —
+          including the scary-looking ones.
+        </p>
+        <div class="cta-row">
+          <a class="btn btn-primary" href="thanks/">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M12 3v12m0 0l-4.5-4.5M12 15l4.5-4.5M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/>
+            </svg>
+            Download for Android
+          </a>
+        </div>
 
-      <dl class="facts">
-        <div><dt>Version</dt><dd data-spec="version-bare">the latest release</dd></div>
-        <div><dt>Size</dt><dd data-spec="size">about 2 MB</dd></div>
-        <div><dt>Requires</dt><dd>Android 8.0 (Oreo) or newer</dd></div>
-        <div><dt>Permissions</dt><dd>No runtime permissions — no contacts, location, storage or camera roll. Two install-time ones (internet, and installing an update), both only for the optional updater</dd></div>
-        <div><dt>Licence</dt><dd>MIT — <a href="https://github.com/thisisankit27/f-tree/blob/main/LICENSE">read it</a></dd></div>
-        <div><dt>Source</dt><dd><a href="https://github.com/thisisankit27/f-tree">github.com/thisisankit27/f-tree</a></dd></div>
-      </dl>
+        <dl class="facts">
+          <div><dt>Version</dt><dd data-spec="version-bare">the latest release</dd></div>
+          <div><dt>Size</dt><dd data-spec="size">about 2 MB</dd></div>
+          <div><dt>Requires</dt><dd>Android 8.0 (Oreo) or newer</dd></div>
+          <div><dt>Permissions</dt><dd>No runtime permissions — no contacts, location, storage or camera roll. Two install-time ones (internet, and installing an update), both only for the optional updater</dd></div>
+        </dl>
+      </div>
+
+      <div class="slab">
+        <h2 class="get-title">On your laptop</h2>
+        <p>
+          The same trees on Windows and Linux: start one from nothing, or open the
+          <code>.ftree</code> your phone exported. The download page has the install steps for
+          each file, and a checksum to prove it arrived intact.
+        </p>
+        <div class="cta-row">
+          <a class="btn btn-primary" href="desktop/thanks/?f=win">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M12 3v12m0 0l-4.5-4.5M12 15l4.5-4.5M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/>
+            </svg>
+            Windows
+          </a>
+          <a class="btn btn-quiet" href="desktop/thanks/?f=deb">Ubuntu <code class="btn-kind">.deb</code></a>
+        </div>
+
+        <dl class="facts">
+          <div><dt>Version</dt><dd data-spec="desktop-version">the latest release</dd></div>
+          <div><dt>Windows</dt><dd>Windows 10 or 11, 64-bit. Installs for your account, no administrator password</dd></div>
+          <div><dt>Linux</dt><dd>A <code>.deb</code> for Ubuntu, Debian and Mint, plus an AppImage and a portable folder — <a href="desktop/">every file</a></dd></div>
+          <div><dt>Updates</dt><dd>Checked only if you switch it on, and verified against a SHA-256 before anything runs</dd></div>
+        </dl>
+      </div>
     </div>
+
+    <dl class="facts get-shared">
+      <div><dt>Licence</dt><dd>MIT — <a href="https://github.com/thisisankit27/f-tree/blob/main/LICENSE">read it</a></dd></div>
+      <div><dt>Source</dt><dd><a href="https://github.com/thisisankit27/f-tree">github.com/thisisankit27/f-tree</a></dd></div>
+    </dl>
   </div>
 </section>
 
