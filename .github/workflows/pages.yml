@@ -47,6 +47,11 @@ jobs:
                    | sed -E 's/:(src|href)="/ /; s/"$//')
           test "$missing" -eq 0
 
+      # Every colour the pages ask for is defined, with no fallback to hide it when it is not, and
+      # the two copies of the night palette agree. Four tokens were missing until 0.6.0 shipped.
+      - name: The stylesheet's colours exist in both themes
+        run: node --test site/style-tokens.test.mjs
+
       # The engine's own suites, which are the rules ported out of the Kotlin rather than anything
       # about the page: who belongs on a chart centred on one person, and how a generation is read
       # across. They run here as well as in the desktop workflow because the engine ships to both

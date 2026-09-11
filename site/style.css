@@ -264,6 +264,116 @@ input:focus-visible {
   .masthead nav .nav-link { display: none; }
 }
 
+/* -------------------------------------------------------- the download menu */
+/*
+ * Download names the systems before it starts anything. The button is a scripted control, so
+ * like the theme toggle it only appears once the head script has marked the page as scripted;
+ * until then — or for good, with JavaScript off — the plain link to #get stands in for it.
+ */
+
+.dl-menu { position: relative; display: flex; }
+.dl-toggle { display: none; }
+:root[data-js] .dl-fallback { display: none; }
+:root[data-js] .dl-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  border: 0;
+  cursor: pointer;
+  line-height: 1.3;
+}
+.dl-chevron { display: block; transition: transform .15s ease; }
+.dl-toggle[aria-expanded="true"] .dl-chevron { transform: rotate(180deg); }
+.masthead .dl-toggle[aria-expanded="true"] { background: var(--forest-hover); }
+
+.dl-panel {
+  position: absolute;
+  top: calc(100% + 12px);
+  right: 0;
+  width: min(360px, calc(100vw - 2 * var(--gutter)));
+  line-height: 1.4;
+  padding: 8px;
+  border: 1px solid var(--rule);
+  border-radius: 16px;
+  background: var(--bone-raised);
+  box-shadow: var(--shadow-cast), var(--shadow-soft);
+}
+/* On a phone the button sits against the right gutter, so the panel takes the width between both. */
+@media (max-width: 620px) {
+  .dl-panel { position: fixed; top: 70px; left: 16px; right: 16px; width: auto; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .dl-panel:not([hidden]) { animation: dl-open .14s ease-out; }
+}
+@keyframes dl-open {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: none; }
+}
+
+/*
+ * A row per system: the mark, the name with its version and size across from it, and a line
+ * saying which file it is. The line gets the whole width, so none of them wraps at 400px.
+ */
+.masthead .dl-option {
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr) auto;
+  align-items: baseline;
+  column-gap: 14px;
+  row-gap: 1px;
+  padding: 11px 12px;
+  border-radius: 10px;
+  color: var(--ink);
+  line-height: 1.4;
+  text-decoration: none;
+}
+.masthead .dl-option:hover,
+.masthead .dl-option:focus-visible { background: var(--bone-dim); color: var(--ink); text-decoration: none; }
+.masthead .dl-option:focus-visible { outline-offset: -2px; }
+.dl-option > svg { grid-row: 1 / 3; align-self: center; color: var(--forest); }
+.dl-text { display: contents; }
+.dl-name {
+  grid-column: 2;
+  grid-row: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  font-size: 14.5px;
+}
+.dl-sub { grid-column: 2 / 4; grid-row: 2; font-size: 13px; color: var(--ink-soft); }
+.dl-sub code { font-family: var(--mono); font-size: 12px; }
+.dl-meta {
+  grid-column: 3;
+  grid-row: 1;
+  font-family: var(--mono);
+  font-size: 11.5px;
+  color: var(--ink-faint);
+  white-space: nowrap;
+}
+.dl-yours {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--forest);
+  border: 1px solid var(--forest);
+  border-radius: 999px;
+  padding: 0 7px;
+  line-height: 1.5;
+  white-space: nowrap;
+}
+
+.dl-foot {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 4px 16px;
+  margin: 6px 4px 0;
+  padding: 10px 8px 4px;
+  border-top: 1px solid var(--rule);
+  font-size: 13px;
+}
+.masthead .dl-foot a { color: var(--forest); }
+.masthead .dl-foot a:hover { color: var(--forest); }
+
 
 /* ---------------------------------------------------------- light and dark */
 /*
@@ -789,6 +899,22 @@ h2.rule-label,
   .facts div { grid-template-columns: 1fr; gap: 2px; }
 }
 
+/* The phone and the laptop, side by side, and each a complete answer on its own. */
+.get-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 400px), 1fr));
+  gap: 20px;
+}
+.get-grid .slab { display: flex; flex-direction: column; }
+.get-grid .slab > p:first-of-type { max-width: 34em; }
+/* The facts sit on the floor of each slab, so the two lists start level whatever is above them. */
+.get-grid .facts { margin-top: auto; }
+.get-grid .cta-row { margin: 0 0 26px; }
+.get-title { font-size: clamp(24px, 2.4vw, 30px); margin: 0 0 12px; }
+.btn-kind { font-family: var(--mono); font-size: 14px; background: none; border: 0; padding: 0; }
+.get-shared { margin-top: 20px; border-top: 0; }
+.get-shared div:first-child { border-top: 1px solid var(--rule); }
+
 /*
  * A checksum and the file it belongs to.
  *
@@ -943,7 +1069,7 @@ h2.rule-label,
   border: 1px solid var(--rule);
   border-radius: 16px;
   padding: 22px 22px 18px;
-  background: var(--raised);
+  background: var(--bone-raised);
 }
 .platform.is-yours { border-color: var(--forest); box-shadow: 0 0 0 1px var(--forest); }
 .platform h3 {
@@ -978,14 +1104,15 @@ h2.rule-label,
   margin-bottom: 9px;
   text-decoration: none;
   color: var(--ink);
-  background: var(--ground);
+  background: var(--bone);
   transition: border-color .15s, background .15s;
 }
-.file:hover { border-color: var(--forest); background: var(--raised); }
+.file:hover { border-color: var(--forest); background: var(--bone-raised); }
 .file .what { font-weight: 600; font-size: 15px; }
 .file .meta { margin-left: auto; font-family: var(--mono); font-size: 12px; color: var(--ink-faint); }
-.file.primary { border-color: var(--forest); background: var(--sage-container, var(--raised)); }
-.file.primary .what { color: var(--forest); }
+.file.primary { border-color: var(--forest); background: var(--sage); }
+.file.primary .what { color: var(--on-sage); }
+.file.primary .meta { color: var(--on-sage); }
 .platform .caution {
   margin: 4px 0 0;
   font-size: 13px;
@@ -994,7 +1121,7 @@ h2.rule-label,
 }
 
 /* A single fact bar under the cards. */
-.assurance {
+.band .assurance {
   margin: 22px 0 0;
   font-size: 14px;
   color: var(--ink-faint);
@@ -1047,7 +1174,7 @@ details.folded > summary:hover { color: var(--forest); }
   border: 1px solid var(--rule);
   border-radius: 10px;
   overflow: hidden;
-  background: var(--ground);
+  background: var(--bone);
 }
 .copyline code {
   flex: 1;
@@ -1063,57 +1190,11 @@ details.folded > summary:hover { color: var(--forest); }
   flex: none;
   border: 0;
   border-left: 1px solid var(--rule);
-  background: var(--raised);
+  background: var(--bone-raised);
   color: var(--ink-soft);
   font-family: var(--sans);
   font-size: 13px;
   padding: 0 15px;
   cursor: pointer;
 }
-.copyline .copy:hover { background: var(--forest); color: var(--paper, #fff); }
-
-
-/* An unfinished thing, said plainly rather than in small print. */
-.beta-note {
-  display: flex;
-  gap: 14px;
-  align-items: flex-start;
-  margin: 26px 0 0;
-  padding: 16px 18px;
-  border: 1px solid var(--brass);
-  border-radius: 13px;
-  background: var(--brass-surface, transparent);
-  font-size: 14.5px;
-  line-height: 1.6;
-  color: var(--ink-soft);
-  max-width: 46em;
-}
-.beta-note .badge {
-  flex: none;
-  font-family: var(--mono);
-  font-size: 11px;
-  letter-spacing: .08em;
-  text-transform: uppercase;
-  color: var(--brass);
-  border: 1px solid var(--brass);
-  border-radius: 999px;
-  padding: 3px 10px;
-  margin-top: 1px;
-}
-.beta-note strong { color: var(--ink); }
-
-/* A heading that has to carry a caveat with it. */
-.beta-tag {
-  display: inline-block;
-  vertical-align: middle;
-  margin-left: 10px;
-  font-family: var(--mono);
-  font-size: 11px;
-  font-weight: 500;
-  letter-spacing: .08em;
-  text-transform: uppercase;
-  color: var(--brass);
-  border: 1px solid var(--brass);
-  border-radius: 999px;
-  padding: 3px 10px;
-}
+.copyline .copy:hover { background: var(--forest); color: var(--on-forest); }

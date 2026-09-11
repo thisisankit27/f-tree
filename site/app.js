@@ -26,10 +26,12 @@
       (rel.assets || []).forEach(function (a) { downloads += a.download_count || 0; });
     });
 
-    // Newest shipped release: the API lists newest first.
+    // Newest shipped *app* release: the API lists newest first. The tag is checked as well as the
+    // flag, so the Android facts can never be read off a desktop release, whatever it is marked.
     var latest = null;
     for (var i = 0; i < releases.length; i++) {
-      if (!releases[i].draft && !releases[i].prerelease) { latest = releases[i]; break; }
+      var rel = releases[i];
+      if (!rel.draft && !rel.prerelease && !/^desktop-/.test(rel.tag_name || '')) { latest = rel; break; }
     }
     if (!latest) latest = releases[0];
     if (!latest) return null;
@@ -139,6 +141,9 @@
     });
     document.querySelectorAll('[data-spec="size"]').forEach(function (el) {
       if (data.apk) el.textContent = megabytes(data.apk.size);
+    });
+    document.querySelectorAll('[data-spec="desktop-version"]').forEach(function (el) {
+      if (data.desktop) el.textContent = data.desktop.version;
     });
   }
 
@@ -405,6 +410,83 @@
     });
 
     stage.appendChild(btn);
+  }
+
+  /* ---------------------------------------------------------- download menu */
+  /*
+   * The masthead's Download, as a choice rather than a download. A disclosure, not an ARIA menu:
+   * its rows are ordinary links to ordinary pages, so they keep Tab, middle-click and "open in new
+   * tab", and a screen reader reads them as the links they are. The arrow keys are a convenience
+   * on top, and Escape, a click elsewhere or focus leaving all put it away.
+   */
+
+  function wireDownloadMenu() {
+    var menu = document.getElementById('dl-menu');
+    var toggle = document.getElementById('dl-toggle');
+    var panel = document.getElementById('dl-panel');
+    if (!menu || !toggle || !panel) return;
+
+    var options = function () { return Array.prototype.slice.call(panel.querySelectorAll('a')); };
+
+    function setOpen(open, focusFirst) {
+      panel.hidden = !open;
+      toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+      if (open && focusFirst) options()[0].focus();
+    }
+
+    toggle.addEventListener('click', function (e) {
+      // detail is 0 for a keyboard press, so only a keyboard user is carried into the list.
+      setOpen(panel.hidden, e.detail === 0);
+    });
+
+    menu.addEventListener('keydown', function (e) {
+      if (panel.hidden) {
+        if (e.key === 'ArrowDown' && e.target === toggle) { e.preventDefault(); setOpen(true, true); }
+        return;
+      }
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        setOpen(false);
+        toggle.focus();
+        return;
+      }
+      if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
+      var list = options();
+      var at = list.indexOf(document.activeElement);
+      var next = e.key === 'ArrowDown' ? at + 1 : at - 1;
+      if (at === -1) next = e.key === 'ArrowDown' ? 0 : list.length - 1;
+      e.preventDefault();
+      list[(next + list.length) % list.length].focus();
+    });
+
+    document.addEventListener('click', function (e) {
+      if (!panel.hidden && !menu.contains(e.target)) setOpen(false);
+    });
+    menu.addEventListener('focusout', function (e) {
+      if (!panel.hidden && e.relatedTarget && !menu.contains(e.relatedTarget)) setOpen(false);
+    });
+
+    // A guess, marked and never acted on: every row stays where it is, whatever the page thinks.
+    var yours = guessPlatform();
+    options().forEach(function (option) {
+      if (option.getAttribute('data-os') !== yours) return;
+      var tag = option.querySelector('.dl-yours');
+      if (tag) tag.hidden = false;
+    });
+  }
+
+  /* The version and size beside each row, once GitHub has said what they are. */
+  function fillDownloadMenu(data) {
+    var put = function (os, text) {
+      var el = document.querySelector('[data-dl-meta="' + os + '"]');
+      if (el && text) el.textContent = text;
+    };
+    if (data.apk) put('android', data.tag.replace(/^v/, '') + ' · ' + megabytes(data.apk.size));
+    if (data.desktop) {
+      var files = filesFrom(data.desktop);
+      if (files.win) put('windows', data.desktop.version + ' · ' + megabytes(files.win.size));
+      if (files.deb) put('linux', data.desktop.version + ' · ' + megabytes(files.deb.size));
+    }
   }
 
   /* ------------------------------------------------------------------ thanks */
@@ -700,10 +782,12 @@
   wireTheme();
   wireNamingSlot();
   wireDemo();
+  wireDownloadMenu();
 
   loadRelease().then(function (data) {
     if (!data) throw new Error('no releases published');
     fillSpecs(data);
+    fillDownloadMenu(data);
     if (onDesktopThanks) wireThanksDesktop(data.desktop);
     else if (onDownloads) wireDownloads(data.desktop);
     else if (onThanks) wireThanks(data);
