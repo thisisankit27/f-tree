@@ -2262,6 +2262,10 @@
   border-radius: 8px;
 }
 .editor .book-story-results { max-height: 220px; }
+/* The row the arrow keys are on, exactly as `.search-results button:hover`/`:focus-visible`
+   (playground.css) mark the one a mouse is over -- keyboard and mouse need the same tell, since
+   Enter picks whichever one `aria-selected` names, not whichever one the pointer happens to sit on. */
+.editor .book-story-results li[aria-selected='true'] button { background: var(--bone-dim); }
 
 .editor .book-story-row .btn { margin-top: 1px; }
 

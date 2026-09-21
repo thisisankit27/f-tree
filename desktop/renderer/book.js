@@ -33,7 +33,7 @@ import { resolveFeatured } from '../../site/book/story/featured.js';
 import { loadPolicy, decide } from '../../site/book/policy.js';
 import { readCatalog, listing } from '../../site/book/catalog.js';
 import { searchPeople } from '../../site/playground/search.js';
-import { displayName, lifespan } from '../../site/playground/model.js';
+import { displayName, lifespan, restrictedGraph } from '../../site/playground/model.js';
 
 import {
   DEFAULT_OPTIONS, scopeFor, todayIso, formatEstimate,
@@ -457,6 +457,20 @@ export function createBook({ shell, hooks }) {
       });
       const allowance = decisionAllowance(decision);
 
+      // A Limited decision can trim generations the picker's scope filter above knows nothing
+      // about (`readFamily`'s allowance, applied again for real inside `composeBook` below) -- so
+      // whoever the allowance would cut is dropped from the graph "Whose story" searches, and a
+      // pick that lands on one of them is cleared, before the dialog can show a person as chosen
+      // whom the composed book is about to silently leave out (`resolveFeatured`'s own fallback).
+      if (session.story.graph && Object.keys(allowance).length) {
+        const limited = readFamily(session.doc, { now, scope }, allowance);
+        session.story.graph = restrictedGraph(session.story.graph, new Set(limited.byId.keys()));
+        if (session.options.featured && !session.story.graph.people.has(session.options.featured)) {
+          session.options.featured = null;
+          paintStoryValue();
+        }
+      }
+
       const book = composeBook(session.doc, baseOptions, template, allowance);
       const personById = new Map(session.doc.people.map((p) => [p.id, p]));
       const photoUrls = book.photos.length
@@ -674,8 +688,14 @@ export function createBook({ shell, hooks }) {
 
   // A blur that lands back inside this control -- typically a click on one of its own option
   // buttons -- is not "the reader left the field", so only a focus that actually leaves closes it.
+  // `paintStoryValue` puts the input's text back in step with the real selection: leaving behind a
+  // typed query that was never picked (no match wanted, or the reader just moved on) must not go
+  // on looking like a choice the composer never actually made.
   storyPicker.addEventListener('focusout', (event) => {
-    if (!storyPicker.contains(event.relatedTarget)) closeStoryList();
+    if (!storyPicker.contains(event.relatedTarget)) {
+      closeStoryList();
+      paintStoryValue();
+    }
   });
 
   storyReset.addEventListener('click', () => {
