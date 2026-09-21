@@ -3,16 +3,12 @@ package com.vibethroughcode.ftree.ui.relation
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -26,7 +22,6 @@ import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -36,8 +31,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
@@ -52,6 +45,7 @@ import com.vibethroughcode.ftree.data.Person
 import com.vibethroughcode.ftree.graph.Relation
 import com.vibethroughcode.ftree.ui.common.LocalKinshipLanguage
 import com.vibethroughcode.ftree.ui.common.PersonAvatar
+import com.vibethroughcode.ftree.ui.common.PersonPicker
 import com.vibethroughcode.ftree.ui.common.PersonRow
 import com.vibethroughcode.ftree.ui.common.SectionRule
 import com.vibethroughcode.ftree.ui.common.asRelativeKind
@@ -113,6 +107,8 @@ fun RelationSheet(
             onPick = { onChoose(picking, it) },
             onCancel = onStopPicking,
             modifier = modifier,
+            searchTag = RelationPickSearchTag,
+            listTag = RelationPickListTag,
         )
         return
     }
@@ -419,54 +415,6 @@ private fun Slot(
     }
 }
 
-/** Searching the whole tree for one of the two. */
-@Composable
-private fun PersonPicker(
-    people: List<Person>,
-    query: String,
-    onQueryChange: (String) -> Unit,
-    onPick: (String) -> Unit,
-    onCancel: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val focus = remember { FocusRequester() }
-    LaunchedEffect(Unit) { focus.requestFocus() }
-
-    Column(modifier.fillMaxHeight()) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(start = 20.dp, end = 8.dp, bottom = 8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            OutlinedTextField(
-                value = query,
-                onValueChange = onQueryChange,
-                label = { Text(stringResource(R.string.relation_pick_hint)) },
-                singleLine = true,
-                modifier = Modifier.weight(1f).focusRequester(focus).testTag(RelationPickSearchTag),
-            )
-            IconButton(onClick = onCancel) {
-                Icon(
-                    Icons.Default.Close,
-                    contentDescription = stringResource(R.string.relation_close),
-                )
-            }
-        }
-        if (people.isEmpty()) {
-            Text(
-                text = stringResource(R.string.relation_pick_none),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(20.dp),
-            )
-        } else {
-            LazyColumn(
-                modifier = Modifier.fillMaxHeight().testTag(RelationPickListTag),
-                contentPadding = PaddingValues(bottom = 24.dp),
-            ) {
-                items(people, key = { it.id }) { person ->
-                    PersonRow(person = person, onClick = { onPick(person.id) })
-                }
-            }
-        }
-    }
-}
+// PersonPicker moved to ui/common/PersonPicker.kt (#248), shared with the book screen's
+// "Whose story" row. Nothing here changed its behaviour: the search field, the empty-result
+// text and the two test tags are the same as before, just passed in rather than hard-coded.
