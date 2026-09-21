@@ -150,7 +150,71 @@ function budgetPhotos(asked, budget) {
 export function estimateBytes(book, { lossless }) {
   const base = 420_000 + book.pages.length * 18_000;
   const perPixel = lossless ? LOSSLESS_BYTES_PER_PIXEL : 0.22;
-  return Math.round(base + book.photos.reduce((sum, p) => sum + p.px * p.px * perPixel, 0));
+  const art = book.format >= 2 ? vectorArtBytes(artStats(book)) : 0;
+  return Math.round(base + art + book.photos.reduce((sum, p) => sum + p.px * p.px * perPixel, 0));
+}
+
+/*
+ * What paper-cut art adds to a PDF, per thing `artStats` counts. Measured, not guessed (#245):
+ * tools/book_pdf_size.mjs prints the approved style frames, the format-2 conformance book and some
+ * calibration pages through Chromium as the desktop does, with and without their drawings, and
+ * fits the difference to these five counts. The fit is then scaled by its own 95th-percentile
+ * under-estimate and a quarter again (x 1.93 in all), and rounded up, so the estimate errs toward
+ * "too big": on every page measured it allows at least 1.37 times what the art really cost. The
+ * measurements are in qa/pdf-size.json and docs/family-book.md, and estimate.test.mjs fails if a
+ * constant here drops below what they need. A layer measured as free: its cost is in what it holds.
+ *
+ * Format-1 books keep the old estimate, whose per-page constant already covers their starfields.
+ * Android's PdfDocument cannot draw format 2 until #246: #246 and #259 must measure it there too
+ * and raise these if Android writes more.
+ */
+export const ART_PDF = Object.freeze({ bytes: 0.75, translucent: 1000, layers: 0, gradients: 5600, clips: 1500 });
+const vectorArtBytes = (a) => Math.ceil(Object.keys(ART_PDF).reduce((sum, k) => sum + a[k] * ART_PDF[k], 0));
+
+/**
+ * What a book's art is made of, counted the way a painter writes it into a PDF: every `use`
+ * expanded, because a symbol drawn forty times is forty copies of its paths there.
+ *   - `bytes`: the Book JSON of everything drawn except words and photographs;
+ *   - `translucent`: shapes with an opacity - a paper shadow is one - each its own graphics state;
+ *   - `layers`: groups and uses with an opacity, each composited once as a transparency group;
+ *   - `gradients`: items painted with a gradient, each a shading (and, with translucent stops, a
+ *     soft mask) of its own;
+ *   - `clips`: clipped groups.
+ * Each symbol is counted once and multiplied by its uses, so this is linear in the book's size.
+ */
+export function artStats(book) {
+  const symbols = book.symbols ?? {};
+  const memo = new Map();
+  const USE = 24;   // a use's or group's own bytes: a transform and a reference, roughly
+  const zero = () => ({ bytes: 0, translucent: 0, layers: 0, gradients: 0, clips: 0 });
+  const add = (a, b) => { for (const k of Object.keys(a)) a[k] += b[k]; };
+  const symbolStats = (ref) => {
+    if (!memo.has(ref)) {
+      memo.set(ref, zero());   // a cycle adds nothing; validateBook refuses one anyway
+      memo.set(ref, stats(Object.hasOwn(symbols, ref) ? symbols[ref].items : []));
+    }
+    return memo.get(ref);
+  };
+  const stats = (items) => {
+    const n = zero();
+    for (const it of items) {
+      if (it.t === 'text' || it.t === 'image') continue;
+      if (it.t === 'group' || it.t === 'use') {
+        add(n, it.t === 'group' ? stats(it.items) : symbolStats(it.ref));
+        n.bytes += USE + (it.clip ? it.clip.length : 0);
+        if (it.clip !== undefined) n.clips++;
+        if (it.op !== undefined) n.layers++;
+      } else {
+        n.bytes += JSON.stringify(it).length;
+        if (typeof it.fill === 'object' || typeof it.stroke === 'object') n.gradients++;
+        if (it.op !== undefined) n.translucent++;
+      }
+    }
+    return n;
+  };
+  const total = zero();
+  for (const p of book.pages) add(total, stats(p.items));
+  return total;
 }
 
 function fileName(title, tpl) {

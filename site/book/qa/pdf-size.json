@@ -1,0 +1,210 @@
+{
+ "about": "Measured by tools/book_pdf_size.mjs on 2026-09-21 (Chromium 151.0.7922.34). art = PDF bytes of the page minus the same page printed with its text only. Features are artStats(book) (site/book/compose.js). qa/estimate.test.mjs holds ART_PDF to covering every row. Regenerate by running the tool and copying rows, fitted, scale and storybook from its JSON.",
+ "chromium": "151.0.7922.34",
+ "method": "art in PDF = pdf(page) - pdf(same page, text only); Chromium page.pdf, A4, printBackground, preferCSSPageSize. Fitted art ~ sum of artStats features x coefficients, by non-negative least squares on relative error over every sample, then scaled by p95(measured/fitted over pages whose art is >= 18 KB) x 1.25. covered = (term + 18 KB per-page constant) / measured art.",
+ "fitted": {
+  "bytes": 0.3863843222119553,
+  "translucent": 518.5294883327443,
+  "layers": 0,
+  "gradients": 2900.3764184403312,
+  "clips": 757.7071252274943
+ },
+ "scale": 1.9280283274576808,
+ "chosen": {
+  "bytes": 0.7449599185101858,
+  "translucent": 999.7395421276681,
+  "layers": 0,
+  "gradients": 5592.007895043211,
+  "clips": 1460.8808013551334
+ },
+ "rows": [
+  {
+   "name": "frame:cover",
+   "pdf": 877277,
+   "textOnly": 12044,
+   "art": 865233,
+   "bytes": 742389,
+   "translucent": 1003,
+   "layers": 1,
+   "gradients": 45,
+   "clips": 0
+  },
+  {
+   "name": "frame:opening",
+   "pdf": 578652,
+   "textOnly": 17187,
+   "art": 561465,
+   "bytes": 521195,
+   "translucent": 634,
+   "layers": 0,
+   "gradients": 21,
+   "clips": 5
+  },
+  {
+   "name": "frame:courtyards",
+   "pdf": 679487,
+   "textOnly": 19104,
+   "art": 660383,
+   "bytes": 439765,
+   "translucent": 735,
+   "layers": 0,
+   "gradients": 22,
+   "clips": 2
+  },
+  {
+   "name": "frame:lane",
+   "pdf": 840845,
+   "textOnly": 18222,
+   "art": 822623,
+   "bytes": 465662,
+   "translucent": 809,
+   "layers": 0,
+   "gradients": 35,
+   "clips": 0
+  },
+  {
+   "name": "frame:register",
+   "pdf": 712605,
+   "textOnly": 20859,
+   "art": 691746,
+   "bytes": 278659,
+   "translucent": 873,
+   "layers": 0,
+   "gradients": 41,
+   "clips": 23
+  },
+  {
+   "name": "frame:remembrance",
+   "pdf": 434300,
+   "textOnly": 18324,
+   "art": 415976,
+   "bytes": 540276,
+   "translucent": 352,
+   "layers": 1,
+   "gradients": 17,
+   "clips": 2
+  },
+  {
+   "name": "frame:system",
+   "pdf": 413426,
+   "textOnly": 20186,
+   "art": 393240,
+   "bytes": 395611,
+   "translucent": 384,
+   "layers": 0,
+   "gradients": 13,
+   "clips": 12
+  },
+  {
+   "name": "conformance:1",
+   "pdf": 8294,
+   "textOnly": 6983,
+   "art": 1311,
+   "bytes": 1066,
+   "translucent": 0,
+   "layers": 1,
+   "gradients": 0,
+   "clips": 1
+  },
+  {
+   "name": "conformance:2",
+   "pdf": 17600,
+   "textOnly": 10442,
+   "art": 7158,
+   "bytes": 2795,
+   "translucent": 1,
+   "layers": 2,
+   "gradients": 2,
+   "clips": 1
+  },
+  {
+   "name": "conformance:3",
+   "pdf": 53184,
+   "textOnly": 7524,
+   "art": 45660,
+   "bytes": 3241,
+   "translucent": 0,
+   "layers": 2,
+   "gradients": 7,
+   "clips": 2
+  },
+  {
+   "name": "conformance:4",
+   "pdf": 16887,
+   "textOnly": 7705,
+   "art": 9182,
+   "bytes": 909,
+   "translucent": 0,
+   "layers": 2,
+   "gradients": 0,
+   "clips": 0
+  },
+  {
+   "name": "cal:paths",
+   "pdf": 298155,
+   "textOnly": 664,
+   "art": 297491,
+   "bytes": 615328,
+   "translucent": 0,
+   "layers": 0,
+   "gradients": 0,
+   "clips": 0
+  },
+  {
+   "name": "cal:dimmed",
+   "pdf": 460220,
+   "textOnly": 664,
+   "art": 459556,
+   "bytes": 620695,
+   "translucent": 400,
+   "layers": 0,
+   "gradients": 0,
+   "clips": 0
+  },
+  {
+   "name": "cal:shadows",
+   "pdf": 459629,
+   "textOnly": 664,
+   "art": 458965,
+   "bytes": 628928,
+   "translucent": 400,
+   "layers": 0,
+   "gradients": 0,
+   "clips": 0
+  },
+  {
+   "name": "cal:gradients",
+   "pdf": 214438,
+   "textOnly": 664,
+   "art": 213774,
+   "bytes": 5015,
+   "translucent": 0,
+   "layers": 0,
+   "gradients": 80,
+   "clips": 0
+  },
+  {
+   "name": "cal:layers",
+   "pdf": 107727,
+   "textOnly": 664,
+   "art": 107063,
+   "bytes": 260319,
+   "translucent": 0,
+   "layers": 160,
+   "gradients": 0,
+   "clips": 40
+  }
+ ],
+ "storybook": {
+  "pages": 28,
+  "json": 8025760,
+  "bytes": 13145949,
+  "translucent": 20255,
+  "layers": 5,
+  "gradients": 813,
+  "clips": 145,
+  "pdf": 18589595,
+  "predictedArt": 34801060,
+  "estimateJpeg": 924000
+ }
+}

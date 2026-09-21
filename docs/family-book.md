@@ -203,6 +203,79 @@ silently drop one. Both painters are held to it — `format.test.mjs` paints it 
 tests read the same file — so it is the one place to change when format 2's meaning changes. It is
 written by hand, not generated: `UPDATE_GOLDEN=1` does not touch it.
 
+## What a PDF weighs
+
+The book screen says *About 3.4 MB* before anybody waits for the PDF. `estimateBytes` (compose.js)
+is that number, and the budget test holds every book under 10 MB with it. It errs toward "too big".
+
+- **Fonts and pages:** 420 KB plus 18 KB a page.
+- **Photographs:** 0.22 bytes a pixel as JPEG (desktop), 1.8 lossless (Android's `PdfDocument`).
+- **Paper-cut art (format 2 only, #245).** Format-1 books keep the estimate they had, which
+  already covers their starfields. For a format-2 book, `artStats(book)` counts what its drawing
+  is made of, with every `use` expanded, because a symbol drawn forty times is forty copies in the
+  PDF. The term is `ART_PDF` times those counts:
+
+  | count | what it is | bytes each |
+  |---|---|---|
+  | `bytes` | Book JSON of every shape, words and photographs left out | 0.75 |
+  | `translucent` | shapes with an opacity (a paper shadow is one) | 1,000 |
+  | `gradients` | shapes painted with a gradient: a shading, and a soft mask if it fades | 5,600 |
+  | `clips` | clipped groups | 1,500 |
+  | `layers` | groups and uses with an opacity | 0 (measured free: the cost is in what they hold) |
+
+**How it was measured,** 2026-09-21, with `tools/book_pdf_size.mjs` in Chromium 151:
+
+1. The samples:
+   - the six approved style frames and the design-system sheet, converted item for item from the
+     kit's SVG into format-2 Books that pass `validateBook`;
+   - the four pages of the conformance book;
+   - five calibration pages, each loaded with mostly one kind of cost.
+2. Each page was printed the way the desktop prints (the same HTML, `@page` A4, `page.pdf` with
+   `printBackground` and `preferCSSPageSize`), then printed again with only its text. The
+   difference is what its art cost.
+3. The five counts were fitted to that cost by non-negative least squares on relative error.
+4. The fit was scaled by its own 95th-percentile under-estimate (among pages with at least 18 KB
+   of art; the per-page constant already pays for less) and by a quarter again: 1.93 in all. The
+   result was rounded up.
+
+On every page measured, the term plus the per-page constant allows between 1.37 and 15 times
+what the art cost. The numbers are in `site/book/qa/pdf-size.json`, and `estimate.test.mjs`
+fails if a constant drops below them.
+
+| page | PDF | art in the PDF | art JSON | translucent | gradients | clips | term | allowed / cost |
+|---|---|---|---|---|---|---|---|---|
+| frame: cover | 857 KB | 845 KB | 725 KB | 1003 | 45 | 0 | 1769 KB | 2.11 |
+| frame: opening | 565 KB | 548 KB | 509 KB | 634 | 21 | 5 | 1123 KB | 2.08 |
+| frame: courtyards | 664 KB | 645 KB | 429 KB | 735 | 22 | 2 | 1163 KB | 1.83 |
+| frame: lane | 821 KB | 803 KB | 455 KB | 809 | 35 | 0 | 1323 KB | 1.67 |
+| frame: register | 696 KB | 676 KB | 272 KB | 873 | 41 | 23 | 1315 KB | 1.97 |
+| frame: remembrance | 424 KB | 406 KB | 528 KB | 352 | 17 | 2 | 835 KB | 2.10 |
+| frame: system | 404 KB | 384 KB | 386 KB | 384 | 13 | 12 | 753 KB | 2.01 |
+| conformance 1 | 8 KB | 1 KB | 1 KB | 0 | 0 | 1 | 2 KB | 15.48 |
+| conformance 2 | 17 KB | 7 KB | 3 KB | 1 | 2 | 1 | 15 KB | 4.72 |
+| conformance 3 | 52 KB | 45 KB | 3 KB | 0 | 7 | 2 | 44 KB | 1.37 |
+| conformance 4 | 16 KB | 9 KB | 1 KB | 0 | 0 | 0 | 1 KB | 2.03 |
+| paths | 291 KB | 291 KB | 601 KB | 0 | 0 | 0 | 451 KB | 1.61 |
+| dimmed paths | 449 KB | 449 KB | 606 KB | 400 | 0 | 0 | 845 KB | 1.92 |
+| paper shadows | 449 KB | 448 KB | 614 KB | 400 | 0 | 0 | 851 KB | 1.94 |
+| fading glows | 209 KB | 209 KB | 5 KB | 0 | 80 | 0 | 441 KB | 2.20 |
+| dimmed uses, clips | 105 KB | 105 KB | 254 KB | 0 | 0 | 40 | 249 KB | 2.55 |
+
+**What this means for the storybook.**
+- **The style frames are far too heavy to ship as they are drawn.** A frame's art prints at 380 to
+  850 KB. A 28-page book at that density, which the tool also prints, came to **18.6 MB** of PDF
+  and 8 MB of Book JSON, against 10 MB and 1.5 MB. Its estimate is 35.8 MB.
+- **The budget for art.** To stay under 10 MB, a 28-page storybook's art term has to stay under
+  about 9 MB: roughly 330 KB of term a page, or about 170 KB of real art. The byte budgets in
+  `art/README.md` (a scene ≤ 40 KB, an avatar ≤ 2.5 KB, drawn as symbols) are what get it there.
+- **Paper shadows are the cost to watch.** Every shadow is a translucent shape, and the frames
+  draw about a thousand of them a page.
+
+**Android.** `PdfDocument` cannot draw format 2 until #246, so everything above is Chromium's
+PDF. #246, and #259 on the finished Diwali book, must measure Android's PDF of the same pages
+(`tools/book_pdf_size.mjs` writes the Books it prints), and raise `ART_PDF` if Android writes
+more. The estimate is only as high as its highest painter.
+
 ## Fonts
 
 Four static files embedded in the release, all covering Latin and Devanagari in one face:
