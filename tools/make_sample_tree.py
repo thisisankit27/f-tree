@@ -768,7 +768,14 @@ def visible_json(value):
     exactly the trick the notes fixture exists to test the composer against.
     """
     text = json.dumps(value, ensure_ascii=False, indent=1)
-    return "".join(f"\\u{ord(c):04x}" if c != "\n" and unicodedata.category(c) in ("Cc", "Cf") else c
+    def escape(c):
+        n = ord(c)
+        if n <= 0xFFFF:
+            return f"\\u{n:04x}"
+        n -= 0x10000   # JSON has no 5-digit escape: a surrogate pair
+        return f"\\u{0xD800 + (n >> 10):04x}\\u{0xDC00 + (n & 0x3FF):04x}"
+
+    return "".join(escape(c) if c != "\n" and unicodedata.category(c) in ("Cc", "Cf") else c
                    for c in text)
 
 
@@ -789,7 +796,12 @@ def book_fixture_files():
 
 def write_book_fixtures(out):
     out.mkdir(parents=True, exist_ok=True)
-    for file, data in book_fixture_files().items():
+    files = book_fixture_files()
+    for orphan in out.glob(f"{BOOK_FIXTURE_PREFIX}*.json"):
+        if orphan.name not in files:
+            orphan.unlink()
+            print(f"removed {orphan}, which the generator no longer makes")
+    for file, data in files.items():
         (out / file).write_bytes(data)
         print(f"{out / file}  {len(data) / 1024:.1f} KB")
 
@@ -797,9 +809,12 @@ def write_book_fixtures(out):
 def check_book_fixtures(out):
     files = book_fixture_files()
     stale = [f for f, data in files.items() if not (out / f).exists() or (out / f).read_bytes() != data]
+    # A story-* file nothing generates any more is still loaded by the invariant suite.
+    stale += sorted(p.name for p in out.glob(f"{BOOK_FIXTURE_PREFIX}*.json") if p.name not in files)
     if stale:
         sys.exit("These storybook fixtures differ from what tools/make_sample_tree.py makes:\n  "
                  + "\n  ".join(stale)
+                 + "\n(a file the generator no longer makes must be deleted)"
                  + "\nOther issues' tests name these people, so check what reads them, then run:\n"
                  "    python3 tools/make_sample_tree.py --book-fixtures site/book/fixtures\n")
     print(f"{len(files)} storybook fixtures in {out} are current")
