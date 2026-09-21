@@ -115,7 +115,7 @@ fun validateBook(book: Book, fontKeys: Set<String>): List<String> {
         items.forEachIndexed { i, it ->
             val at = "$where item $i"
             if (inSymbol && (it is Item.Text || it is Item.Image)) {
-                problems += "$at: type ${if (it is Item.Text) "text" else "image"}"
+                problems += "$at: type ${typeOf(it)}"
                 return@forEachIndexed
             }
             val fill = when (it) {
@@ -140,6 +140,8 @@ fun validateBook(book: Book, fontKeys: Set<String>): List<String> {
                 is Item.Use -> it.op
             }
             if (op != null && !(op >= 0f && op <= 1f)) problems += "$at: opacity $op"
+            val tf = (it as? Item.Group)?.tf ?: (it as? Item.Use)?.tf
+            if (tf != null && tf.size != 6) problems += "$at: transform"
             when (it) {
                 // An empty path draws nothing, and the composer writes one where a tree has no lines.
                 is Item.Path -> if (it.d != "" && pathPoints(it.d) == null) problems += "$at: path data"
@@ -150,14 +152,10 @@ fun validateBook(book: Book, fontKeys: Set<String>): List<String> {
                 is Item.Image -> if (it.clip != "circle" && it.clip != "rect") problems += "$at: clip ${it.clip}"
                 is Item.Group -> {
                     if (depth > 4) problems += "$at: groups nested too deep"
-                    if (it.tf != null && it.tf.size != 6) problems += "$at: transform"
                     if (it.clip != null && !isClip(it.clip)) problems += "$at: clip path data"
                     walk(it.items, at, depth + 1, inSymbol)
                 }
-                is Item.Use -> {
-                    if (it.tf != null && it.tf.size != 6) problems += "$at: transform"
-                    if (it.ref !in book.symbols) problems += "$at: unknown symbol ${it.ref}"
-                }
+                is Item.Use -> if (it.ref !in book.symbols) problems += "$at: unknown symbol ${it.ref}"
                 else -> Unit
             }
         }
@@ -198,7 +196,7 @@ fun validateBook(book: Book, fontKeys: Set<String>): List<String> {
         val d = depthOf(id, emptyList())
         if (d > Book.MAX_SYMBOL_DEPTH && d != cycle) problems += "symbol $id: symbols nested $d deep, more than ${Book.MAX_SYMBOL_DEPTH}"
     }
-    if (levels.values.none { it == cycle } && levels.size == book.symbols.size) {
+    if (levels.values.none { it == cycle }) {
         // Doubles, as JavaScript counts: a book that multiplies past a Long must still be refused.
         val sizes = HashMap<String, Double>()   // id -> how many items one use of it expands to
         fun count(items: List<Item>): Double = items.sumOf {
