@@ -240,8 +240,23 @@ test('explicit siblings with no shared parents, followed transitively', () => {
     assert.equal(k.people.get(id).branch, null, id);
   }
   assert.equal(k.words('y').en, 'brother');
-  assert.equal(k.words('z').en, 'sibling');   // no gender recorded: English says so, Hindi has none
-  assert.equal(kinOf(readFamily(doc), 'f', { words: 'hi' }).words('z').word, 'sibling');
+  assert.equal(k.words('z').en, 'half-sibling');   // a HALF link, and no gender: English says so, Hindi has none
+  assert.equal(kinOf(readFamily(doc), 'f', { words: 'hi' }).words('z').word, 'half-sibling');
+});
+
+test('explicit links are followed only through full siblings, and a HALF link stays half', () => {
+  // H is F's half-brother through Dad; M is explicitly H's sister, from H's mother's side - no kin of F's.
+  const doc = tree([
+    M('dad', 'Dad', '1950'), W('mum', 'Mum', '1955'), W('step', 'Step', '1952'),
+    M('f', 'F', '1980'), M('h', 'H', '1975'), W('m', 'M', '1972'),
+    W('b', 'B', '1982'), M('c', 'C', '1984'),
+  ], [parents('dad', 'mum', 'f'), parents('dad', 'step', 'h'), sibling('h', 'm'), sibling('f', 'b', 'HALF'), sibling('b', 'c')]);
+  const { k } = kin(doc, 'f');
+  assert.equal(k.people.get('h').role, 'half');
+  assert.notEqual(circleOf(k, 'm'), 'siblings');
+  assert.notEqual(k.words('m').en, 'sister');
+  assert.equal(k.words('b').en, 'half-sister');
+  assert.notEqual(circleOf(k, 'c'), 'siblings');   // B is only a half-sister: her own siblings are not F's
 });
 
 test('a family of twelve: eleven siblings, eldest first', () => {

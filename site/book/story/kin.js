@@ -21,7 +21,8 @@
  *   3. spouses       F's spouses: current, former, late
  *   4. children      F's children, grouped by the other parent
  *   5. siblings      full, half (grouped by the parents they share) and explicit sibling links,
- *                    followed transitively (F's brother's explicit sister is F's sister too)
+ *                    followed transitively through full siblings (F's brother's explicit
+ *                    sister is F's sister too; a half-sibling's is not)
  *   6. grandparents  the parents of F's parents, per side
  *   7. descendants   F's grandchildren and beyond
  *   8. ancestors     beyond the grandparents, per side where the record says
@@ -218,12 +219,15 @@ export function kinOf(family, featuredId, options = {}) {
       direct.set(s.id, { kind: 'sibling', half: s.half });
     }
     // Explicit sibling links are transitive, as model.js's stand-in parents read them: three
-    // siblings recorded as two links are one family, so F's brother's explicit sister is F's sister.
-    walk([F, ...siblingIds], (x) => sorted(graph.explicitSiblings.get(x)?.values() ?? []).filter((s) => {
+    // siblings recorded as two links are one family, so F's full brother's explicit sister is F's
+    // sister. Only through a full sibling, though: a half-sibling's explicit sister may belong to
+    // the parent F does not share, so the walk neither starts from nor continues past anyone half.
+    const full = (id) => !direct.get(id).half;
+    walk([F, ...siblingIds.filter(full)], (x) => sorted(graph.explicitSiblings.get(x)?.values() ?? []).filter((s) => {
       if (!claim(s.id, 'siblings', 'explicit', { gen: 0, via: x })) return false;
       siblingIds.push(s.id);
-      direct.set(s.id, { kind: 'sibling', half: false });
-      return true;
+      direct.set(s.id, { kind: 'sibling', half: s.subtype === 'HALF' });
+      return s.subtype !== 'HALF';
     }));
 
     const grandparentIds = [];
