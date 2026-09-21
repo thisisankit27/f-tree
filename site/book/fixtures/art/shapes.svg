@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <ellipse id="ellipse" cx="50" cy="50" rx="20" ry="10" fill="#e8762b"/>
+  <ellipse id="round-ellipse" cx="50" cy="50" rx="5" ry="5" fill="#E8762B"/>
+  <polygon id="polygon" points="0,0 10,0 5,8" fill="#FFF8EC"/>
+  <polyline id="polyline" points="0 0 10 10 20 0" stroke="#2a1a33" fill="none"/>
+  <line id="line" x1="1" y1="2" x2="3" y2="4" stroke="#2a1a33"/>
+  <rect id="rect" x="10" y="20" width="30" height="5" fill="#fff8ec"/>
+  <rect id="rounded-rect" x="0" y="0" width="10" height="10" rx="2" ry="4" fill="#fff8ec"/>
+  <rect id="empty" x="0" y="0" width="0" height="10" fill="#fff8ec"/>
+</svg>

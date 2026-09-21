@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40">
+  <!-- relative moves and lines, H and V, a closed subpath and the implicit lineto after a moveto -->
+  <path d="m10 10 h10 v10 l-10 0 z m5 5 l1 1 1 1" fill="#c23b2e"/>
+  <path d="M1,1 2,2 3,3" stroke="#2a1a33" fill="none"/>
+</svg>

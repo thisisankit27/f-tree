@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <g transform="translate(100 50) rotate(90)">
+    <path id="turned" d="M0 0L10 0" stroke="#2a1a33" fill="none" stroke-width="2"/>
+    <circle id="round" cx="10" cy="0" r="3" fill="#f2b84b"/>
+  </g>
+  <g transform="matrix(2 0 0 2 10 10)">
+    <rect id="doubled" x="1" y="2" width="3" height="4" rx="0.5" fill="#b5562a"/>
+  </g>
+  <!-- a non-uniform scale: a filled circle is baked into a path, a stroked one keeps its transform -->
+  <g transform="scale(2 1)">
+    <circle id="squashed" cx="10" cy="10" r="5" fill="#5a8a3c"/>
+    <circle id="squashed-ring" cx="10" cy="10" r="5" fill="none" stroke="#2a1a33"/>
+  </g>
+  <path id="rounded" d="M0.123456 1.005 L2.0049 -0.004" stroke="#2a1a33" fill="none"/>
+</svg>

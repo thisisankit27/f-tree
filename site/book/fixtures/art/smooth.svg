@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40">
+  <!-- S reflects the previous C's second control point, T the previous Q's; after anything else
+       the reflection is the current point -->
+  <path id="s" d="M0 0 C0 10 10 10 10 0 S20 -10 20 0" stroke="#2a1a33" fill="none"/>
+  <path id="t" d="M0 0 Q5 10 10 0 T20 0" stroke="#2a1a33" fill="none"/>
+  <path id="s-alone" d="M0 0 L5 5 S10 10 15 5" stroke="#2a1a33" fill="none"/>
+  <path id="relative" d="m0 0 c0 10 10 10 10 0 s10 -10 10 0 q5 10 10 0 t10 0" stroke="#2a1a33" fill="none"/>
+</svg>

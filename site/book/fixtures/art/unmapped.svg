@@ -1,0 +1,4 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10">
+  <rect width="10" height="10" fill="#fff8ec"/>
+  <circle id="petal" cx="5" cy="5" r="2" fill="#f2a71c"/>
+</svg>

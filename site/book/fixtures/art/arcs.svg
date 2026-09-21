@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-20 -20 40 40">
+  <!-- a half circle of radius 10 about the origin, sweeping through (0, 10) -->
+  <path id="half" d="M10 0 A10 10 0 0 1 -10 0" stroke="#2a1a33" fill="none"/>
+  <!-- the same ends, the other way round: large arc, negative sweep -->
+  <path id="large" d="M10 0 A10 10 0 1 0 0 10" stroke="#2a1a33" fill="none"/>
+  <!-- radii too small for the ends are scaled up until they reach, and compact flags parse -->
+  <path id="scaled" d="M-10 0a1 1 0 0110 0" stroke="#2a1a33" fill="none"/>
+  <!-- small arc, sweep 0, the same ends: the centre is on the other side, at (10, 10) -->
+  <path id="small" d="M10 0 A10 10 0 0 0 0 10" stroke="#2a1a33" fill="none"/>
+  <!-- a zero radius is a straight line -->
+  <path id="flat" d="M0 0 A0 5 0 0 1 5 5" stroke="#2a1a33" fill="none"/>
+</svg>

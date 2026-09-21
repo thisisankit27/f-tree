@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Drawn the way an editor writes it: relative commands, an arc, S, transforms on groups. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 60 60" data-anchor="bottom-center" width="60" height="60">
+  <desc>A lamp on a step. Fixture for #247.</desc>
+  <g transform="translate(30 40)">
+    <path d="m-15 0 a15 7 0 0 0 30 0 z" fill="#b5562a"/>
+    <g transform="rotate(-10) scale(1.5)">
+      <path d="M0 -2 c2 -2 2 -6 0 -10 s-2 8 0 10z" fill="#f2b84b"/>
+    </g>
+  </g>
+  <rect x="5" y="50" width="50" height="10" rx="1" fill="#ead7b5" opacity="0.8"/>
+</svg>
