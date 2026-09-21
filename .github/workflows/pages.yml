@@ -91,6 +91,13 @@ jobs:
       - name: Check the book fonts' metrics tables are current
         run: node tools/font_metrics.mjs --check
 
+      # The storybook's paper-cut art is compiled from authored SVG (site/book/art/src/papercut) into
+      # committed modules (site/book/art/papercut) - see tools/book_art.mjs. This fails when a source
+      # changed without recompiling, and when swatches.json's tokens drift from template.js's
+      # paper-cut palette, which would paint a colour no template can supply.
+      - name: Check the book's compiled art is current
+        run: node tools/book_art.mjs --check
+
       # The writer is the first piece of the editor, and the only reader that matters for it is the
       # Android app's: it walks local file headers, so an archive whose sizes live in a data
       # descriptor reads as empty there. Checked against a real export, both directions.
