@@ -87,7 +87,7 @@ sentence is never printed. (`Book.fonts` is an open map, so a new face never bum
 this check is the only thing standing between a new face and a quietly incomplete page.)
 `validateBook` lists everything a painter may rely on. The composer's tests run it on every book
 they make. Android's `readBook` runs its Kotlin twin (`BookValidation.kt`, #246) on every book the
-WebView hands back, with the font-key check added against `BookPrinter.FONT_FILES`, the faces the
+WebView hands back, with the font-key check added against `BookFonts.FILES`, the faces the
 release actually embeds; `BookFormat2Test` hands the same books to both and requires the same
 answer.
 

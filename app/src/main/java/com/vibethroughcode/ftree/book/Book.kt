@@ -264,7 +264,7 @@ val BookJson = Json {
  * @param fontKeys the font files this app embeds; a book naming any other is refused rather than
  *   drawn with a line of text missing.
  */
-fun readBook(text: String, fontKeys: Set<String> = BookPrinter.FONT_FILES.keys): Book {
+fun readBook(text: String, fontKeys: Set<String> = BookFonts.FILES.keys): Book {
     val root = BookJson.parseToJsonElement(text) as? JsonObject ?: throw SerializationException("a book is a JSON object")
     val declared = root["format"]
     val format = (declared as? JsonPrimitive)?.takeIf { !it.isString }?.intOrNull

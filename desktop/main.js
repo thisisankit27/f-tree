@@ -734,7 +734,7 @@ async function localFontCss() {
  *
  * This list is one of five that name the book's font keys and cannot import one another; the other
  * four are `FONT_KEYS` in `site/book/template.js`, the hard-coded font map in
- * `app/.../book/BookPrinter.kt`, the `@font-face` rules in `site/book/preview.html`, and the tables
+ * `app/.../book/BookFonts.kt`, the `@font-face` rules in `site/book/preview.html`, and the tables
  * gathered into `METRICS` in `site/book/metrics/index.js`. `site/book/font-keys.json` plus
  * `font-keys.test.mjs` and `FontKeysTest.kt` fail the build if any of the five disagree.
  */

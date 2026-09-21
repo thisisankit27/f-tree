@@ -10,11 +10,11 @@ import org.junit.Test
 import java.io.File
 
 /**
- * `BookPrinter.FONT_FILES` held to `site/book/font-keys.json`, the same table `font-keys.test.mjs`
+ * `BookFonts.FILES` held to `site/book/font-keys.json`, the same table `font-keys.test.mjs`
  * reads for the four JavaScript/HTML sites (`FONT_KEYS` in `template.js`, `BOOK_FONT_FILES` in
  * `desktop/main.js`, the `@font-face` rules in `preview.html`, and `METRICS` in `metrics/index.js`)
  * -- see the comment on `FONT_KEYS` for why there are five sites and no shared constant. This is
- * the Kotlin side: `BookPrinter.kt` is source, not data, so this reads it as text the way
+ * the Kotlin side: `BookFonts.kt` is source, not data, so this reads it as text the way
  * `BookCatalogTest`'s format check reads `template.js` as text, rather than trying to instantiate a
  * class that needs an Android `Context`.
  */
@@ -24,11 +24,11 @@ class FontKeysTest {
         .first { File(it, "settings.gradle.kts").exists() }
 
     @Test
-    fun `BookPrinter's font map names exactly the shared list of font keys`() {
+    fun `BookFonts' map names exactly the shared list of font keys`() {
         val table = Json.parseToJsonElement(File(root, "site/book/font-keys.json").readText()).jsonObject
         val expected = table.getValue("keys").jsonArray.map { it.jsonPrimitive.content }
 
-        val printer = File(root, "app/src/main/java/com/vibethroughcode/ftree/book/BookPrinter.kt").readText()
+        val printer = File(root, "app/src/main/java/com/vibethroughcode/ftree/book/BookFonts.kt").readText()
         val found = Regex("\"(book_[a-z]+)\" to R\\.font\\.\\1").findAll(printer).map { it.groupValues[1] }.toList()
 
         assertEquals(expected, found)

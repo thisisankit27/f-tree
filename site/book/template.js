@@ -32,7 +32,7 @@ export const BLOCKS = ['cover', 'tree', 'numbers', 'generations', 'find', 'closi
  * exactly the three roles below - see the `fonts` check further down, which does not change - and
  * a format-2 template is the first to use `hand` (#243). `FONT_KEYS` is enumerated in four other
  * places that cannot import this file and must be kept in step by hand: the hard-coded font map in
- * `app/.../book/BookPrinter.kt`, `BOOK_FONT_FILES` in `desktop/main.js`, the `@font-face` rules in
+ * `app/.../book/BookFonts.kt`, `BOOK_FONT_FILES` in `desktop/main.js`, the `@font-face` rules in
  * `preview.html`, and the tables gathered into `METRICS` in `metrics/index.js`. `font-keys.json`
  * plus `font-keys.test.mjs` and `FontKeysTest.kt` fail the build if any of the five disagree.
  */

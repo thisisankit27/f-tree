@@ -6,7 +6,7 @@
  *
  * This object is one of five places that list the book's font keys and cannot import one another;
  * the other four are `FONT_KEYS` in `../template.js`, the hard-coded font map in
- * `app/.../book/BookPrinter.kt`, `BOOK_FONT_FILES` in `desktop/main.js`, and the `@font-face` rules
+ * `app/.../book/BookFonts.kt`, `BOOK_FONT_FILES` in `desktop/main.js`, and the `@font-face` rules
  * in `../preview.html`. `../font-keys.json` plus `font-keys.test.mjs` and `FontKeysTest.kt` fail
  * the build if any of the five disagree.
  */

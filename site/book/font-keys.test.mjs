@@ -8,7 +8,7 @@
  *
  * `font-keys.json` is the one list both this file and `FontKeysTest.kt` read, the same shape
  * `catalog-cases.json` holds the two shells' catalogue logic to. Four of the five sites here are
- * JavaScript, so this file can check them directly; `BookPrinter.kt`'s hard-coded map is Kotlin's
+ * JavaScript, so this file can check them directly; `BookFonts.kt`'s hard-coded map is Kotlin's
  * job, in `FontKeysTest.kt`.
  */
 

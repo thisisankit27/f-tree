@@ -241,13 +241,13 @@ class BookFormat2Test {
         val message = refusal(conformance().replace("\"strong\": \"book_strong\"", "\"strong\": \"book_serif\""))
         assertTrue(message, "book_serif" in message)
         assertTrue(message, "\"strong\"" in message)
-        for (key in BookPrinter.FONT_FILES.keys) assertTrue("$key in: $message", key in message)
+        for (key in BookFonts.FILES.keys) assertTrue("$key in: $message", key in message)
         assertTrue(message, "update f-tree" in message)
     }
 
     @Test
     fun `every face the printer carries is one a book may name`() {
-        val every = BookPrinter.FONT_FILES.keys.joinToString(",", "{", "}") { """"${it.removePrefix("book_")}":"$it"""" }
+        val every = BookFonts.FILES.keys.joinToString(",", "{", "}") { """"${it.removePrefix("book_")}":"$it"""" }
         readBook(book(listOf(RECT), format = 1, fonts = every))
         // And the check is against the list it is given, not a copy of its own.
         refusal(book(listOf(RECT), format = 1), fontKeys = setOf("book_display"))
@@ -365,7 +365,7 @@ class BookFormat2Test {
         (symbols?.let { ""","symbols":$it""" } ?: "") + "}"
 
     /** Reads [text], which must be refused; returns why. */
-    private fun refusal(text: String, fontKeys: Set<String> = BookPrinter.FONT_FILES.keys): String {
+    private fun refusal(text: String, fontKeys: Set<String> = BookFonts.FILES.keys): String {
         try {
             readBook(text, fontKeys)
         } catch (expected: SerializationException) {
