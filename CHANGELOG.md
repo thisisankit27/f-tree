@@ -32,6 +32,23 @@ betas leading up to a stable release are folded into that release's entry here.
   nobody at its centre, so both new controls stay visible there with a note explaining why they
   do not change anything on that template yet.
 
+**Choosing whose story a family book tells, on desktop (#249).**
+
+- **"Whose story"**, in the family book dialog: a search picker over whoever is currently in
+  scope, prefilled with *Chosen for you: {name}* — the same person the book would already be told
+  around — with *Reset* to go back to it after picking somebody else. Keyboard-accessible: arrow
+  keys move through the matches, Enter picks one, Escape closes the list without closing the
+  dialog. On Heirloom, and every other template that does not yet build a page around one person,
+  it says so: *"Heirloom doesn't feature one person yet."*
+- **"Include notes"**, off by default. A note is the family's own words, written for someone in
+  particular, and a book may be forwarded to people who were never chosen to read them — so it
+  stays out unless asked for, with a helper line saying why.
+- **Family words** now reaches the book: a household that reads relationships in हिन्दी gets the
+  same choice in what it prints.
+- **Faster template previews.** Switching templates in the dialog no longer composes every other
+  template's whole book just to draw its thumbnail — each non-selected cover now stops at its own
+  first page.
+
 **Whose birthday is coming up, and a note on the morning if you want one (#230, #154).**
 
 - **Coming up, on Android (0.10.0-beta.3) and desktop (0.8.0-beta.3).** The top of People lists the
