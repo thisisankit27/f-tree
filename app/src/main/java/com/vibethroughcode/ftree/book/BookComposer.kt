@@ -10,12 +10,17 @@ import android.webkit.WebResourceRequest
 import android.webkit.WebResourceResponse
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import java.io.ByteArrayInputStream
 import java.io.IOException
 
@@ -53,7 +58,39 @@ class BookComposer(private val context: Context) : AutoCloseable {
      * Composes one book. [inputJson] is `{doc, options, template, allowance}`, exactly the
      * arguments `composeBook` takes. Throws [BookFailure] for anything that stops the book.
      */
-    suspend fun compose(inputJson: String): Book = lock.withLock {
+    suspend fun compose(inputJson: String): Book {
+        val json = run(inputJson, "ftreeCompose()")
+        return withContext(Dispatchers.Default) {
+            try {
+                readBook(json)
+            } catch (e: Exception) {
+                throw BookFailure.Script("the composer returned a book this app cannot read: ${e.message}")
+            }
+        }
+    }
+
+    /**
+     * Who `resolveFeatured` (`site/book/story/featured.js`) would pick for [inputJson] - the same
+     * `{doc, options, template, allowance}` [compose] takes - without laying out a whole book.
+     *
+     * This exists only to prefill the book screen's "Whose story" row until the reader picks
+     * somebody themselves ([BookViewModel]), so it fails quietly: a stale WebView or a document
+     * `resolveFeatured` cannot place returns `null` rather than a second [BookFailure] alongside
+     * whatever the next real [compose] already reports.
+     */
+    suspend fun resolveFeatured(inputJson: String): String? = try {
+        val json = run(inputJson, "ftreeFeatured()")
+        withContext(Dispatchers.Default) {
+            Json.parseToJsonElement(json).jsonObject["featured"]?.jsonPrimitive?.contentOrNull
+        }
+    } catch (e: CancellationException) {
+        throw e
+    } catch (e: Exception) {
+        null
+    }
+
+    /** Sends [inputJson] to the composer page and calls [jsCall], returning whatever it delivers. */
+    private suspend fun run(inputJson: String, jsCall: String): String = lock.withLock {
         val result = CompletableDeferred<String>()
         withContext(Dispatchers.Main) {
             open()
@@ -66,21 +103,14 @@ class BookComposer(private val context: Context) : AutoCloseable {
             }
             input = inputJson
             pending = result
-            webView?.evaluateJavascript("ftreeCompose()", null)
+            webView?.evaluateJavascript(jsCall, null)
         }
-        val json = try {
+        try {
             withTimeout(COMPOSE_TIMEOUT_MS) { result.await() }
         } catch (timeout: kotlinx.coroutines.TimeoutCancellationException) {
             throw BookFailure.TimedOut
         } finally {
             pending = null
-        }
-        withContext(Dispatchers.Default) {
-            try {
-                readBook(json)
-            } catch (e: Exception) {
-                throw BookFailure.Script("the composer returned a book this app cannot read: ${e.message}")
-            }
         }
     }
 

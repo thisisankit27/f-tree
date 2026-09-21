@@ -12,6 +12,9 @@ import com.vibethroughcode.ftree.book.BookFailure
 import com.vibethroughcode.ftree.book.BookPrinter
 import com.vibethroughcode.ftree.book.BookTemplates
 import com.vibethroughcode.ftree.data.FamilyRepository
+import com.vibethroughcode.ftree.data.KinshipLanguage
+import com.vibethroughcode.ftree.data.KinshipPreferences
+import com.vibethroughcode.ftree.data.Person
 import com.vibethroughcode.ftree.entitlement.AccessRequest
 import com.vibethroughcode.ftree.entitlement.Decision
 import com.vibethroughcode.ftree.entitlement.EntitlementContext
@@ -47,9 +50,74 @@ data class BookOptions(
     val branch: Boolean = false,
     val photos: Boolean = true,
     val livingDates: Boolean = false,
+    /**
+     * Who the story is told around. Null lets the composer choose (`resolveFeatured`,
+     * `site/book/story/featured.js`) - a book nobody has set this on still tells somebody's story,
+     * it just isn't the reader's own pick yet.
+     */
+    val featured: String? = null,
+    /**
+     * Off by default: a note is the family's own words, and a book like this is forwarded to
+     * people nobody chose (docs/storybook-plan.md).
+     */
+    val notes: Boolean = false,
+    /**
+     * The reader's Family-words setting (`KinshipPreferences`), `"en"` or `"hi"` - not a control on
+     * this screen, just carried through to the composer so a kin caption reads the way the rest of
+     * the app already speaks (docs/family-book.md's "Kin captions").
+     */
+    val words: String = "en",
 )
 
-data class TemplateChoice(val id: String, val name: String, val featured: Boolean, val cover: Picture?)
+/** [KinshipLanguage] as the composer spells it (`site/book/compose.js`: anything but `"hi"` is English). */
+internal fun wordsFor(language: KinshipLanguage): String = if (language == KinshipLanguage.HINDI) "hi" else "en"
+
+/**
+ * The `options` object [BookViewModel] sends the composer for [opts], as of [today] - pure and
+ * independent of anything the screen has loaded (no document, no template, no WebView), so it is
+ * exactly what `BookOptionsTest` exercises directly. [scopePersonId] is the person the book screen
+ * was opened for, if it was; `opts.branch` only narrows the scope when there is one to narrow it to.
+ * [coverOnly] mirrors `composeBook`'s own option (`site/book/compose.js`): the composer stops after
+ * the first page, which `template.js` guarantees is always the cover.
+ */
+internal fun composerOptionsJson(
+    opts: BookOptions,
+    today: LocalDate,
+    scopePersonId: String?,
+    coverOnly: Boolean = false,
+): JsonObject = buildJsonObject {
+    put("now", today.toString())
+    put("photos", opts.photos)
+    put("livingDates", opts.livingDates)
+    put("notes", opts.notes)
+    put("words", opts.words)
+    opts.featured?.let { put("featured", it) }
+    if (coverOnly) put("coverOnly", true)
+    opts.title?.trim()?.takeIf { it.isNotEmpty() }?.let { put("title", it) }
+    if (opts.branch && scopePersonId != null) {
+        putJsonObject("scope") {
+            put("kind", "branch")
+            put("personId", scopePersonId)
+        }
+    } else {
+        putJsonObject("scope") { put("kind", "everyone") }
+    }
+}
+
+data class TemplateChoice(
+    val id: String,
+    val name: String,
+    val featured: Boolean,
+    val cover: Picture?,
+    /**
+     * Whether this template tells one person's story. Heirloom draws the whole family as one
+     * constellation with nobody at its centre, so "Whose story" has nothing to do there yet
+     * (docs/storybook-plan.md: "the featured person is a generic option on every template, and
+     * only Diwali uses it for now"). Every other template answers `true` until a second template
+     * makes this worth declaring in `template.js` instead of naming it here by id.
+     */
+    val featuresOnePerson: Boolean = true,
+)
 
 data class BookUiState(
     val loading: Boolean = true,
@@ -61,6 +129,14 @@ data class BookUiState(
     val branchOf: String? = null,
     /** Whether anybody in the tree has a photograph, so the switch can say so when nobody does. */
     val hasPhotos: Boolean = false,
+    /**
+     * Who `resolveFeatured` would pick were [BookOptions.featured] left unset, for the "Chosen for
+     * you: {name}" hint. Null while that is still being asked for, or once nobody in scope can be
+     * featured - the row falls back to its own wording either way (`BookScreen.kt`).
+     */
+    val suggestedFeatured: Person? = null,
+    /** [BookOptions.featured], resolved to a [Person] for the row to show. Null until picked. */
+    val featuredPerson: Person? = null,
     val book: Book? = null,
     val pages: List<Picture> = emptyList(),
     val estimateBytes: Long = 0,
@@ -99,11 +175,14 @@ class BookViewModel(
     private val entitlements: EntitlementSource,
     private val ledger: UsageLedger,
     private val contentResolver: ContentResolver,
+    private val kinship: KinshipPreferences,
     private val scopePersonId: String?,
     private val today: () -> LocalDate = LocalDate::now,
 ) : ViewModel() {
 
-    private val _state = MutableStateFlow(BookUiState(options = BookOptions(branch = scopePersonId != null)))
+    private val _state = MutableStateFlow(
+        BookUiState(options = BookOptions(branch = scopePersonId != null, words = wordsFor(kinship.language.value)))
+    )
     val state: StateFlow<BookUiState> = _state.asStateFlow()
 
     private val options = MutableStateFlow(_state.value.options)
@@ -114,6 +193,17 @@ class BookViewModel(
     private val photoCache = mutableMapOf<Pair<String, Int>, Bitmap>()
     private var photos: Map<String, Bitmap> = emptyMap()
 
+    /** The people the screen fetched when it opened - what "Whose story" offers, and looks names up in. */
+    private var people: List<Person> = emptyList()
+    private var peopleById: Map<String, Person> = emptyMap()
+
+    /** `scopePersonId`'s branch, computed once: what "Whose story" offers when `options.branch` is on. */
+    private var branchIds: Set<String>? = null
+
+    /** The last (branch, template) a "Chosen for you" suggestion was asked for, so a title edit or a
+     * photos toggle doesn't cost a second WebView round trip for a value that couldn't have changed. */
+    private var suggestionKey: Pair<Boolean, String>? = null
+
     init {
         viewModelScope.launch {
             val people = repository.allPeople()
@@ -121,6 +211,9 @@ class BookViewModel(
                 _state.update { it.copy(loading = false, empty = true) }
                 return@launch
             }
+            this@BookViewModel.people = people
+            peopleById = people.associateBy { it.id }
+            if (scopePersonId != null) branchIds = repository.branchIdsOf(scopePersonId)
             photoOf = people.associate { it.id to it.photoId }
             val branchOf = scopePersonId?.let { id -> people.firstOrNull { it.id == id }?.name?.trim()?.split(Regex("\\s+"))?.firstOrNull() }
             document = Json.parseToJsonElement(exporter.documentJson())
@@ -128,7 +221,11 @@ class BookViewModel(
             templateJson = list.associate { it.id to it.json }
             tierOf = list.associate { it.id to it.tier }
             _state.update {
-                it.copy(branchOf = branchOf, hasPhotos = people.any { p -> p.photoId != null }, templates = list.map { t -> TemplateChoice(t.id, t.name, t.featured, null) })
+                it.copy(
+                    branchOf = branchOf,
+                    hasPhotos = people.any { p -> p.photoId != null },
+                    templates = list.map { t -> TemplateChoice(t.id, t.name, t.featured, null, featuresOnePerson = t.id !in TEMPLATES_WITHOUT_FEATURED) },
+                )
             }
             list.firstOrNull()?.let { first -> change { it.copy(templateId = first.id) } }
 
@@ -145,8 +242,28 @@ class BookViewModel(
     fun setBranch(branch: Boolean) = change { it.copy(branch = branch) }
     fun setPhotos(on: Boolean) = change { it.copy(photos = on) }
     fun setLivingDates(on: Boolean) = change { it.copy(livingDates = on) }
+    fun setFeatured(personId: String?) {
+        change { it.copy(featured = personId) }
+        _state.update { it.copy(featuredPerson = personId?.let(peopleById::get)) }
+    }
+    fun resetFeatured() = setFeatured(null)
+    fun setNotes(on: Boolean) = change { it.copy(notes = on) }
     fun noticeShown() = _state.update { it.copy(notice = null) }
     fun retry() = viewModelScope.launch { compose(options.value) }
+
+    /**
+     * Who "Whose story" may offer: everyone in the book's current scope, ordered the way the
+     * relation picker orders its own list, narrowed to [query]. Read from the snapshot fetched
+     * when the screen opened - the same people the composed book itself is drawn from - so typing
+     * in the picker never touches the database.
+     */
+    fun candidatesFor(query: String): List<Person> {
+        val scoped = if (options.value.branch) people.filter { it.id in branchIds.orEmpty() } else people
+        val ordered = scoped.sortedWith(
+            compareBy<Person> { it.name.isNullOrBlank() }.thenBy(String.CASE_INSENSITIVE_ORDER) { it.name.orEmpty() }
+        )
+        return if (query.isBlank()) ordered else ordered.filter { it.name?.contains(query.trim(), ignoreCase = true) == true }
+    }
 
     private fun change(transform: (BookOptions) -> BookOptions) {
         val next = transform(options.value)
@@ -160,21 +277,12 @@ class BookViewModel(
         EntitlementContext(plan = entitlements.plan, usage = mapOf(FEATURE to ledger.count(FEATURE))),
     )
 
-    private fun input(opts: BookOptions, allowance: JsonObject): String? {
+    private fun input(opts: BookOptions, allowance: JsonObject, coverOnly: Boolean = false): String? {
         val doc = document ?: return null
         val template = templateJson[opts.templateId] ?: templateJson.values.firstOrNull() ?: return null
         return buildJsonObject {
             put("doc", doc)
-            putJsonObject("options") {
-                put("now", today().toString())
-                put("photos", opts.photos)
-                put("livingDates", opts.livingDates)
-                opts.title?.trim()?.takeIf { it.isNotEmpty() }?.let { put("title", it) }
-                if (opts.branch && scopePersonId != null) putJsonObject("scope") {
-                    put("kind", "branch")
-                    put("personId", scopePersonId)
-                } else putJsonObject("scope") { put("kind", "everyone") }
-            }
+            put("options", composerOptionsJson(opts, today(), scopePersonId, coverOnly))
             put("template", template)
             put("allowance", allowance)
         }.toString()
@@ -194,12 +302,32 @@ class BookViewModel(
             _state.update {
                 it.copy(loading = false, composing = false, book = book, pages = pages, estimateBytes = estimate(book))
             }
+            updateSuggestedFeatured(opts, json)
         } catch (failure: BookFailure) {
             // Written to the device's own log, which never leaves it: the one trace of a failed
             // layout that "Report a problem" can ask a reader to copy.
             android.util.Log.w("FTreeBook", "could not compose the book", failure)
             _state.update { it.copy(loading = false, composing = false, failure = failure) }
         }
+    }
+
+    /**
+     * Keeps "Chosen for you" in step with `resolveFeatured` (`site/book/story/featured.js`) without
+     * asking the WebView again for a value that couldn't have moved: it depends only on the family
+     * in scope and `options.featured`, never on the title, the photos switch or living dates. Once
+     * the reader picks somebody themselves there is nothing to suggest, and the next time they
+     * reset it, the row asks again rather than showing whatever it last knew.
+     */
+    private suspend fun updateSuggestedFeatured(opts: BookOptions, json: String) {
+        if (opts.featured != null) {
+            suggestionKey = null
+            return
+        }
+        val key = opts.branch to opts.templateId
+        if (key == suggestionKey) return
+        suggestionKey = key
+        val suggested = composer.resolveFeatured(json)?.let(peopleById::get)
+        _state.update { it.copy(suggestedFeatured = suggested) }
     }
 
     /** Portraits are decoded once per size and kept while the screen is open. */
@@ -210,13 +338,20 @@ class BookViewModel(
         return wanted.mapNotNull { (id, px) -> photoCache[id to px]?.let { id to it } }.toMap()
     }
 
-    /** Each template's cover, drawn with this family, for the template choices. */
+    /**
+     * Each template's cover, drawn with this family, for the template choices.
+     *
+     * `coverOnly` (#244) stops the composer after the cover block instead of laying out the whole
+     * book just to throw all but the first page away - the desktop pays this same cost per
+     * template on every debounced keystroke, and the storybook's page count makes the old way of
+     * doing this expensive enough to be worth the option existing at all.
+     */
     private suspend fun drawCovers() {
         val opts = options.value
         val covers = templateJson.keys.associateWith { id ->
-            val json = input(opts.copy(templateId = id, photos = false), buildJsonObject {}) ?: return@associateWith null
+            val json = input(opts.copy(templateId = id, photos = false), buildJsonObject {}, coverOnly = true) ?: return@associateWith null
             runCatching { composer.compose(json) }.getOrNull()?.let { book ->
-                withContext(Dispatchers.Default) { printer.pictures(book.copy(pages = book.pages.take(1)), emptyMap()).firstOrNull() }
+                withContext(Dispatchers.Default) { printer.pictures(book, emptyMap()).firstOrNull() }
             }
         }
         _state.update { s -> s.copy(templates = s.templates.map { it.copy(cover = covers[it.id]) }) }
@@ -268,6 +403,9 @@ class BookViewModel(
 
     companion object {
         const val FEATURE = "book.export"
+
+        /** Template ids that do not tell one person's story yet - see [TemplateChoice.featuresOnePerson]. */
+        val TEMPLATES_WITHOUT_FEATURED = setOf("heirloom")
 
         /**
          * About how large the PDF will be. Android's PdfDocument keeps photographs losslessly, so
