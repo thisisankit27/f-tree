@@ -497,6 +497,7 @@ function vet(node, fail) {
     if (Object.hasOwn(REFUSED_ATTRS, k)) fail(node, `the ${k} attribute is refused: ${REFUSED_ATTRS[k]}`);
     if (k === 'xlink:href') continue;
     if (k === 'xmlns' || k.startsWith('xmlns:') || k.startsWith('xml:') || (k.includes(':') && !k.startsWith('data-'))) continue;
+    if (k === 'opacity' && (node.name === 'svg' || node.name === 'symbol')) fail(node, `opacity on the <${node.name}> is not read: put it on a <g> inside, on the <use>, or pass op when placing the drawing`);
     if (!ALLOWED[node.name].includes(k)) fail(node, `the attribute ${k}="${v}" is not one the compiler reads on <${node.name}>`);
   }
   for (const c of node.children) if (c.name) vet(c, fail);
@@ -604,6 +605,7 @@ export function compileSvg(src, { file = 'input.svg', id, kind, swatches }) {
   const gradientKeys = new Map();
   const parts = {};
   const building = new Set();
+  let inPart = 0;   // > 0 while compiling what a <use> draws
   const assetRefs = new Set();
   const zones = [];
   let clip = null;
@@ -643,7 +645,11 @@ export function compileSvg(src, { file = 'input.svg', id, kind, swatches }) {
     const coord = (k, dflt) => {
       const v = attr(k) ?? dflt;
       const pct = /%\s*$/.test(v);
-      if (pct && units === 'userSpaceOnUse') fail(gnode, `${k}="${v}": a percentage in userSpaceOnUse depends on the viewport; write user units`);
+      if (pct && units === 'userSpaceOnUse') {
+        fail(gnode, attr(k) === undefined
+          ? `${k} is missing, and in userSpaceOnUse SVG would take it as ${v} of the viewport; write it in user units`
+          : `${k}="${v}": a percentage in userSpaceOnUse depends on the viewport; write user units`);
+      }
       const n = pct ? parseFloat(v) / 100 : Number(v);
       if (!Number.isFinite(n)) fail(gnode, `${k}="${v}" is not a number`);
       return n;
@@ -654,14 +660,14 @@ export function compileSvg(src, { file = 'input.svg', id, kind, swatches }) {
       if (!isSimilarity(t)) fail(gnode, 'this gradient is skewed or stretched (by gradientTransform or the shape\'s transform); the painters draw gradients without a transform of their own');
       if (linear) {
         const [x1, y1] = apply(t, coord('x1', '0'), coord('y1', '0'));
-        const [x2, y2] = apply(t, coord('x2', '0'), coord('y2', '0'));
+        const [x2, y2] = apply(t, coord('x2', '100%'), coord('y2', '0'));
         def = { type: 'linear', x1: r2(x1), y1: r2(y1), x2: r2(x2), y2: r2(y2), stops };
       } else {
-        const cx = coord('cx', '0'), cy = coord('cy', '0');
+        const cx = coord('cx', '50%'), cy = coord('cy', '50%');
         if ((attr('fx') !== undefined && coord('fx') !== cx) || (attr('fy') !== undefined && coord('fy') !== cy)) fail(gnode, 'a focal point (fx, fy) off the centre: the painters draw centred radial gradients');
         if (attr('fr') !== undefined && coord('fr') !== 0) fail(gnode, 'fr: the painters draw radial gradients from a point');
         const [x, y] = apply(t, cx, cy);
-        def = { type: 'radial', cx: r2(x), cy: r2(y), r: r2(coord('r', '0') * scaleOf(t)), stops };
+        def = { type: 'radial', cx: r2(x), cy: r2(y), r: r2(coord('r', '50%') * scaleOf(t)), stops };
       }
     } else if (units === 'objectBoundingBox') {
       if (attr('gradientTransform') !== undefined) fail(gnode, 'gradientTransform on an objectBoundingBox gradient: set gradientUnits="userSpaceOnUse"');
@@ -755,7 +761,7 @@ export function compileSvg(src, { file = 'input.svg', id, kind, swatches }) {
     if (!geom) return [];
     // A line has no inside, so SVG never fills one: its fill (even the default black) is moot.
     const fill = node.name === 'line' ? null : paintValue(st.fill, node, 'fill', st);
-    const stroke = paintValue(st.stroke, node, 'stroke', st);
+    let stroke = paintValue(st.stroke, node, 'stroke', st);
     if (stroke?.grad) fail(node, 'a gradient stroke: the painters stroke in one colour');
     if (!fill && !stroke) return [];
     let op = opacityOf(node, node.attrs.opacity, 'opacity');
@@ -777,9 +783,18 @@ export function compileSvg(src, { file = 'input.svg', id, kind, swatches }) {
 
     // A stroke or a gradient cannot be baked through a skew or a stretch: keep the shape in its own
     // coordinates and let a group carry the transform, as the painters concatenate one.
-    const keep = !isSimilarity(m) && (stroke || fill?.grad);
-    const bake = keep ? IDENTITY : m;
-    const k = scaleOf(bake);
+    let keep = !isSimilarity(m) && (stroke || fill?.grad);
+    let bake = keep ? IDENTITY : m;
+    let k = scaleOf(bake);
+    // SVG draws nothing for a zero-width stroke, but Android draws width 0 as a one-pixel hairline:
+    // a stroke that rounds to nothing is no stroke at all.
+    if (stroke && r2(sw * (keep ? scaleOf(m) : k)) === 0) {
+      stroke = null;
+      if (!fill) return [];
+      keep = !isSimilarity(m) && !!fill.grad;
+      bake = keep ? IDENTITY : m;
+      k = scaleOf(bake);
+    }
     const style = {
       fill: fill ? (fill.grad ? gradientFor(fill.grad, bake, geom, node) : fill.token) : undefined,
       stroke: stroke?.token,
@@ -821,20 +836,31 @@ export function compileSvg(src, { file = 'input.svg', id, kind, swatches }) {
     return serialize(mapSegs(geom.segs, t));
   };
 
-  const partFor = (target, from) => {
-    const pid = `${id}--${String(target.attrs.id).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')}`;
-    if (building.has(pid)) fail(from, `<use> reaches ${describe(target)} through itself`);
-    if (parts[pid]) {
-      if (parts[pid].source !== target) fail(from, `two parts would both be called ${pid}; rename one id`);
-      return pid;
-    }
-    building.add(pid);
+  /*
+   * What a <use> draws is compiled once, as a part, in its own coordinates. As in SVG, it inherits
+   * paint from the <use> (and so from the <use>'s ancestors), not from where it is defined: the
+   * same shape used under two different inherited paints is two parts, `-2` onwards in the order
+   * the file uses them.
+   */
+  const partFor = (target, from, inherited) => {
+    const base = `${id}--${String(target.attrs.id).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')}`;
+    const paint = JSON.stringify(inherited);
+    const variants = Object.keys(parts).filter((k) => parts[k].base === base);
+    if (variants.some((k) => parts[k].source !== target)) fail(from, `two shapes' ids both become the part ${base}; rename one`);
+    const hit = variants.find((k) => parts[k].paint === paint);
+    if (hit) return hit;
+    const pid = variants.length ? `${base}-${variants.length + 1}` : base;
+    if (parts[pid]) fail(from, `two shapes' ids both become the part ${pid}; rename one`);
+    if (building.has(target)) fail(from, `<use> reaches ${describe(target)} through itself`);
+    building.add(target);
+    inPart++;
     const items = target.name === 'symbol'
-      ? target.children.filter((c) => c.name).flatMap((c) => walk(c, IDENTITY, paintOf(target, DEFAULT_PAINT)))
-      : walk(target, IDENTITY, DEFAULT_PAINT);
-    building.delete(pid);
+      ? target.children.filter((c) => c.name).flatMap((c) => walk(c, IDENTITY, paintOf(target, inherited)))
+      : walk(target, IDENTITY, inherited);
+    inPart--;
+    building.delete(target);
     if (!items.length) fail(target, 'is used, but draws nothing');
-    parts[pid] = { source: target, items };
+    parts[pid] = { source: target, base, paint, items };
     return pid;
   };
 
@@ -847,6 +873,9 @@ export function compileSvg(src, { file = 'input.svg', id, kind, swatches }) {
     const m = node.name === 'svg' ? ctm : mul(ctm, parseTransform(node.attrs.transform, tfail));
     const st = paintOf(node, inherited);
 
+    if (inPart && (node.attrs['data-zone'] !== undefined || node.attrs['data-clip'] !== undefined)) {
+      fail(node, 'a data-zone or data-clip inside something a <use> draws would be read in the wrong place, once per use: mark it on the drawing itself');
+    }
     if (node.attrs['data-zone'] !== undefined) {
       const kind = node.attrs['data-zone'];
       if (!ZONES.has(kind)) fail(node, `data-zone="${kind}" is not text, face or busy`);
@@ -870,7 +899,8 @@ export function compileSvg(src, { file = 'input.svg', id, kind, swatches }) {
       if (!ID.test(ref)) fail(node, `data-asset="${ref}" is not a drawing id`);
       if (ref === id) fail(node, 'a drawing cannot place itself');
       assetRefs.add(ref);
-      return [use(ref, { tf: m, op: opacityOf(node, node.attrs.opacity, 'opacity') })];
+      const placed = use(ref, { tf: m, op: opacityOf(node, node.attrs.opacity, 'opacity') });
+      return [node.attrs['clip-path'] === undefined ? placed : group([placed], { clip: clipFor(node, m) })];
     }
     if (node.name === 'use') {
       const href = hrefOf(node);
@@ -879,7 +909,7 @@ export function compileSvg(src, { file = 'input.svg', id, kind, swatches }) {
       if (!target) fail(node, `href="${href}" names nothing in this file`);
       if (!['g', 'symbol', ...SHAPES].includes(target.name)) fail(node, `href="${href}" names a <${target.name}>, which cannot be drawn`);
       const tf = mul(m, [1, 0, 0, 1, numAttr(node, 'x', 0), numAttr(node, 'y', 0)]);
-      return [use(partFor(target, node), { tf, op: opacityOf(node, node.attrs.opacity, 'opacity') })];
+      return [use(partFor(target, node, st), { tf, op: opacityOf(node, node.attrs.opacity, 'opacity') })];
     }
     if (SHAPES.has(node.name)) return shape(node, m, st);
 

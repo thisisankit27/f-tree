@@ -198,9 +198,32 @@ test('gradients: linear and radial with token stops, baked with the shape, share
   const stops = '<stop stop-color="#fff8ec"/><stop offset="1" stop-color="#2a1a33"/>';
   refuses(svg(`<radialGradient id="g">${stops}</radialGradient><rect width="1" height="1" fill="url(#g)"/>`), /only works on a circle/);
   refuses(svg(`<linearGradient id="g" gradientUnits="userSpaceOnUse" gradientTransform="skewX(20)" x2="1">${stops}</linearGradient><rect width="1" height="1" fill="url(#g)"/>`), /skewed or stretched/);
-  refuses(svg(`<radialGradient id="g" gradientUnits="userSpaceOnUse" r="5" fx="1">${stops}</radialGradient><circle r="1" fill="url(#g)"/>`), /focal point/);
+  refuses(svg(`<radialGradient id="g" gradientUnits="userSpaceOnUse" cx="0" cy="0" r="5" fx="1">${stops}</radialGradient><circle r="1" fill="url(#g)"/>`), /focal point/);
   refuses(svg('<linearGradient id="g"><stop stop-color="#fff8ec"/></linearGradient><rect width="1" height="1" fill="url(#g)"/>'), /at least two stops/);
   refuses(svg(`<linearGradient id="g" gradientUnits="userSpaceOnUse" x2="1">${stops}</linearGradient><path d="M0 0L1 1" fill="none" stroke="url(#g)"/>`), /a gradient stroke/);
+  // SVG's defaults for these are percentages of the viewport, which a drawing has no fixed one of
+  refuses(svg(`<linearGradient id="g" gradientUnits="userSpaceOnUse">${stops}</linearGradient><rect width="1" height="1" fill="url(#g)"/>`), /x2 is missing, and in userSpaceOnUse SVG would take it as 100% of the viewport/);
+  refuses(svg(`<radialGradient id="g" gradientUnits="userSpaceOnUse" cx="1" cy="1">${stops}</radialGradient><rect width="1" height="1" fill="url(#g)"/>`), /r is missing/);
+});
+
+test('what a <use> draws inherits the <use>\'s paint, one part per inherited paint', () => {
+  const c = compile(svg('<defs><path id="p" d="M0 0L1 0 1 1Z"/></defs><g fill="#5a8a3c" stroke="#2a1a33" stroke-width="2"><use href="#p"/></g><g fill="#c23b2e"><use href="#p" x="5"/><use href="#p" x="9"/></g>'));
+  assert.deepEqual(c.symbols['fx--p'].items, [{ t: 'path', d: 'M0 0L1 0 1 1Z', fill: 'leaf', stroke: 'ink', sw: 2 }]);
+  assert.deepEqual(c.symbols['fx--p-2'].items, [{ t: 'path', d: 'M0 0L1 0 1 1Z', fill: 'sindoor' }]);
+  assert.deepEqual(c.symbols.fx.items.map((u) => u.ref), ['fx--p', 'fx--p-2', 'fx--p-2']);
+  refuses(svg('<defs><g id="a"><rect data-zone="text" width="1" height="1"/></g></defs><use href="#a"/>'), /inside something a <use> draws would be read in the wrong place/);
+  refuses(svg('<defs><path id="Leaf" d="M0 0L1 1" fill="#fff8ec"/><path id="leaf" d="M0 0L2 2" fill="#fff8ec"/></defs><use href="#Leaf"/><use href="#leaf"/>'), /both become the part fx--leaf/);
+});
+
+test('nothing an author sets is silently dropped: opacity, clips on placed drawings, zero strokes', () => {
+  refuses(svg('<rect width="1" height="1" fill="#fff8ec"/>', 'viewBox="0 0 1 1" opacity="0.3"'), /opacity on the <svg> is not read/);
+  refuses(svg('<symbol id="s" opacity="0.3"><rect width="1" height="1" fill="#fff8ec"/></symbol><use href="#s"/>'), /opacity on the <symbol> is not read/);
+  const clipped = compile(svg('<clipPath id="c"><rect width="10" height="10"/></clipPath><g data-asset="diya" clip-path="url(#c)" transform="translate(5 0)"/>')).symbols.fx.items;
+  assert.deepEqual(clipped, [{ t: 'group', items: [{ t: 'use', ref: 'diya', tf: [1, 0, 0, 1, 5, 0] }], clip: 'M5 0L15 0 15 10 5 10Z' }]);
+  // Android draws a zero-width stroke as a hairline; SVG draws nothing. So does the compiler.
+  const zero = compile(svg('<rect width="4" height="4" fill="#fff8ec" stroke="#2a1a33" stroke-width="0"/>')).symbols.fx.items;
+  assert.deepEqual(zero, [{ t: 'rect', x: 0, y: 0, w: 4, h: 4, fill: 'card' }], 'the fill stays, the zero stroke goes');
+  assert.equal(compile(svg('<rect width="4" height="4" fill="#fff8ec"/><path d="M0 0L1 1" fill="none" stroke="#2a1a33" stroke-width="0.004"/>')).symbols.fx.items.length, 1, 'a stroke that rounds to nothing, on nothing, draws nothing');
 });
 
 test('uses become parts drawn once, other drawings are placed by id, and opacity and clips become groups', () => {
