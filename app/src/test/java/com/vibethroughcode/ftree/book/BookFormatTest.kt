@@ -58,7 +58,7 @@ class BookFormatTest {
 
     @Test
     fun `a book from a newer composer is refused, not drawn approximately`() {
-        val newer = golden().replaceFirst("\"format\":1", "\"format\":2")
+        val newer = golden().replaceFirst("\"format\":1", "\"format\":3")
         assertRefused(newer)
     }
 

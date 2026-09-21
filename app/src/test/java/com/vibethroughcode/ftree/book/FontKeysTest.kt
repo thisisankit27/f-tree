@@ -10,7 +10,7 @@ import org.junit.Test
 import java.io.File
 
 /**
- * `BookPrinter.fonts` held to `site/book/font-keys.json`, the same table `font-keys.test.mjs`
+ * `BookPrinter.FONT_FILES` held to `site/book/font-keys.json`, the same table `font-keys.test.mjs`
  * reads for the four JavaScript/HTML sites (`FONT_KEYS` in `template.js`, `BOOK_FONT_FILES` in
  * `desktop/main.js`, the `@font-face` rules in `preview.html`, and `METRICS` in `metrics/index.js`)
  * -- see the comment on `FONT_KEYS` for why there are five sites and no shared constant. This is
