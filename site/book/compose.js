@@ -65,8 +65,8 @@ export function composeBook(doc, options, template, allowance = {}) {
  *   - `artZones`: `[{ page, kind: 'text' | 'face' | 'busy', x, y, w, h }]`, recorded by the art
  *     with `ctx.zone(kind, box)` in page coordinates. Format-1 art records none.
  *   - `minSize`: the smallest printed text size in the book, or null for a book with no text.
- *   - `pages`: `[{ page, label, archetype, variant, people }]`. A story page describes itself with
- *     `ctx.describePage({ archetype, variant, people })`; a format-1 page has nulls there.
+ *   - `pages`: `[{ page, label, archetype, variant, people, density }]`. A story page describes
+ *     itself with `ctx.describePage(...)`; a format-1 page has nulls there.
  */
 export function composeWithReport(doc, options, template, allowance = {}) {
   const rec = { shown: new Map(), zones: [], kinds: new WeakMap(), pages: new Map() };
@@ -266,9 +266,13 @@ function context(family, options, tpl, allowance, now, rec) {
     zone(kind, { x, y, w, h }) {
       if (rec) rec.zones.push({ page: ctx.pageNo, kind, x, y, w, h });
     },
-    /** What this page is: its archetype, the variant it took, and the people it is about. */
-    describePage({ archetype = null, variant = null, people = [] } = {}) {
-      if (rec) rec.pages.set(ctx.pageNo, { archetype, variant, people: [...people] });
+    /**
+     * What this page is: its archetype, the variant it took (its art placement), the people it is
+     * about, and which of the design system's density rows limits it - 'hero' (1-2 people),
+     * 'family' (8), 'gathering' (12), 'lane' (4 houses of 8) or 'register' (48 rows).
+     */
+    describePage({ archetype = null, variant = null, people = [], density = null } = {}) {
+      if (rec) rec.pages.set(ctx.pageNo, { archetype, variant, people: [...people], density });
     },
 
     measure: (s, role, size) => measure(s, metricsOf(role), size),
@@ -388,6 +392,6 @@ function finishReport(book, rec) {
     textBoxes,
     artZones: rec.zones,
     minSize,
-    pages: book.pages.map((p, i) => ({ page: i + 1, label: p.label, archetype: null, variant: null, people: [], ...rec.pages.get(i + 1) })),
+    pages: book.pages.map((p, i) => ({ page: i + 1, label: p.label, archetype: null, variant: null, people: [], density: null, ...rec.pages.get(i + 1) })),
   };
 }
