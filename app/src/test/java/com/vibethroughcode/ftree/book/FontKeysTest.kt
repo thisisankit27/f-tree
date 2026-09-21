@@ -20,15 +20,12 @@ import java.io.File
  */
 class FontKeysTest {
 
-    private val root: File = generateSequence(File(System.getProperty("user.dir")).absoluteFile) { it.parentFile }
-        .first { File(it, "settings.gradle.kts").exists() }
-
     @Test
     fun `BookFonts' map names exactly the shared list of font keys`() {
-        val table = Json.parseToJsonElement(File(root, "site/book/font-keys.json").readText()).jsonObject
+        val table = Json.parseToJsonElement(File(repoRoot, "site/book/font-keys.json").readText()).jsonObject
         val expected = table.getValue("keys").jsonArray.map { it.jsonPrimitive.content }
 
-        val printer = File(root, "app/src/main/java/com/vibethroughcode/ftree/book/BookFonts.kt").readText()
+        val printer = File(repoRoot, "app/src/main/java/com/vibethroughcode/ftree/book/BookFonts.kt").readText()
         val found = Regex("\"(book_[a-z]+)\" to R\\.font\\.\\1").findAll(printer).map { it.groupValues[1] }.toList()
 
         assertEquals(expected, found)
@@ -36,9 +33,9 @@ class FontKeysTest {
 
     @Test
     fun `every shared font key has a committed ttf`() {
-        val table = Json.parseToJsonElement(File(root, "site/book/font-keys.json").readText()).jsonObject
+        val table = Json.parseToJsonElement(File(repoRoot, "site/book/font-keys.json").readText()).jsonObject
         for (key in table.getValue("keys").jsonArray.map { it.jsonPrimitive.content }) {
-            val ttf = File(root, "app/src/main/res/font/$key.ttf")
+            val ttf = File(repoRoot, "app/src/main/res/font/$key.ttf")
             assertTrue("$ttf is missing", ttf.isFile)
             assertTrue("$ttf is empty", ttf.length() > 0)
         }

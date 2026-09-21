@@ -13,10 +13,8 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Assert.fail
-import org.junit.Assume.assumeTrue
 import org.junit.Test
 import java.io.File
-import java.util.concurrent.TimeUnit
 import kotlin.math.abs
 import kotlin.math.max
 
@@ -31,11 +29,8 @@ import kotlin.math.max
  */
 class BookFormat2Test {
 
-    private val root: File = generateSequence(File(System.getProperty("user.dir")).absoluteFile) { it.parentFile }
-        .first { File(it, "settings.gradle.kts").exists() }
-
-    private fun conformance() = File(root, "site/book/golden/format2-conformance.json").readText()
-    private fun heirloom() = File(root, "site/book/golden/sample-heirloom.json").readText()
+    private fun conformance() = File(repoRoot, "site/book/golden/format2-conformance.json").readText()
+    private fun heirloom() = File(repoRoot, "site/book/golden/sample-heirloom.json").readText()
 
     // --- the conformance book --------------------------------------------------------------------
 
@@ -133,7 +128,7 @@ class BookFormat2Test {
 
     @Test
     fun `the limits and formats are the ones format js exports`() {
-        val js = File(root, "site/book/format.js").readText()
+        val js = File(repoRoot, "site/book/format.js").readText()
         fun constant(name: String) = Regex("export const $name = (\\d+);").find(js)?.groupValues?.get(1)?.toInt()
         assertEquals(constant("FORMAT"), Book.FORMAT)
         assertEquals(constant("FORMAT_MAX"), Book.FORMAT_MAX)
@@ -294,7 +289,6 @@ class BookFormat2Test {
      */
     @Test
     fun `validateBook in JavaScript accepts exactly the books readBook does`() {
-        val node = nodeOrSkip()
         val symbols = """{"diya":{"items":[$RECT]}}"""
         val cases = buildList {
             add(conformance()); add(heirloom())
@@ -324,16 +318,11 @@ class BookFormat2Test {
         val input = File.createTempFile("books", ".json").apply { deleteOnExit(); writeText(JsonArray(cases.map(::JsonPrimitive)).toString()) }
         val script = """
             import { readFileSync } from 'node:fs';
-            import { validateBook } from '${File(root, "site/book/format.js").toURI()}';
+            import { validateBook } from '${File(repoRoot, "site/book/format.js").toURI()}';
             const books = JSON.parse(readFileSync(process.argv[1], 'utf8'));
             process.stdout.write(JSON.stringify(books.map((b) => validateBook(JSON.parse(b)).length === 0)));
         """.trimIndent()
-        val process = ProcessBuilder(node, "--input-type=module", "-e", script, input.absolutePath).start()
-        val out = process.inputStream.bufferedReader().readText()
-        val err = process.errorStream.bufferedReader().readText()
-        assertTrue("node did not finish", process.waitFor(60, TimeUnit.SECONDS))
-        assertEquals(err, 0, process.exitValue())
-        val js = Json.parseToJsonElement(out) as JsonArray
+        val js = Json.parseToJsonElement(runNode(script, input.absolutePath)) as JsonArray
         assertEquals(cases.size, js.size)
         cases.forEachIndexed { i, case ->
             val kotlin = try { readBook(case); true } catch (e: SerializationException) { false } catch (e: IllegalArgumentException) { false }
@@ -368,19 +357,6 @@ class BookFormat2Test {
         ""","pages":[{"label":"p","items":[${items.joinToString(",")}]}]""" +
         (symbols?.let { ""","symbols":$it""" } ?: "") + "}"
 
-    /** Reads [text], which must be refused; returns why. */
-    private fun refusal(text: String, fontKeys: Set<String> = BookFonts.FILES.keys): String {
-        try {
-            readBook(text, fontKeys)
-        } catch (expected: SerializationException) {
-            return expected.message.orEmpty()
-        } catch (expected: IllegalArgumentException) {
-            return expected.message.orEmpty()   // kotlinx.serialization reports some shape errors this way
-        }
-        fail("read a book it should have refused: ${text.take(300)}")
-        error("unreachable")
-    }
-
     /**
      * [got] carries everything [want] does. Numbers agree to a float's precision (the Kotlin model
      * holds Floats), and a number the model defaults to 0 may be left out when written again.
@@ -408,18 +384,6 @@ class BookFormat2Test {
                 else assertEquals(at, want, g)
             }
         }
-    }
-
-    private fun nodeOrSkip(): String {
-        val node = if (System.getProperty("os.name").startsWith("Windows")) "node.exe" else "node"
-        val available = try {
-            ProcessBuilder(node, "--version").start().waitFor(10, TimeUnit.SECONDS)
-        } catch (e: Exception) {
-            false
-        }
-        if (System.getenv("FTREE_REQUIRE_NODE") == "1") assertTrue("FTREE_REQUIRE_NODE is set and node is not on the path", available)
-        else assumeTrue("node is not on the path", available)
-        return node
     }
 
     private companion object {
