@@ -1,0 +1,223 @@
+{
+ "format": "f-tree",
+ "version": 1,
+ "people": [
+  {
+   "id": "pgf",
+   "name": "Harbans Singh",
+   "gender": "MALE",
+   "birthDate": "1938",
+   "deathDate": "2015",
+   "deceased": true,
+   "photo": null,
+   "notes": null,
+   "origins": []
+  },
+  {
+   "id": "pgm",
+   "name": "Gurmeet Kaur",
+   "gender": "FEMALE",
+   "birthDate": "1942",
+   "deathDate": null,
+   "deceased": false,
+   "photo": null,
+   "notes": null,
+   "origins": []
+  },
+  {
+   "id": "mgf",
+   "name": "Balwant Gill",
+   "gender": "MALE",
+   "birthDate": "1940",
+   "deathDate": "2008",
+   "deceased": true,
+   "photo": null,
+   "notes": null,
+   "origins": []
+  },
+  {
+   "id": "mgm",
+   "name": "Surinder Kaur Gill",
+   "gender": "FEMALE",
+   "birthDate": "1944",
+   "deathDate": "2020",
+   "deceased": true,
+   "photo": null,
+   "notes": null,
+   "origins": []
+  },
+  {
+   "id": "father",
+   "name": "Jaspreet Singh",
+   "gender": "MALE",
+   "birthDate": "1968",
+   "deathDate": null,
+   "deceased": false,
+   "photo": null,
+   "notes": null,
+   "origins": []
+  },
+  {
+   "id": "mother",
+   "name": "Harleen Kaur",
+   "gender": "FEMALE",
+   "birthDate": "1971",
+   "deathDate": null,
+   "deceased": false,
+   "photo": null,
+   "notes": null,
+   "origins": []
+  },
+  {
+   "id": "uncle",
+   "name": "Manpreet Singh",
+   "gender": "MALE",
+   "birthDate": "1972",
+   "deathDate": null,
+   "deceased": false,
+   "photo": null,
+   "notes": null,
+   "origins": []
+  },
+  {
+   "id": "aunt",
+   "name": "Simran Gill",
+   "gender": "FEMALE",
+   "birthDate": "1975",
+   "deathDate": null,
+   "deceased": false,
+   "photo": null,
+   "notes": null,
+   "origins": []
+  },
+  {
+   "id": "brother",
+   "name": "Arjan Singh",
+   "gender": "MALE",
+   "birthDate": "2004",
+   "deathDate": null,
+   "deceased": false,
+   "photo": null,
+   "notes": null,
+   "origins": []
+  },
+  {
+   "id": "f",
+   "name": "Noor Kaur",
+   "gender": "FEMALE",
+   "birthDate": "2009",
+   "deathDate": null,
+   "deceased": false,
+   "photo": null,
+   "notes": null,
+   "origins": []
+  }
+ ],
+ "relationships": [
+  {
+   "id": "r0",
+   "from": "pgf",
+   "to": "pgm",
+   "type": "SPOUSE",
+   "subtype": "WIDOWED"
+  },
+  {
+   "id": "r1",
+   "from": "mgf",
+   "to": "mgm",
+   "type": "SPOUSE",
+   "subtype": "WIDOWED"
+  },
+  {
+   "id": "r2",
+   "from": "pgf",
+   "to": "father",
+   "type": "PARENT",
+   "subtype": null
+  },
+  {
+   "id": "r3",
+   "from": "pgm",
+   "to": "father",
+   "type": "PARENT",
+   "subtype": null
+  },
+  {
+   "id": "r4",
+   "from": "pgf",
+   "to": "uncle",
+   "type": "PARENT",
+   "subtype": null
+  },
+  {
+   "id": "r5",
+   "from": "pgm",
+   "to": "uncle",
+   "type": "PARENT",
+   "subtype": null
+  },
+  {
+   "id": "r6",
+   "from": "mgf",
+   "to": "mother",
+   "type": "PARENT",
+   "subtype": null
+  },
+  {
+   "id": "r7",
+   "from": "mgm",
+   "to": "mother",
+   "type": "PARENT",
+   "subtype": null
+  },
+  {
+   "id": "r8",
+   "from": "mgf",
+   "to": "aunt",
+   "type": "PARENT",
+   "subtype": null
+  },
+  {
+   "id": "r9",
+   "from": "mgm",
+   "to": "aunt",
+   "type": "PARENT",
+   "subtype": null
+  },
+  {
+   "id": "r10",
+   "from": "father",
+   "to": "mother",
+   "type": "SPOUSE",
+   "subtype": "MARRIED"
+  },
+  {
+   "id": "r11",
+   "from": "father",
+   "to": "brother",
+   "type": "PARENT",
+   "subtype": null
+  },
+  {
+   "id": "r12",
+   "from": "mother",
+   "to": "brother",
+   "type": "PARENT",
+   "subtype": null
+  },
+  {
+   "id": "r13",
+   "from": "father",
+   "to": "f",
+   "type": "PARENT",
+   "subtype": null
+  },
+  {
+   "id": "r14",
+   "from": "mother",
+   "to": "f",
+   "type": "PARENT",
+   "subtype": null
+  }
+ ]
+}

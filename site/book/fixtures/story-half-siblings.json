@@ -1,0 +1,277 @@
+{
+ "format": "f-tree",
+ "version": 1,
+ "people": [
+  {
+   "id": "gf",
+   "name": "Prakash Menon",
+   "gender": "MALE",
+   "birthDate": "1930",
+   "deathDate": "2001",
+   "deceased": true,
+   "photo": null,
+   "notes": null,
+   "origins": []
+  },
+  {
+   "id": "gf-brother",
+   "name": "Mohan Menon",
+   "gender": "MALE",
+   "birthDate": "1933",
+   "deathDate": "2010",
+   "deceased": true,
+   "photo": null,
+   "notes": null,
+   "origins": []
+  },
+  {
+   "id": "gf-sister",
+   "name": "Radha Menon",
+   "gender": "FEMALE",
+   "birthDate": "1936",
+   "deathDate": "2019",
+   "deceased": true,
+   "photo": null,
+   "notes": null,
+   "origins": []
+  },
+  {
+   "id": "father",
+   "name": "Suresh Menon",
+   "gender": "MALE",
+   "birthDate": "1958",
+   "deathDate": null,
+   "deceased": false,
+   "photo": null,
+   "notes": null,
+   "origins": []
+  },
+  {
+   "id": "first-wife",
+   "name": "Latha Nair",
+   "gender": "FEMALE",
+   "birthDate": "1960",
+   "deathDate": null,
+   "deceased": false,
+   "photo": null,
+   "notes": null,
+   "origins": []
+  },
+  {
+   "id": "mother",
+   "name": "Rekha Pillai",
+   "gender": "FEMALE",
+   "birthDate": "1964",
+   "deathDate": null,
+   "deceased": false,
+   "photo": null,
+   "notes": null,
+   "origins": []
+  },
+  {
+   "id": "mothers-ex",
+   "name": "Jose Thomas",
+   "gender": "MALE",
+   "birthDate": "1961",
+   "deathDate": null,
+   "deceased": false,
+   "photo": null,
+   "notes": null,
+   "origins": []
+  },
+  {
+   "id": "half-1",
+   "name": "Arun Menon",
+   "gender": "MALE",
+   "birthDate": "1982",
+   "deathDate": null,
+   "deceased": false,
+   "photo": null,
+   "notes": null,
+   "origins": []
+  },
+  {
+   "id": "half-2",
+   "name": "Asha Menon",
+   "gender": "FEMALE",
+   "birthDate": "1985",
+   "deathDate": null,
+   "deceased": false,
+   "photo": null,
+   "notes": null,
+   "origins": []
+  },
+  {
+   "id": "half-3",
+   "name": "Joel Thomas",
+   "gender": "MALE",
+   "birthDate": "1986",
+   "deathDate": null,
+   "deceased": false,
+   "photo": null,
+   "notes": null,
+   "origins": []
+  },
+  {
+   "id": "f",
+   "name": "Anjali Menon",
+   "gender": "FEMALE",
+   "birthDate": "1990",
+   "deathDate": null,
+   "deceased": false,
+   "photo": null,
+   "notes": null,
+   "origins": []
+  },
+  {
+   "id": "full-1",
+   "name": "Nikhil Menon",
+   "gender": "MALE",
+   "birthDate": "1993",
+   "deathDate": null,
+   "deceased": false,
+   "photo": null,
+   "notes": null,
+   "origins": []
+  },
+  {
+   "id": "half-4",
+   "name": "Divya Menon",
+   "gender": "FEMALE",
+   "birthDate": "1979",
+   "deathDate": null,
+   "deceased": false,
+   "photo": null,
+   "notes": null,
+   "origins": []
+  }
+ ],
+ "relationships": [
+  {
+   "id": "r0",
+   "from": "gf",
+   "to": "gf-brother",
+   "type": "SIBLING",
+   "subtype": "FULL"
+  },
+  {
+   "id": "r1",
+   "from": "gf",
+   "to": "gf-sister",
+   "type": "SIBLING",
+   "subtype": "HALF"
+  },
+  {
+   "id": "r2",
+   "from": "gf",
+   "to": "father",
+   "type": "PARENT",
+   "subtype": null
+  },
+  {
+   "id": "r3",
+   "from": "father",
+   "to": "first-wife",
+   "type": "SPOUSE",
+   "subtype": "DIVORCED"
+  },
+  {
+   "id": "r4",
+   "from": "father",
+   "to": "mother",
+   "type": "SPOUSE",
+   "subtype": "MARRIED"
+  },
+  {
+   "id": "r5",
+   "from": "mother",
+   "to": "mothers-ex",
+   "type": "SPOUSE",
+   "subtype": "DIVORCED"
+  },
+  {
+   "id": "r6",
+   "from": "father",
+   "to": "half-1",
+   "type": "PARENT",
+   "subtype": null
+  },
+  {
+   "id": "r7",
+   "from": "first-wife",
+   "to": "half-1",
+   "type": "PARENT",
+   "subtype": null
+  },
+  {
+   "id": "r8",
+   "from": "father",
+   "to": "half-2",
+   "type": "PARENT",
+   "subtype": null
+  },
+  {
+   "id": "r9",
+   "from": "first-wife",
+   "to": "half-2",
+   "type": "PARENT",
+   "subtype": null
+  },
+  {
+   "id": "r10",
+   "from": "mother",
+   "to": "half-3",
+   "type": "PARENT",
+   "subtype": null
+  },
+  {
+   "id": "r11",
+   "from": "mothers-ex",
+   "to": "half-3",
+   "type": "PARENT",
+   "subtype": null
+  },
+  {
+   "id": "r12",
+   "from": "father",
+   "to": "half-3",
+   "type": "PARENT",
+   "subtype": "STEP"
+  },
+  {
+   "id": "r13",
+   "from": "father",
+   "to": "f",
+   "type": "PARENT",
+   "subtype": null
+  },
+  {
+   "id": "r14",
+   "from": "mother",
+   "to": "f",
+   "type": "PARENT",
+   "subtype": null
+  },
+  {
+   "id": "r15",
+   "from": "father",
+   "to": "full-1",
+   "type": "PARENT",
+   "subtype": null
+  },
+  {
+   "id": "r16",
+   "from": "mother",
+   "to": "full-1",
+   "type": "PARENT",
+   "subtype": null
+  },
+  {
+   "id": "r17",
+   "from": "f",
+   "to": "half-4",
+   "type": "SIBLING",
+   "subtype": "HALF"
+  }
+ ]
+}

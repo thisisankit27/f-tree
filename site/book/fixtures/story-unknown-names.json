@@ -1,0 +1,141 @@
+{
+ "format": "f-tree",
+ "version": 1,
+ "people": [
+  {
+   "id": "unknown-father",
+   "name": null,
+   "gender": "MALE",
+   "birthDate": "1880",
+   "deathDate": null,
+   "deceased": false,
+   "photo": null,
+   "notes": null,
+   "origins": []
+  },
+  {
+   "id": "shyam",
+   "name": "Shyam Lal",
+   "gender": "MALE",
+   "birthDate": "1905",
+   "deathDate": "1978",
+   "deceased": true,
+   "photo": null,
+   "notes": null,
+   "origins": []
+  },
+  {
+   "id": "shyam-wife",
+   "name": null,
+   "gender": "FEMALE",
+   "birthDate": "1909",
+   "deathDate": "1981",
+   "deceased": true,
+   "photo": null,
+   "notes": null,
+   "origins": []
+  },
+  {
+   "id": "son",
+   "name": "Raj Kumar",
+   "gender": "MALE",
+   "birthDate": "1938",
+   "deathDate": "2010",
+   "deceased": true,
+   "photo": null,
+   "notes": null,
+   "origins": []
+  },
+  {
+   "id": "son-wife",
+   "name": null,
+   "gender": "FEMALE",
+   "birthDate": null,
+   "deathDate": null,
+   "deceased": true,
+   "photo": null,
+   "notes": null,
+   "origins": []
+  },
+  {
+   "id": "f",
+   "name": "Vinod Kumar",
+   "gender": "MALE",
+   "birthDate": "1962",
+   "deathDate": null,
+   "deceased": false,
+   "photo": null,
+   "notes": null,
+   "origins": []
+  },
+  {
+   "id": "unknown-child",
+   "name": null,
+   "gender": "UNSPECIFIED",
+   "birthDate": null,
+   "deathDate": null,
+   "deceased": false,
+   "photo": null,
+   "notes": null,
+   "origins": []
+  }
+ ],
+ "relationships": [
+  {
+   "id": "r0",
+   "from": "unknown-father",
+   "to": "shyam",
+   "type": "PARENT",
+   "subtype": null
+  },
+  {
+   "id": "r1",
+   "from": "shyam",
+   "to": "shyam-wife",
+   "type": "SPOUSE",
+   "subtype": "WIDOWED"
+  },
+  {
+   "id": "r2",
+   "from": "shyam",
+   "to": "son",
+   "type": "PARENT",
+   "subtype": null
+  },
+  {
+   "id": "r3",
+   "from": "shyam-wife",
+   "to": "son",
+   "type": "PARENT",
+   "subtype": null
+  },
+  {
+   "id": "r4",
+   "from": "son",
+   "to": "son-wife",
+   "type": "SPOUSE",
+   "subtype": "WIDOWED"
+  },
+  {
+   "id": "r5",
+   "from": "son",
+   "to": "f",
+   "type": "PARENT",
+   "subtype": null
+  },
+  {
+   "id": "r6",
+   "from": "son-wife",
+   "to": "f",
+   "type": "PARENT",
+   "subtype": null
+  },
+  {
+   "id": "r7",
+   "from": "f",
+   "to": "unknown-child",
+   "type": "PARENT",
+   "subtype": null
+  }
+ ]
+}

@@ -1,0 +1,266 @@
+{
+ "format": "f-tree",
+ "version": 1,
+ "people": [
+  {
+   "id": "pgf",
+   "name": "रामनारायण द्विवेदी",
+   "gender": "MALE",
+   "birthDate": "1928",
+   "deathDate": "1996",
+   "deceased": true,
+   "photo": null,
+   "notes": null,
+   "origins": []
+  },
+  {
+   "id": "pgm",
+   "name": "सरस्वती देवी",
+   "gender": "FEMALE",
+   "birthDate": "1932",
+   "deathDate": "2011",
+   "deceased": true,
+   "photo": null,
+   "notes": null,
+   "origins": []
+  },
+  {
+   "id": "mgf",
+   "name": "श्यामसुंदर त्रिपाठी",
+   "gender": "MALE",
+   "birthDate": "1930",
+   "deathDate": "2002",
+   "deceased": true,
+   "photo": null,
+   "notes": null,
+   "origins": []
+  },
+  {
+   "id": "mgm",
+   "name": null,
+   "gender": "FEMALE",
+   "birthDate": "1935",
+   "deathDate": "1990",
+   "deceased": true,
+   "photo": null,
+   "notes": null,
+   "origins": []
+  },
+  {
+   "id": "father",
+   "name": "कृष्णकांत द्विवेदी",
+   "gender": "MALE",
+   "birthDate": "1958",
+   "deathDate": null,
+   "deceased": false,
+   "photo": null,
+   "notes": null,
+   "origins": []
+  },
+  {
+   "id": "mother",
+   "name": "उर्मिला द्विवेदी",
+   "gender": "FEMALE",
+   "birthDate": "1962",
+   "deathDate": null,
+   "deceased": false,
+   "photo": null,
+   "notes": null,
+   "origins": []
+  },
+  {
+   "id": "chacha",
+   "name": "राधाकांत द्विवेदी",
+   "gender": "MALE",
+   "birthDate": "1961",
+   "deathDate": null,
+   "deceased": false,
+   "photo": null,
+   "notes": null,
+   "origins": []
+  },
+  {
+   "id": "mama",
+   "name": "गिरीश त्रिपाठी",
+   "gender": "MALE",
+   "birthDate": "1965",
+   "deathDate": null,
+   "deceased": false,
+   "photo": null,
+   "notes": null,
+   "origins": []
+  },
+  {
+   "id": "f",
+   "name": "अनुराधा द्विवेदी",
+   "gender": "FEMALE",
+   "birthDate": "1988",
+   "deathDate": null,
+   "deceased": false,
+   "photo": null,
+   "notes": "संगीत की शिक्षिका।",
+   "origins": []
+  },
+  {
+   "id": "f-husband",
+   "name": "Daniel Fernandes",
+   "gender": "MALE",
+   "birthDate": "1986",
+   "deathDate": null,
+   "deceased": false,
+   "photo": null,
+   "notes": null,
+   "origins": []
+  },
+  {
+   "id": "f-sib",
+   "name": "अभिषेक द्विवेदी",
+   "gender": "MALE",
+   "birthDate": "1991",
+   "deathDate": null,
+   "deceased": false,
+   "photo": null,
+   "notes": null,
+   "origins": []
+  },
+  {
+   "id": "f-kid",
+   "name": "आर्या फ़र्नांडिस",
+   "gender": "FEMALE",
+   "birthDate": "2018",
+   "deathDate": null,
+   "deceased": false,
+   "photo": null,
+   "notes": null,
+   "origins": []
+  }
+ ],
+ "relationships": [
+  {
+   "id": "r0",
+   "from": "pgf",
+   "to": "pgm",
+   "type": "SPOUSE",
+   "subtype": "WIDOWED"
+  },
+  {
+   "id": "r1",
+   "from": "mgf",
+   "to": "mgm",
+   "type": "SPOUSE",
+   "subtype": "WIDOWED"
+  },
+  {
+   "id": "r2",
+   "from": "pgf",
+   "to": "father",
+   "type": "PARENT",
+   "subtype": null
+  },
+  {
+   "id": "r3",
+   "from": "pgm",
+   "to": "father",
+   "type": "PARENT",
+   "subtype": null
+  },
+  {
+   "id": "r4",
+   "from": "mgf",
+   "to": "mother",
+   "type": "PARENT",
+   "subtype": null
+  },
+  {
+   "id": "r5",
+   "from": "mgm",
+   "to": "mother",
+   "type": "PARENT",
+   "subtype": null
+  },
+  {
+   "id": "r6",
+   "from": "father",
+   "to": "mother",
+   "type": "SPOUSE",
+   "subtype": "MARRIED"
+  },
+  {
+   "id": "r7",
+   "from": "pgf",
+   "to": "chacha",
+   "type": "PARENT",
+   "subtype": null
+  },
+  {
+   "id": "r8",
+   "from": "pgm",
+   "to": "chacha",
+   "type": "PARENT",
+   "subtype": null
+  },
+  {
+   "id": "r9",
+   "from": "mgf",
+   "to": "mama",
+   "type": "PARENT",
+   "subtype": null
+  },
+  {
+   "id": "r10",
+   "from": "mgm",
+   "to": "mama",
+   "type": "PARENT",
+   "subtype": null
+  },
+  {
+   "id": "r11",
+   "from": "father",
+   "to": "f",
+   "type": "PARENT",
+   "subtype": null
+  },
+  {
+   "id": "r12",
+   "from": "mother",
+   "to": "f",
+   "type": "PARENT",
+   "subtype": null
+  },
+  {
+   "id": "r13",
+   "from": "f",
+   "to": "f-husband",
+   "type": "SPOUSE",
+   "subtype": "MARRIED"
+  },
+  {
+   "id": "r14",
+   "from": "father",
+   "to": "f-sib",
+   "type": "PARENT",
+   "subtype": null
+  },
+  {
+   "id": "r15",
+   "from": "mother",
+   "to": "f-sib",
+   "type": "PARENT",
+   "subtype": null
+  },
+  {
+   "id": "r16",
+   "from": "f",
+   "to": "f-kid",
+   "type": "PARENT",
+   "subtype": null
+  },
+  {
+   "id": "r17",
+   "from": "f-husband",
+   "to": "f-kid",
+   "type": "PARENT",
+   "subtype": null
+  }
+ ]
+}

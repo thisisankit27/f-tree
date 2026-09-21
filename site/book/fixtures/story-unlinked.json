@@ -1,0 +1,84 @@
+{
+ "format": "f-tree",
+ "version": 1,
+ "people": [
+  {
+   "id": "f",
+   "name": "Bhagwati Prasad",
+   "gender": "MALE",
+   "birthDate": "1901",
+   "deathDate": "1972",
+   "deceased": true,
+   "photo": null,
+   "notes": "From the back of a studio photograph, Allahabad, 1931.",
+   "origins": []
+  },
+  {
+   "id": "a",
+   "name": "Rajendra Kumar",
+   "gender": "MALE",
+   "birthDate": "1950",
+   "deathDate": null,
+   "deceased": false,
+   "photo": null,
+   "notes": null,
+   "origins": []
+  },
+  {
+   "id": "b",
+   "name": "Shobha Kumar",
+   "gender": "FEMALE",
+   "birthDate": "1954",
+   "deathDate": null,
+   "deceased": false,
+   "photo": null,
+   "notes": null,
+   "origins": []
+  },
+  {
+   "id": "c",
+   "name": "Mohit Kumar",
+   "gender": "MALE",
+   "birthDate": "1980",
+   "deathDate": null,
+   "deceased": false,
+   "photo": null,
+   "notes": null,
+   "origins": []
+  },
+  {
+   "id": "loose",
+   "name": "Kishori Lal",
+   "gender": "MALE",
+   "birthDate": "1934",
+   "deathDate": "1999",
+   "deceased": true,
+   "photo": null,
+   "notes": null,
+   "origins": []
+  }
+ ],
+ "relationships": [
+  {
+   "id": "r0",
+   "from": "a",
+   "to": "b",
+   "type": "SPOUSE",
+   "subtype": "MARRIED"
+  },
+  {
+   "id": "r1",
+   "from": "a",
+   "to": "c",
+   "type": "PARENT",
+   "subtype": null
+  },
+  {
+   "id": "r2",
+   "from": "b",
+   "to": "c",
+   "type": "PARENT",
+   "subtype": null
+  }
+ ]
+}
