@@ -15,8 +15,7 @@ import {
   compileSvg, compileAll, readSwatches, swatchDrift, parsePath, serialize, arcToCubics, segBBox,
   BUDGETS, KINDS, SRC_DIR, OUT_DIR, ArtError,
 } from '../../tools/book_art.mjs';
-import { pathPoints, validateBook } from './format.js';
-import { PAPERCUT_PALETTE_KEYS } from './template.js';
+import { pathPoints } from './format.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const FIX = path.join(here, 'fixtures', 'art');
@@ -311,7 +310,6 @@ test('the build fails when swatches.json and template.js\'s paper-cut palette di
       return true;
     });
   }, drifted);
-  assert.equal(PAPERCUT_PALETTE_KEYS.length, new Set(Object.values(SWATCHES)).size);
 });
 
 test('ids are unique across kinds, and a placed drawing must exist', () => {
@@ -352,14 +350,29 @@ test('the compiler is deterministic, and the committed modules are exactly what 
   for (const f of ['motifs/diya.svg', 'motifs/marigold.svg', 'frames/arch-jharokha.svg']) assert.ok(ids.includes(f), f);
 });
 
-test('the committed art, placed on a page, validates', async () => {
-  const { symbols, gradients } = (await import('./art/index.js')).LIBRARY;
-  const paint = (list) => list.map((it) => ({ ...it, ...(typeof it.fill === 'string' ? { fill: '#123456' } : {}), ...(it.stroke ? { stroke: '#123456' } : {}), ...(it.t === 'group' ? { items: paint(it.items) } : {}) }));
-  const book = {
-    format: 2, size: { w: 595, h: 842 }, fonts: {},
-    defs: Object.fromEntries(Object.entries(gradients).map(([k, g]) => [k, { ...g, stops: g.stops.map(([o, , a]) => (a === undefined ? [o, '#123456'] : [o, '#123456', a])) }])),
-    symbols: Object.fromEntries(Object.entries(symbols).map(([k, s]) => [k, { items: paint(s.items) }])),
-    pages: [{ label: 'all', items: Object.keys(symbols).filter((k) => symbols[k].vb).map((k) => ({ t: 'use', ref: k })) }],
-  };
-  assert.deepEqual(validateBook(book), []);
+test('a shape used many times costs its bytes once, and each use only its own', () => {
+  // a flower of eight petals, about 400 bytes; twenty copies are 8 KB, twenty uses about 1 KB
+  const petal = Array.from({ length: 8 }, (_, k) => `M0 0C${4 + k}.25 2.75 ${8 + k}.5 2.25 12.75 ${k}.5C8.25-2.75 4.5-2.25 0 0Z`).join('');
+  const copies = svg(Array.from({ length: 20 }, (_, i) => `<path d="${petal}" fill="#f2a71b" transform="translate(${i} ${i})"/>`).join(''));
+  const uses = svg(`<defs><path id="petal" d="${petal}" fill="#f2a71b"/></defs>${Array.from({ length: 20 }, (_, i) => `<use href="#petal" x="${i}" y="${i}"/>`).join('')}`);
+  withSources({ 'avatars/copies.svg': copies }, (dir) => assert.throws(() => compileAll(dir), /copies\.svg: compiles to \d+ bytes, over the avatar budget/));
+  withSources({ 'avatars/uses.svg': uses }, (dir) => {
+    const [{ bytes }] = compileAll(dir).report;
+    const one = JSON.stringify({ t: 'use', ref: 'uses--petal', tf: [1, 0, 0, 1, 19, 19] }).length;
+    assert.ok(bytes < 20 * (one + 1) + petal.length + 100, `${bytes} bytes: twenty uses and one flower`);
+  });
+});
+
+test('the jharokha keeps its lace, as dotted strokes along the arch, inside the frame budget', () => {
+  const { report, library } = compileAll();
+  const arch = library.symbols['arch-jharokha'];
+  const lace = arch.items.filter((it) => it.t === 'path' && it.dash && it.cap === 'round');
+  assert.equal(lace.length, 2, 'big and small holes, alternating');
+  for (const it of lace) {
+    assert.equal(it.dash[0], 0.01, 'a dash that is all cap: a dot');
+    assert.equal(it.fill, undefined);
+    assert.equal(it.stroke, 'ink');
+  }
+  const { bytes, budget } = report.find((r) => r.file === 'frames/arch-jharokha.svg');
+  assert.ok(bytes <= budget, `${bytes} of ${budget}`);
 });

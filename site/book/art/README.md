@@ -69,6 +69,9 @@ art/
    put another drawing inside this one (marigolds in a scene), paste a copy of it in a group
    and name it: `<g data-asset="marigold" transform="…">…copy…</g>`. The copy is only there so
    you can see it; the compiler replaces it with a reference to the real one.
+   A row of the same small dot along a curve (a lace, a string of beads seen far off) is
+   cheapest as one stroked path with round caps and a dash like `stroke-dasharray="0.01 8"`:
+   every dash is a dot, and the whole row is a few hundred bytes (the jharokha's lace does this).
 4. **Compile and look:**
    ```
    node tools/book_art.mjs                     # writes art/papercut/*.js, prints each size

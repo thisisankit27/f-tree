@@ -241,9 +241,11 @@ Built in #247. The contributor workflow and the `draw.js` API are in
 - **Budgets count what crosses the bridge:** a drawing's items, parts and gradients, not its
   placement metadata. Motifs and ornaments get 4 KB, like a frame.
 - **Seed drawings:** `diya`, `marigold` and `arch-jharokha`, converted from the style-frame
-  kit. The jharokha is drawn without its lace: the hero arch's 89 punched holes compile to about
-  15 KB on their own, nearly four times a frame's 4 KB budget. Lace for #254 needs a larger frame
-  budget, far fewer holes, or a cheaper hole.
+  kit, with the kit's curves fitted as cubics. The jharokha's lace, 89 punched holes along the
+  arch, would be 15 KB as hole subpaths and about 6 KB as 89 `use`s of one hole, against a 4 KB
+  frame budget. It is drawn instead as two dotted strokes along the lace line, round caps on
+  near-zero dashes, big and small dots alternating: a few hundred bytes, drawn the same way by
+  both painters. A row of the same small mark along a curve is cheapest drawn this way.
 
 **Story planner** (`site/book/story/`, pure, deterministic)
 - **`featured.js resolveFeatured`** tries, in order:
