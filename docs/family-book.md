@@ -468,3 +468,43 @@ progress is announced, and every control is reachable by keyboard and screen rea
   once a change is meant.
 - Serve the repository root (`python3 -m http.server`) and open `/site/book/preview.html` to see
   every template with every fixture, painted by the SVG painter the desktop prints with.
+
+### The QA harness (#245)
+
+- **Fixtures.** `site/book/fixtures/` holds the hand-written fixtures and the storybook's
+  synthetic ones (`story-*.json`: a family of 200 over six generations, F as the eldest and as a
+  leaf, a remarriage with half, step and explicit siblings, twelve siblings, three spouses, an
+  unlinked F, lost names, hostile notes, Devanagari, a tiny family and an empty tree).
+  - The synthetic ones are generated, never edited:
+    `python3 tools/make_sample_tree.py --book-fixtures site/book/fixtures`.
+  - `storybook.json` says what each one is and names the people a test can look for (`f` is F).
+  - CI runs `--check-book-fixtures` and fails if the committed files drift from the generator.
+    Other issues' tests name these people, so add a fixture rather than change one.
+- **The report.** `composeWithReport(doc, options, template, allowance)` returns the same book as
+  `composeBook` plus `{ shown, textBoxes, artZones, minSize, pages }`. Story pages feed it through
+  `ctx`:
+  - `ctx.show(id)` for everyone a page names (`ctx.portrait` already does);
+  - `ctx.zone('text' | 'face' | 'busy', box)` for where the art allows words;
+  - `ctx.describePage({ archetype, variant, people, density })`;
+  - `kind: 'body' | 'name' | 'caption' | 'ornament' | ...` on `ctx.line` and `ctx.lines`.
+
+  Each is a no-op when nobody asked for a report.
+- **The invariants.** `site/book/invariants.test.mjs` runs `qa/invariants.mjs` over every fixture,
+  every template the composer can draw, and three featured people (the most connected, the eldest
+  and a leaf).
+  - The storybook joins automatically once a format-2 template composes. Until then its test is
+    skipped, with the reason.
+  - A flag test fails if a story composer lands with no template to run it over, or if its pages
+    don't report their zones, archetypes and kinds.
+  - Format-1 books are held to what they promise: a 6 pt floor (the tree page prints years at
+    6.4 pt), and no variety or density caps, which are storybook rules.
+- **The contact sheet,** for the by-eye review. It is not run in CI, and it needs Playwright
+  (`npx playwright --version`) and its Chromium:
+  ```
+  FTREE_PLAYWRIGHT=<.../node_modules/playwright/index.mjs> node tools/book_contact_sheet.mjs <out-dir> [fixture ...]
+  ```
+  It writes one PNG per fixture (a row per template, every page labelled), each cover at 150 px
+  wide, and an `index.html` of the lot. Look at the covers at that size: they are the chat
+  thumbnail.
+- **PDF weight.** `tools/book_pdf_size.mjs <out-dir>` re-measures the art term, the same way
+  (see *What a PDF weighs*).

@@ -36,7 +36,8 @@ export async function loadPlaywright() {
   }
 }
 
-const fontFaces = () => FONT_KEYS.map((key) => `@font-face{font-family:"${key}";`
+/** The four book faces as @font-face rules, family names the font keys svg.js paints with. */
+export const fontFaces = () => FONT_KEYS.map((key) => `@font-face{font-family:"${key}";`
   + `src:url(data:font/ttf;base64,${readFileSync(path.join(FONT_DIR, `${key}.ttf`)).toString('base64')}) format("truetype");font-display:block}`).join('');
 
 /** The desktop's print document, around already-painted SVG pages. */
@@ -58,14 +59,21 @@ html, body { margin: 0; }
 export async function openPages(browser, svgs, { scale = 1 } = {}) {
   const page = await browser.newPage({ viewport: { width: 794, height: 1123 }, deviceScaleFactor: scale });
   await page.setContent(printHtml(svgs), { waitUntil: 'load' });
+  await settle(page);
+  return page;
+}
+
+/**
+ * Waits for the faces and runs svg.js's own `fitText` over the page, as the preview and the print
+ * window do. `fitText` is read out of svg.js rather than copied, so this can never drift from it.
+ */
+export async function settle(page) {
   const fitText = readFileSync(path.join(repo, 'site/book/svg.js'), 'utf8').match(/export function fitText[\s\S]*$/)[0].replace('export ', '');
   await page.evaluate(async ({ keys, fit }) => {
     await document.fonts.ready;
     await Promise.all(keys.map((k) => document.fonts.load(`16px "${k}"`, 'शर्मा')));
-    // eslint-disable-next-line no-new-func
     new Function(`${fit}; return fitText(document.body);`)();
   }, { keys: FONT_KEYS, fit: fitText });
-  return page;
 }
 
 /** The PDF Chromium prints for these pages: the desktop's `printToPDF`, as Playwright spells it. */
