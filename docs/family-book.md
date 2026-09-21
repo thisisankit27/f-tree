@@ -317,7 +317,7 @@ Each `circles[c]` is sorted deterministically, by side, then branch (eldest firs
 generation, birth year, name and id. The code's header comment has the full table of roles and
 branch keys.
 
-**Words.** `words(id)` returns `{en, hi, term, word}`.
+**Words.** `words(id)` returns `{en, hi, term, word, through}`. `through` is set, and `en` is null, where the relation runs through one marriage: `{kind: 'married-to' | 'of-spouse', term, id}`, which copy.js (#252) phrases the way the desktop's `sentenceFor` does ("married to Ankit's cousin", never a possessive chain).
 - People one step from F take the app's label rules (`parentLabel`, `spouseLabel`,
   `childLabel`, `siblingLabel`).
 - Everyone else takes `relate()`'s term with `hindiTerm` and `hindiWord`. `relate()` runs once
