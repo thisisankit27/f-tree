@@ -26,8 +26,8 @@
  *   6. grandparents  the parents of F's parents, per side
  *   7. descendants   F's grandchildren and beyond
  *   8. ancestors     beyond the grandparents, per side where the record says
- *   9. branches      one per aunt or uncle (a parent's sibling): them, their spouses, and everyone
- *                    below them with their spouses - F's cousins and the cousins' families
+ *   9. branches      one per aunt or uncle (a parent's sibling): `branchFrom` of them - their
+ *                    spouses, everyone below them and their spouses: F's cousins and families
  *  10. in-laws       one marriage from the core: spouse's parents and siblings, siblings' and
  *                    children's spouses, a parent's other spouse, a spouse's other children
  *  11. lane          everyone else joined to F by any chain of links
@@ -78,12 +78,17 @@
  *   by their eldest member; generation; birth year (unknown last); name (by family.js's `sortKey`,
  *   unnamed last); id. So consecutive entries with the same `branch` are one group.
  *
- *   Words { en, hi, term, word }
+ *   Words { en, hi, term, word, through }
  *     en    the English kin word, lower case ("father", "half-sister", "first cousin", "aunt",
- *           "former wife"), or null where English has no word (a relative through two marriages)
+ *           "former wife"), or null where English has no single word
  *     hi    the Hindi word, or null where Hindi has none
  *     term  the vocabulary code (`kinship-hi.js`: 'DADI', 'MAMA'...), or null
  *     word  what a caption prints: `hi ?? en` when `options.words === 'hi'`, else `en`
+ *     through  null, or where `en` is null because the relation runs through one marriage:
+ *           { kind: 'married-to', term, id }  married to F's `term` (person `id`)
+ *           { kind: 'of-spouse', term, id }   the `term` of F's spouse `id`
+ *           - the desktop's `sentenceFor` shapes, so copy.js says "married to Ankit's first
+ *           cousin once removed", never "Ankit's first cousin once removed's wife"
  *
  * ## Where the words come from
  *
@@ -107,7 +112,7 @@
  * page actually shows. Nothing here calls `ageOf` - a partition has no reason to read the clock.
  */
 
-import { relate, parentLabel, spouseLabel, childLabel, siblingLabel } from '../../playground/model.js';
+import { relate, branchFrom, parentLabel, spouseLabel, childLabel, siblingLabel } from '../../playground/model.js';
 import { hindiTerm } from '../../playground/kinship-hindi.js';
 import { hindiWord } from '../../playground/kinship-hi.js';
 import { sortKey, byKey } from '../family.js';
@@ -147,7 +152,10 @@ export function spouseStatus(spouse, subtype) {
   return 'current';
 }
 
-const NO_WORDS = Object.freeze({ en: null, hi: null, term: null, word: null });
+const NO_WORDS = Object.freeze({ en: null, hi: null, term: null, word: null, through: null });
+
+/** Sorts a neighbour list by id, in place: graph.parents/children/spouses/siblings return fresh arrays. */
+const byId = (list) => list.sort((a, b) => byKey(a.id, b.id));
 
 /**
  * @param family     `readFamily(doc, options, allowance)`'s result: scope and the allowance are
@@ -164,7 +172,6 @@ export function kinOf(family, featuredId, options = {}) {
   const F = featuredId != null && graph.people.has(featuredId) ? featuredId : null;
 
   const entries = new Map();
-  const direct = new Map();   // id -> how they join F in one step, for the words
   const claimed = [];         // claim order, which the lane walk starts from
 
   const claim = (id, circle, role, fields) => {
@@ -173,7 +180,6 @@ export function kinOf(family, featuredId, options = {}) {
     claimed.push(id);
     return true;
   };
-  const sorted = (list) => [...list].sort((a, b) => byKey(a.id, b.id));
   const person = (id) => graph.people.get(id);
   const familyKey = (id) => graph.familyOfChild.get(id)?.key ?? null;
   const gen = (id) => entries.get(id).gen;
@@ -186,95 +192,86 @@ export function kinOf(family, featuredId, options = {}) {
   if (F !== null) {
     claim(F, 'self', 'self', { gen: 0 });
 
+    // One link from F. The edge (its subtype, and whether a sibling is half) rides on the entry
+    // until it is frozen, for the words; it is not part of the published shape.
+    const oneStep = (list, circle, roleOf, fieldsOf, edgeOf) => list.filter((n) =>
+      claim(n.id, circle, roleOf(n), { ...fieldsOf(n), via: F, edge: edgeOf(n) }));
+
     // Paternal first, then maternal, then a parent whose gender is not recorded: where both sides
     // reach the same grandparent (cousins who married), the father's side claims them.
-    const parents = sorted(graph.parents(F))
-      .sort((a, b) => SIDE_RANK[sideOf(person(a.id))] - SIDE_RANK[sideOf(person(b.id))]);
-    const parentIds = [];
-    for (const p of parents) {
-      if (!claim(p.id, 'parents', 'parent', { side: sideOf(person(p.id)), gen: -1, via: F })) continue;
-      parentIds.push(p.id);
-      direct.set(p.id, { kind: 'parent', subtype: p.subtype });
-    }
-
-    const spouseIds = [];
-    for (const s of sorted(graph.spouses(F))) {
-      if (!claim(s.id, 'spouses', spouseStatus(person(s.id), s.subtype), { gen: 0, via: F })) continue;
-      spouseIds.push(s.id);
-      direct.set(s.id, { kind: 'spouse', subtype: s.subtype });
-    }
-
-    const childIds = [];
-    for (const c of sorted(graph.children(F))) {
-      if (!claim(c.id, 'children', 'child', { gen: 1, branch: familyKey(c.id), via: F })) continue;
-      childIds.push(c.id);
-      direct.set(c.id, { kind: 'child', subtype: c.subtype });
-    }
-
-    const siblingIds = [];
-    for (const s of sorted(graph.siblings(F))) {
-      const role = !s.derived ? 'explicit' : s.half ? 'half' : 'full';
-      if (!claim(s.id, 'siblings', role, { gen: 0, branch: s.derived ? familyKey(s.id) : null, via: F })) continue;
-      siblingIds.push(s.id);
-      direct.set(s.id, { kind: 'sibling', half: s.half });
-    }
+    const parentIds = oneStep(
+      byId(graph.parents(F)).sort((a, b) => SIDE_RANK[sideOf(person(a.id))] - SIDE_RANK[sideOf(person(b.id))]),
+      'parents', () => 'parent', (p) => ({ side: sideOf(person(p.id)), gen: -1 }), (p) => ({ subtype: p.subtype }),
+    ).map((p) => p.id);
+    const spouseIds = oneStep(byId(graph.spouses(F)), 'spouses', (s) => spouseStatus(person(s.id), s.subtype),
+      () => ({ gen: 0 }), (s) => ({ subtype: s.subtype })).map((s) => s.id);
+    const childIds = oneStep(byId(graph.children(F)), 'children', () => 'child',
+      (c) => ({ gen: 1, branch: familyKey(c.id) }), (c) => ({ subtype: c.subtype })).map((c) => c.id);
+    const siblingIds = oneStep(byId(graph.siblings(F)), 'siblings', (s) => (!s.derived ? 'explicit' : s.half ? 'half' : 'full'),
+      (s) => ({ gen: 0, branch: s.derived ? familyKey(s.id) : null }), (s) => ({ half: s.half })).map((s) => s.id);
     // Explicit sibling links are transitive, as model.js's stand-in parents read them: three
     // siblings recorded as two links are one family, so F's full brother's explicit sister is F's
     // sister. Only through a full sibling, though: a half-sibling's explicit sister may belong to
     // the parent F does not share, so the walk neither starts from nor continues past anyone half.
-    const full = (id) => !direct.get(id).half;
-    walk([F, ...siblingIds.filter(full)], (x) => sorted(graph.explicitSiblings.get(x)?.values() ?? []).filter((s) => {
-      if (!claim(s.id, 'siblings', 'explicit', { gen: 0, via: x })) return false;
+    walk([F, ...siblingIds.filter((id) => !entries.get(id).edge.half)], (x) => byId([...(graph.explicitSiblings.get(x)?.values() ?? [])]).filter((s) => {
+      const half = s.subtype === 'HALF';
+      if (!claim(s.id, 'siblings', 'explicit', { gen: 0, via: x, edge: { half } })) return false;
       siblingIds.push(s.id);
-      direct.set(s.id, { kind: 'sibling', half: s.subtype === 'HALF' });
-      return s.subtype !== 'HALF';
+      return !half;
     }));
 
-    const grandparentIds = [];
-    for (const p of parentIds) {
-      const side = entries.get(p).side;
-      for (const g of sorted(graph.parents(p))) {
-        if (claim(g.id, 'grandparents', 'grandparent', { side, gen: -2, branch: p, via: p })) grandparentIds.push(g.id);
+    // Everyone one link from `anchors`, kept on the anchor's side and grouped under it.
+    const hang = (anchors, neighbours, circle, role, delta) => {
+      const out = [];
+      for (const a of anchors) {
+        const { side } = entries.get(a);
+        for (const n of byId(neighbours(a))) if (claim(n.id, circle, role, { side, gen: gen(a) + delta, branch: a, via: a })) out.push(n.id);
       }
-    }
+      return out;
+    };
+    const grandparentIds = hang(parentIds, graph.parents, 'grandparents', 'grandparent', -1);
 
     // Down from F's children, one generation at a time, through nobody another circle has claimed.
     walk(childIds, (x) => {
       const below = gen(x) + 1;
       const branch = below === 2 ? x : entries.get(x).branch;
       const role = below === 2 ? 'grandchild' : 'descendant';
-      return sorted(graph.children(x)).filter((c) => claim(c.id, 'descendants', role, { gen: below, branch, via: x }));
+      return byId(graph.children(x)).filter((c) => claim(c.id, 'descendants', role, { gen: below, branch, via: x }));
     });
 
     // Up from the grandparents, keeping the side and the parent the line started from.
     walk(grandparentIds, (x) => {
       const { side, branch } = entries.get(x);
-      return sorted(graph.parents(x)).filter((a) => claim(a.id, 'ancestors', 'ancestor', { side, gen: gen(x) - 1, branch, via: x }));
+      return byId(graph.parents(x)).filter((a) => claim(a.id, 'ancestors', 'ancestor', { side, gen: gen(x) - 1, branch, via: x }));
     });
 
-    // One branch per aunt or uncle: them, and everything `branchFrom` would call their family -
-    // everyone below them, and whoever each of those married.
+    // One branch per aunt or uncle: exactly `branchFrom`'s family of them (model.js) - everyone
+    // below them, and whoever each of those married - less anyone a nearer circle already holds.
+    // The walk goes on through such a person, so their children still join the branch, as they do
+    // in the app's branch view; it only adds each person's generation and who reached them.
     for (const p of parentIds) {
       const side = entries.get(p).side;
-      for (const s of sorted(graph.siblings(p))) {
+      for (const s of byId(graph.siblings(p))) {
         if (!claim(s.id, 'branches', 'aunt-uncle', { side, gen: -1, branch: s.id, via: p })) continue;
+        const members = branchFrom(graph, s.id);
+        const depth = new Map([[s.id, -1]]);
         walk([s.id], (x) => {
           const married = x === s.id ? 'aunt-uncle-spouse' : 'cousin-spouse';
-          for (const m of sorted(graph.spouses(x))) claim(m.id, 'branches', married, { side, gen: gen(x), branch: s.id, via: x });
-          const below = gen(x) + 1;
+          for (const m of byId(graph.spouses(x))) if (members.has(m.id)) claim(m.id, 'branches', married, { side, gen: depth.get(x), branch: s.id, via: x });
+          const below = depth.get(x) + 1;
           const role = below === 0 ? 'cousin' : 'cousin-descendant';
-          return sorted(graph.children(x)).filter((c) => claim(c.id, 'branches', role, { side, gen: below, branch: s.id, via: x }));
+          return byId(graph.children(x)).filter((c) => {
+            if (depth.has(c.id)) return false;
+            depth.set(c.id, below);
+            claim(c.id, 'branches', role, { side, gen: below, branch: s.id, via: x });
+            return true;
+          });
         });
       }
     }
 
     // One marriage away from the core.
-    const inLaw = (anchors, neighbours, role, delta) => {
-      for (const a of anchors) {
-        const { side } = entries.get(a);
-        for (const n of sorted(neighbours(a))) claim(n.id, 'in-laws', role, { side, gen: gen(a) + delta, branch: a, via: a });
-      }
-    };
+    const inLaw = (anchors, neighbours, role, delta) => hang(anchors, neighbours, 'in-laws', role, delta);
     inLaw(spouseIds, graph.parents, 'spouse-parent', -1);
     inLaw(spouseIds, graph.siblings, 'spouse-sibling', 0);
     inLaw(siblingIds, graph.spouses, 'sibling-spouse', 0);
@@ -285,19 +282,17 @@ export function kinOf(family, featuredId, options = {}) {
     // Everyone else joined to F, breadth-first from the people already placed, in claim order:
     // blood before marriage, as `shortestPath` walks, so a nephew is reached through his parent
     // rather than through whoever he married.
-    const steps = (x) => [
-      ...sorted(graph.parents(x)).map((n) => [n.id, -1]),
-      ...sorted(graph.children(x)).map((n) => [n.id, 1]),
-      ...sorted([...(graph.explicitSiblings.get(x)?.values() ?? [])]).map((n) => [n.id, 0]),
-      ...sorted(graph.spouses(x)).map((n) => [n.id, 0]),
-    ];
     for (let i = 0; i < claimed.length; i++) {
       const x = claimed[i];
       const from = entries.get(x);
       const branch = from.circle === 'lane' ? from.branch : x;
-      for (const [n, delta] of steps(x)) {
-        claim(n, 'lane', 'relative', { side: from.side, gen: from.gen === null ? null : from.gen + delta, branch, via: x });
-      }
+      const reach = (list, delta) => {
+        for (const n of byId(list)) claim(n.id, 'lane', 'relative', { side: from.side, gen: from.gen === null ? null : from.gen + delta, branch, via: x });
+      };
+      reach(graph.parents(x), -1);
+      reach(graph.children(x), 1);
+      reach([...(graph.explicitSiblings.get(x)?.values() ?? [])], 0);
+      reach(graph.spouses(x), 0);
     }
   }
 
@@ -305,10 +300,12 @@ export function kinOf(family, featuredId, options = {}) {
 
   for (const e of entries.values()) e.namedBy = person(e.id).name ? null : namedBy(graph, e.id);
 
-  // Circle order: see the header.
-  const nameKey = (id) => { const n = person(id).name; return n ? sortKey(n) : null; };
-  const birth = (id) => family.byId.get(id)?.by ?? null;
-  const tuple = (id) => [birth(id), nameKey(id), id];
+  // Circle order: see the header. Each person's sort tuple is worked out once.
+  const tuples = new Map();
+  for (const id of claimed) {
+    const name = person(id).name;
+    tuples.set(id, [family.byId.get(id)?.by ?? null, name ? sortKey(name) : null, id]);
+  }
   const cmpTuple = (a, b) => {
     for (let i = 0; i < a.length; i++) {
       if (a[i] === b[i]) continue;
@@ -318,75 +315,93 @@ export function kinOf(family, featuredId, options = {}) {
     }
     return 0;
   };
+  const buckets = Object.fromEntries(CIRCLES.map((c) => [c, []]));
+  for (const id of claimed) buckets[entries.get(id).circle].push(id);
+  const bkey = (id) => entries.get(id).branch ?? '';
   const circles = {};
   const people = new Map();
+  const edges = new Map();   // id -> the one-step edge, for the words
   for (const circle of CIRCLES) {
-    const ids = claimed.filter((id) => entries.get(id).circle === circle);
+    const ids = buckets[circle];
     const eldest = new Map();   // branch -> its eldest member's tuple, which orders the branches
     for (const id of ids) {
-      const key = entries.get(id).branch ?? '';
-      const t = tuple(id);
-      if (!eldest.has(key) || cmpTuple(t, eldest.get(key)) < 0) eldest.set(key, t);
+      const t = tuples.get(id);
+      if (!eldest.has(bkey(id)) || cmpTuple(t, eldest.get(bkey(id))) < 0) eldest.set(bkey(id), t);
     }
     ids.sort((a, b) => {
       const ea = entries.get(a), eb = entries.get(b);
       return SIDE_RANK[ea.side] - SIDE_RANK[eb.side]
-        || cmpTuple(eldest.get(ea.branch ?? ''), eldest.get(eb.branch ?? ''))
-        || byKey(ea.branch ?? '', eb.branch ?? '')
+        || cmpTuple(eldest.get(bkey(a)), eldest.get(bkey(b)))
+        || byKey(bkey(a), bkey(b))
         || (ea.gen ?? Infinity) - (eb.gen ?? Infinity)
-        || cmpTuple(tuple(a), tuple(b));
+        || cmpTuple(tuples.get(a), tuples.get(b));
     });
     circles[circle] = Object.freeze(ids);
-    for (const id of ids) people.set(id, Object.freeze(entries.get(id)));
+    for (const id of ids) {
+      const { edge, ...entry } = entries.get(id);
+      if (edge) edges.set(id, edge);
+      people.set(id, Object.freeze(entry));
+    }
   }
 
+  return Object.freeze({
+    featured: F, people, circles: Object.freeze(circles),
+    words: wordsOf({ graph, F, edges, people, lang, relateFn }),
+  });
+}
+
+/**
+ * `words(id)`, memoised. Built outside `kinOf` so the returned object holds only what it needs,
+ * not the partition's working maps.
+ */
+function wordsOf({ graph, F, edges, people, lang, relateFn }) {
   const cache = new Map();
-  const words = (id) => {
+  const wordsFor = (entry) => {
+    if (entry.circle === 'self' || entry.circle === 'elsewhere') return NO_WORDS;
+    const to = graph.people.get(entry.id);
+    const edge = edges.get(entry.id);
+    let en, term, hi = null, through = null;
+    if (edge) {
+      ({ en, term, hi } = directWords(entry.circle, edge, to));
+    } else {
+      const r = relateFn(graph, F, entry.id);
+      en = r?.term ?? null;
+      // No possessive chain ("first cousin once removed's wife"): like the desktop's relation panel
+      // (`sentenceFor`), the caption has no word, and copy.js turns the facts round instead -
+      // "married to Ankit's first cousin", "the mother of Ankit's wife".
+      if (!en && r?.marriedTo) through = Object.freeze({ kind: 'married-to', term: r.marriedTo.term, id: r.marriedTo.person.id });
+      if (!en && r?.ofSpouse) through = Object.freeze({ kind: 'of-spouse', term: r.ofSpouse.term, id: r.ofSpouse.spouse.id });
+      term = hindiTerm(r?.kinship, graph.people.get(F).gender ?? 'UNSPECIFIED', to.gender ?? 'UNSPECIFIED');
+    }
+    if (hi === null) hi = hindiWord(term)?.word ?? null;
+    return Object.freeze({ en, hi, term: term ?? null, word: lang === 'hi' ? (hi ?? en) : en, through });
+  };
+  return (id) => {
     if (cache.has(id)) return cache.get(id);
     const entry = people.get(id);
     const result = entry ? wordsFor(entry) : null;
     cache.set(id, result);
     return result;
   };
-
-  function wordsFor(entry) {
-    if (entry.circle === 'self' || entry.circle === 'elsewhere') return NO_WORDS;
-    const to = person(entry.id);
-    const step = direct.get(entry.id);
-    let en, term, hi = null;
-    if (step) {
-      ({ en, term, hi } = directWords(step, to));
-    } else {
-      const r = relateFn(graph, F, entry.id);
-      en = r?.term ?? null;
-      if (!en && r?.marriedTo) en = `${r.marriedTo.term}'s ${spouseLabel(to, null).toLowerCase()}`;
-      if (!en && r?.ofSpouse) en = `${spouseLabel(r.ofSpouse.spouse, null).toLowerCase()}'s ${r.ofSpouse.term}`;
-      term = hindiTerm(r?.kinship, person(F).gender, to.gender);
-    }
-    if (hi === null) hi = hindiWord(term)?.word ?? null;
-    return Object.freeze({ en, hi, term: term ?? null, word: lang === 'hi' ? (hi ?? en) : en });
-  }
-
-  return Object.freeze({ featured: F, people, circles: Object.freeze(circles), words });
 }
 
 /** The words for somebody one link from F, from the app's own label rules. */
-function directWords(step, to) {
+function directWords(circle, step, to) {
   const g = to.gender;
   const pick = (male, female) => (g === 'MALE' ? male : g === 'FEMALE' ? female : null);
-  switch (step.kind) {
-    case 'parent': {
+  switch (circle) {
+    case 'parents': {
       const en = parentLabel(to, step.subtype).toLowerCase();
       if (step.subtype === 'STEP') return { en, term: pick('SAUTELA_PITA', 'SAUTELI_MATA'), hi: null };
       // The approved book words, not the vocabulary's पिता / माता (storybook-plan.md, Decisions).
       return { en, term: pick('PITA', 'MATA'), hi: pick('पिताजी', 'माँ') };
     }
-    case 'spouse': {
+    case 'spouses': {
       const en = spouseLabel(to, step.subtype).toLowerCase();
       const married = spouseStatus(to, step.subtype) !== 'former' && step.subtype !== 'PARTNER';
       return { en, term: married ? pick('PATI', 'PATNI') : null, hi: null };
     }
-    case 'child':
+    case 'children':
       return {
         en: childLabel(to, step.subtype).toLowerCase(),
         term: step.subtype === 'STEP' ? pick('SAUTELA_BETA', 'SAUTELI_BETI') : pick('BETA', 'BETI'),
@@ -405,16 +420,16 @@ function directWords(step, to) {
  */
 function namedBy(graph, id) {
   const me = graph.people.get(id);
-  const named = (list) => [...list].sort((a, b) => byKey(a.id, b.id)).find((n) => graph.people.get(n.id)?.name);
   const candidates = [
-    [graph.spouses(id), (n) => spouseLabel(me, n.subtype)],
-    [graph.children(id), (n) => parentLabel(me, n.subtype)],
-    [graph.parents(id), (n) => childLabel(me, n.subtype)],
-    [graph.siblings(id), (n) => siblingLabel(me, n.half)],
+    [() => graph.spouses(id), (n) => spouseLabel(me, n.subtype)],
+    [() => graph.children(id), (n) => parentLabel(me, n.subtype)],
+    [() => graph.parents(id), (n) => childLabel(me, n.subtype)],
+    [() => graph.siblings(id), (n) => siblingLabel(me, n.half)],
   ];
   for (const [list, label] of candidates) {
-    const n = named(list);
-    if (n) return { id: n.id, word: label(n).toLowerCase() };
+    let best = null;
+    for (const n of list()) if (graph.people.get(n.id)?.name && (!best || byKey(n.id, best.id) < 0)) best = n;
+    if (best) return { id: best.id, word: label(best).toLowerCase() };
   }
   return null;
 }

@@ -120,8 +120,8 @@ test('a whole family: every circle holds exactly who it should', () => {
 test('kin words: English from the app, Hindi from the vocabulary, पिताजी / माँ for parents', () => {
   const { k } = kin(BIG, 'ankit', { words: 'hi' });
   const w = (id) => k.words(id);
-  assert.deepEqual(w('dad'), { en: 'father', hi: 'पिताजी', term: 'PITA', word: 'पिताजी' });
-  assert.deepEqual(w('mum'), { en: 'mother', hi: 'माँ', term: 'MATA', word: 'माँ' });
+  assert.deepEqual(w('dad'), { en: 'father', hi: 'पिताजी', term: 'PITA', word: 'पिताजी', through: null });
+  assert.deepEqual(w('mum'), { en: 'mother', hi: 'माँ', term: 'MATA', word: 'माँ', through: null });
   assert.equal(w('gm').hi, 'दादी');
   assert.equal(w('gm').en, 'grandmother');
   assert.equal(w('mgf').hi, 'नाना');
@@ -134,7 +134,7 @@ test('kin words: English from the app, Hindi from the vocabulary, पिता�
   assert.equal(w('chacha').hi, 'चाचा');
   assert.equal(w('bua').hi, 'बुआ');
   assert.equal(w('mama').hi, 'मामा');
-  assert.deepEqual(w('cousin'), { en: 'first cousin', hi: 'चचेरा भाई', term: 'CHACHERA_BHAI', word: 'चचेरा भाई' });
+  assert.deepEqual(w('cousin'), { en: 'first cousin', hi: 'चचेरा भाई', term: 'CHACHERA_BHAI', word: 'चचेरा भाई', through: null });
   assert.equal(w('sis').hi, 'बहन');
   assert.equal(w('jija').hi, 'जीजा');
   assert.equal(w('jija').en, 'brother-in-law');
@@ -146,10 +146,10 @@ test('kin words: English from the app, Hindi from the vocabulary, पिता�
   assert.equal(w('granddaughter').hi, 'पोती');
   assert.equal(w('nephew').hi, 'भांजा');
   // Where Hindi has no word, the English one is printed.
-  assert.deepEqual(w('cousinkid'), { en: 'first cousin once removed', hi: null, term: null, word: 'first cousin once removed' });
+  assert.deepEqual(w('cousinkid'), { en: 'first cousin once removed', hi: null, term: null, word: 'first cousin once removed', through: null });
   // F and the unlinked have no kin word at all.
-  assert.deepEqual(w('ankit'), { en: null, hi: null, term: null, word: null });
-  assert.deepEqual(w('stranger'), { en: null, hi: null, term: null, word: null });
+  assert.deepEqual(w('ankit'), { en: null, hi: null, term: null, word: null, through: null });
+  assert.deepEqual(w('stranger'), { en: null, hi: null, term: null, word: null, through: null });
   assert.equal(w('not-a-person'), null);
 
   const en = kin(BIG, 'ankit').k;
@@ -259,12 +259,44 @@ test('explicit links are followed only through full siblings, and a HALF link st
   assert.notEqual(circleOf(k, 'c'), 'siblings');   // B is only a half-sister: her own siblings are not F's
 });
 
+test("a branch is branchFrom's family: children of a cousin claimed nearer still join it", () => {
+  // Cousin C married F, so C is a spouse; C's children (by F) are F's children. C's child by an
+  // earlier marriage, D, is below the uncle all the same - branchFrom counts D, and so does the book.
+  const doc = tree([
+    M('gf', 'GF', '1920'), M('dad', 'Dad', '1950'), M('unc', 'Uncle', '1948'),
+    M('f', 'F', '1980'), W('c', 'Cousin', '1982'), M('ex', 'Ex', '1978'), M('d', 'D', '2000'),
+  ], [parent('gf', 'dad', 'unc'), parent('dad', 'f'), parent('unc', 'c'), married('f', 'c'), married('c', 'ex', 'DIVORCED'), parents('c', 'ex', 'd')]);
+  const { k } = kin(doc, 'f');
+  assert.equal(circleOf(k, 'c'), 'spouses');
+  assert.deepEqual(pick(k, 'd', 'circle', 'role', 'gen', 'branch', 'via'), { circle: 'branches', role: 'cousin-descendant', gen: 1, branch: 'unc', via: 'c' });
+  assert.deepEqual(pick(k, 'ex', 'circle', 'role', 'branch'), { circle: 'branches', role: 'cousin-spouse', branch: 'unc' });
+});
+
+test('a relation through one marriage gets no possessive chain, only the facts to turn it round', () => {
+  const doc = tree([
+    M('gf', 'GF', '1920'), M('dad', 'Dad', '1950'), M('unc', 'Uncle', '1948'), M('cz', 'Cousin', '1975'),
+    M('czk', 'Cousin Kid', '2000'), W('czkw', 'Cousin Kid Wife', '2001'), M('f', 'F', '1980'),
+    W('w', 'Wife', '1982'), M('wgf', 'Her Grandfather', '1925'), M('wf', 'Her Father', '1955'),
+  ], [parent('gf', 'dad', 'unc'), parent('dad', 'f'), parent('unc', 'cz'), parent('cz', 'czk'), married('czk', 'czkw'),
+    married('f', 'w'), parent('wgf', 'wf'), parent('wf', 'w')]);
+  const { k } = kin(doc, 'f');
+  const wife = k.words('czkw');
+  assert.equal(wife.en, null);
+  assert.deepEqual(wife.through, { kind: 'married-to', term: 'first cousin once removed', id: 'czk' });
+  const hers = k.words('wgf');
+  assert.equal(hers.en, null);
+  assert.deepEqual(hers.through, { kind: 'of-spouse', term: 'grandfather', id: 'w' });
+  assert.equal(k.words('wf').en, 'father-in-law');
+  assert.equal(k.words('wf').through, null);
+});
+
 test('a family of twelve: eleven siblings, eldest first', () => {
-  const kids = Array.from({ length: 12 }, (_, i) => (i % 2 ? W : M)(`k${String(i).padStart(2, '0')}`, `Child ${i}`, String(1960 + i)));
-  const doc = tree([M('dad', 'Dad', '1930'), W('mum', 'Mum', '1935'), ...kids.reverse()], [married('dad', 'mum'), parents('dad', 'mum', ...kids.map((c) => c.id))]);
+  const ids = Array.from({ length: 12 }, (_, i) => `k${String(i).padStart(2, '0')}`);
+  const kids = ids.map((id, i) => (i % 2 ? W : M)(id, `Child ${i}`, String(1960 + i)));
+  // Listed youngest first, so the order the book gives is its own, not the file's.
+  const doc = tree([M('dad', 'Dad', '1930'), W('mum', 'Mum', '1935'), ...[...kids].reverse()], [married('dad', 'mum'), parents('dad', 'mum', ...ids)]);
   const { k } = kin(doc, 'k05');
-  const expected = Array.from({ length: 12 }, (_, i) => `k${String(i).padStart(2, '0')}`).filter((id) => id !== 'k05');
-  assert.deepEqual(k.circles.siblings, expected);
+  assert.deepEqual(k.circles.siblings, ids.filter((id) => id !== 'k05'));
   assert.ok(k.circles.siblings.every((id) => k.people.get(id).role === 'full' && k.people.get(id).branch === 'dad mum'));
 });
 
@@ -280,9 +312,9 @@ test('three spouses: current, former and late, and their children by each', () =
   const { k } = kin(doc, 'f', { words: 'hi' });
   const role = (id) => k.people.get(id).role;
   assert.deepEqual([role('late'), role('former'), role('now')], ['late', 'former', 'current']);
-  assert.deepEqual(k.words('late'), { en: 'late wife', hi: 'पत्नी', term: 'PATNI', word: 'पत्नी' });
-  assert.deepEqual(k.words('former'), { en: 'former wife', hi: null, term: null, word: 'former wife' });
-  assert.deepEqual(k.words('now'), { en: 'wife', hi: 'पत्नी', term: 'PATNI', word: 'पत्नी' });
+  assert.deepEqual(k.words('late'), { en: 'late wife', hi: 'पत्नी', term: 'PATNI', word: 'पत्नी', through: null });
+  assert.deepEqual(k.words('former'), { en: 'former wife', hi: null, term: null, word: 'former wife', through: null });
+  assert.deepEqual(k.words('now'), { en: 'wife', hi: 'पत्नी', term: 'PATNI', word: 'पत्नी', through: null });
   // Children grouped by the other parent, the groups in order of their eldest child.
   assert.deepEqual(k.circles.children, ['a', 'd', 'b', 'c']);
   assert.deepEqual(k.circles.children.map((id) => k.people.get(id).branch), ['f late', 'f late', 'f former', 'f now']);
@@ -317,7 +349,7 @@ test('unknown gender: no side, the neutral English word, no Hindi', () => {
   const doc = tree([{ id: 'p', name: 'Parent' }, M('gp', 'Grandpa', '1920'), M('f', 'F', '1980')], [parent('p', 'f'), parent('gp', 'p')]);
   const { k } = kin(doc, 'f', { words: 'hi' });
   assert.deepEqual(pick(k, 'p', 'side', 'role'), { side: 'none', role: 'parent' });
-  assert.deepEqual(k.words('p'), { en: 'parent', hi: null, term: null, word: 'parent' });
+  assert.deepEqual(k.words('p'), { en: 'parent', hi: null, term: null, word: 'parent', through: null });
   assert.equal(k.people.get('gp').side, 'none');
   assert.equal(k.words('gp').word, 'grandfather');
 });
@@ -390,7 +422,7 @@ function shuffled(list, seed) {
 
 const snapshot = (k) => JSON.stringify({ circles: k.circles, people: [...k.people.values()] });
 
-async function allFixtures() {
+async function loadFixtures() {
   const fixtures = { big: BIG };
   for (const f of readdirSync(path.join(here, 'fixtures')).filter((n) => n.endsWith('.json'))) {
     fixtures[f] = JSON.parse(readFileSync(path.join(here, 'fixtures', f), 'utf8'));
@@ -400,6 +432,8 @@ async function allFixtures() {
   fixtures.sample = parseDocument(await archive.readText('tree.json'));
   return fixtures;
 }
+
+const FIXTURES = loadFixtures();   // read once, awaited by each property test
 
 /** Most connected, the eldest, a leaf, and one with no links - whichever of those exist. */
 function featuredChoices(family) {
@@ -413,7 +447,7 @@ function featuredChoices(family) {
 }
 
 test('property: on every fixture, everyone in scope is in exactly one circle and F is self', async () => {
-  for (const [name, doc] of Object.entries(await allFixtures())) {
+  for (const [name, doc] of Object.entries(await FIXTURES)) {
     const family = readFamily(doc);
     for (const f of [...featuredChoices(family), null]) {
       try { assertPartition(family, kinOf(family, f), f); } catch (e) { e.message = `${name}, F=${f}: ${e.message}`; throw e; }
@@ -424,7 +458,7 @@ test('property: on every fixture, everyone in scope is in exactly one circle and
 });
 
 test('property: the partition is identical across runs and under shuffled input order', async () => {
-  for (const [name, doc] of Object.entries(await allFixtures())) {
+  for (const [name, doc] of Object.entries(await FIXTURES)) {
     const family = readFamily(doc);
     for (const f of featuredChoices(family)) {
       const first = snapshot(kinOf(family, f));
