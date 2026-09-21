@@ -15,17 +15,11 @@ import * as frames from './papercut/frames.js';
 import * as motifs from './papercut/motifs.js';
 import * as ornaments from './papercut/ornaments.js';
 
-function merge(modules) {
-  const symbols = {}, gradients = {};
-  for (const m of modules) {
-    for (const [k, v] of Object.entries(m.symbols)) {
-      if (Object.hasOwn(symbols, k)) throw new Error(`art: "${k}" is compiled twice - rerun node tools/book_art.mjs`);
-      symbols[k] = v;
-    }
-    Object.assign(gradients, m.gradients);
-  }
-  return { symbols, gradients };
-}
+// tools/book_art.mjs refuses an id used by two kinds, and --check holds these modules to its output.
+const merge = (modules) => ({
+  symbols: Object.assign({}, ...modules.map((m) => m.symbols)),
+  gradients: Object.assign({}, ...modules.map((m) => m.gradients)),
+});
 
 /** `{ symbols, gradients }`: every drawing and part by id, their fills still palette tokens. */
 export const LIBRARY = merge([scenes, avatars, frames, motifs, ornaments]);

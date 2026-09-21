@@ -45,30 +45,16 @@ export function anchorPoint(vb, anchor) {
     if (anchor.length !== 2 || !anchor.every(Number.isFinite)) throw new Error(`art: anchor ${JSON.stringify(anchor)} is not an [x, y] point`);
     return [anchor[0], anchor[1]];
   }
-  const name = anchor === 'center' ? 'center-center' : String(anchor);
-  const [v, h] = name.split('-');
-  if (!(v in ANCHOR_Y) || !(h in ANCHOR_X) || name.split('-').length !== 2) {
+  const parts = (anchor === 'center' ? 'center-center' : String(anchor)).split('-');
+  const [v, h] = parts;
+  if (parts.length !== 2 || !(v in ANCHOR_Y) || !(h in ANCHOR_X)) {
     throw new Error(`art: anchor "${anchor}" is not one of top|center|bottom-left|center|right, "center", or an [x, y] point`);
   }
   return [vx + vw * ANCHOR_X[h], vy + vh * ANCHOR_Y[v]];
 }
 
-/** Maps a compiled path's points through an affine. Compiled paths hold only M L C Q Z, all pairs. */
-export function mapPath(d, [a, b, c, dd, e, f]) {
-  let out = '';
-  let pending = null;
-  for (const m of String(d).matchAll(/([MLCQZ])|(-?(?:\d+\.?\d*|\.\d+)(?:[eE][-+]?\d+)?)/g)) {
-    if (m[1]) { out += m[1]; continue; }
-    const n = Number(m[2]);
-    if (pending === null) { pending = n; continue; }
-    const x = pending, y = n;
-    pending = null;
-    if (!/[MLCQ]$/.test(out)) out += ' ';
-    out += `${r2(a * x + c * y + e)} ${r2(b * x + dd * y + f)}`;
-  }
-  if (pending !== null) throw new Error(`art: path data ${d} holds an odd count of numbers`);
-  return out;
-}
+/** A point through an affine [a b c d e f]. */
+export const apply = ([a, b, c, d, e, f], x, y) => [a * x + c * y + e, b * x + d * y + f];
 
 /**
  * @param ctx      the composer's context, or anything with the same two members:
@@ -85,11 +71,20 @@ export function createArt(ctx, library) {
     return P[token];
   };
 
+  const filed = new Map();   // gradient id -> { ref } once filed in the book's defs
   const gradientRef = (ref, what) => {
+    if (filed.has(ref)) return filed.get(ref);
     if (!Object.hasOwn(library.gradients, ref)) throw new Error(`art: ${what} fills with gradient "${ref}", which the art library does not hold - rerun node tools/book_art.mjs`);
     const g = library.gradients[ref];
     const stops = g.stops.map(([o, t, a]) => (a === undefined ? [o, colour(t, `gradient ${ref}`)] : [o, colour(t, `gradient ${ref}`), a]));
-    return ctx.gradient(SYMBOL_PREFIX + ref, { ...g, stops });
+    filed.set(ref, ctx.gradient(SYMBOL_PREFIX + ref, { ...g, stops }));
+    return filed.get(ref);
+  };
+
+  /** A drawing or a part by id: an unknown id fails, naming where ids come from. */
+  const lookup = (id) => {
+    if (!Object.hasOwn(library.symbols, id)) throw new Error(`art: no drawing called "${id}" - the ids are the file names under art/src/papercut/`);
+    return library.symbols[id];
   };
 
   const resolve = (items, what) => items.map((it) => {
@@ -106,16 +101,15 @@ export function createArt(ctx, library) {
   function add(id) {
     const bookId = SYMBOL_PREFIX + id;
     if (used.has(bookId)) return bookId;
-    if (!Object.hasOwn(library.symbols, id)) throw new Error(`art: no drawing called "${id}" - the ids are the file names under art/src/papercut/`);
+    const { items } = lookup(id);
     used.set(bookId, null);
-    used.set(bookId, { items: resolve(library.symbols[id].items, `"${id}"`) });
+    used.set(bookId, { items: resolve(items, `"${id}"`) });
     return bookId;
   }
 
   /** A whole drawing (not one of its internal parts), with its viewBox. */
   function drawing(id) {
-    const s = Object.hasOwn(library.symbols, id) ? library.symbols[id] : null;
-    if (!s) throw new Error(`art: no drawing called "${id}" - the ids are the file names under art/src/papercut/`);
+    const s = lookup(id);
     if (!s.vb) throw new Error(`art: "${id}" is a part of another drawing, not a drawing to place`);
     return s;
   }
@@ -154,16 +148,20 @@ export function createArt(ctx, library) {
     return s;
   };
 
-  /** The drawing through `tf`, its shadow (if any) first: one `use`, or a group of shadow and art. */
-  function drawAt(id, tf, { shadow, tint, op } = {}) {
+  /**
+   * The drawing's uses through `tf`, its shadow (if any) first. The shadow's offset is in page
+   * points; `unit` is how many page points one unit of `tf`'s output is (1 on the page, the
+   * frame's scale inside a frame's group).
+   */
+  function layers(id, tf, { shadow, tint, op } = {}, unit = [1, 1]) {
     const ref = add(id);
     const art = use(ref, { tf, fill: tint === undefined ? undefined : colour(tint, `the tint on "${id}"`), op });
     const s = shadowOf(shadow);
-    if (!s) return art;
+    if (!s) return [art];
     const ink = colour(s.colour, `the shadow of "${id}"`);
-    const cast = (k, a) => use(ref, { tf: [tf[0], tf[1], tf[2], tf[3], tf[4] + s.dx * k, tf[5] + s.dy * k], fill: ink, op: s.op * a });
-    const shadows = s.soft ? SOFT.map(([k, a]) => cast(k, a)) : [cast(1, 1)];
-    return group([...shadows, art]);
+    const [a, b, c, d, e, f] = tf ?? [1, 0, 0, 1, 0, 0];
+    const cast = (k, alpha) => use(ref, { tf: [a, b, c, d, e + (s.dx * k) / unit[0], f + (s.dy * k) / unit[1]], fill: ink, op: s.op * alpha });
+    return [...(s.soft ? SOFT.map(([k, alpha]) => cast(k, alpha)) : [cast(1, 1)]), art];
   }
 
   return {
@@ -179,7 +177,8 @@ export function createArt(ctx, library) {
      * Returns one item: a `use`, or with a shadow a group of the shadow's uses and the drawing's.
      */
     place(id, o = {}) {
-      return drawAt(id, layout(id, o).tf, o);
+      const items = layers(id, layout(id, o).tf, o);
+      return items.length === 1 ? items[0] : group(items);
     },
 
     /** The box, in page points, that a placement puts the drawing's viewBox in. Draws nothing. */
@@ -196,8 +195,7 @@ export function createArt(ctx, library) {
     zones(id, o = {}) {
       const { a, tf } = layout(id, o);
       return (a.zones ?? []).map(({ kind, x, y, w, h }) => {
-        const x0 = tf[0] * x + tf[4], x1 = tf[0] * (x + w) + tf[4];
-        const y0 = tf[3] * y + tf[5], y1 = tf[3] * (y + h) + tf[5];
+        const [x0, y0] = apply(tf, x, y), [x1, y1] = apply(tf, x + w, y + h);
         return { kind, x: r2(Math.min(x0, x1)), y: r2(Math.min(y0, y1)), w: r2(Math.abs(x1 - x0)), h: r2(Math.abs(y1 - y0)) };
       });
     },
@@ -207,7 +205,9 @@ export function createArt(ctx, library) {
      * and the frame drawn over it, so the frame's own trim covers the clip edge. The opening is
      * fitted into `box` - kept in proportion and centred (`fit: 'contain'`, the default), or
      * stretched to fill it (`fit: 'stretch'`, for frames drawn to stretch). The frame casts the
-     * soft paper shadow unless `shadow` says otherwise. Returns one group.
+     * soft paper shadow unless `shadow` says otherwise. Returns one group, whose transform takes the
+     * drawing's units to the page: the clip is the compiled opening as it is, inside that
+     * transform (format.js), and `inner` is carried back to page points by the inverse.
      */
     frame(id, box, inner = [], { fit = 'contain', shadow = 'soft', tint, op } = {}) {
       const a = drawing(id);
@@ -217,9 +217,10 @@ export function createArt(ctx, library) {
       let kx = box.w / ow, ky = box.h / oh;
       if (fit === 'contain') kx = ky = Math.min(kx, ky);
       else if (fit !== 'stretch') throw new Error(`art: fit "${fit}" is not contain or stretch`);
-      const tf = [kx, 0, 0, ky, box.x + (box.w - kx * ow) / 2 - kx * ox, box.y + (box.h - ky * oh) / 2 - ky * oy];
-      const framed = drawAt(id, tf, { shadow, tint, op });
-      return group(inner.length ? [group(inner, { clip: mapPath(a.clip, tf) }), framed] : [framed]);
+      const e = box.x + (box.w - kx * ow) / 2 - kx * ox, f = box.y + (box.h - ky * oh) / 2 - ky * oy;
+      const framed = layers(id, undefined, { shadow, tint, op }, [kx, ky]);
+      const clipped = inner.length ? [group([group(inner, { tf: [1 / kx, 0, 0, 1 / ky, -e / kx, -f / ky] })], { clip: a.clip })] : [];
+      return group([...clipped, ...framed], { tf: [kx, 0, 0, ky, e, f] });
     },
 
     /**

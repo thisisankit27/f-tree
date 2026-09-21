@@ -10,10 +10,9 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { createArt, anchorPoint, mapPath, SHADOW, SYMBOL_PREFIX } from './art/draw.js';
+import { createArt, anchorPoint, apply, SHADOW, SYMBOL_PREFIX } from './art/draw.js';
 import { LIBRARY, artFor } from './art/index.js';
 import { seeded } from './art/seed.js';
-import { seeded as seededFromBlocks } from './blocks/art.js';
 import { validateBook, formatOf, PAGE, rect } from './format.js';
 import { paintPage } from './svg.js';
 import { PAPERCUT_PALETTE_KEYS } from './template.js';
@@ -48,6 +47,9 @@ function bookOf(items, art, defs) {
   if (symbols) book.symbols = symbols;
   return { format: formatOf(book), ...book };
 }
+
+/** A book's first page as svg.js paints it. */
+const paint = (book) => paintPage(book, 0, { photo: () => null, font: (k) => k });
 
 const near = (a, b) => a.forEach((v, i) => assert.ok(Math.abs(v - b[i]) < 1e-9, `${a} vs ${b}`));
 
@@ -111,7 +113,7 @@ test('the paper shadow is the same shape, offset, in ink at about a fifth: one u
   // silhouettes are what format 2 draws: this whole page validates, and svg.js paints it
   const book = bookOf([hard, soft, custom, art.place('box', { x: 9, y: 9, tint: 'rani', op: 0.5 })], art, defs);
   assert.deepEqual(validateBook(book), []);
-  const page = paintPage(book, 0, { photo: () => null, font: (k) => k });
+  const page = paint(book);
   assert.match(page, new RegExp(`fill="${P.ink}"`));
   assert.throws(() => art.place('box', { x: 0, y: 0, shadow: { dx: 'far' } }), /shadow\.dx is not a number/);
 });
@@ -130,29 +132,31 @@ test('zones come back in page points, wherever and however the drawing is placed
   assert.equal(art.symbols(), undefined, 'asking where zones are draws nothing');
 });
 
-test('frame clips the inner items to the opening and draws the frame over the clip edge', () => {
+test('frame clips the inner items to the opening, inside the frame\'s own transform, and draws the frame over the clip edge', () => {
   const { art, defs } = kit();
   const inner = [rect(0, 0, 595, 842, { fill: P.sky })];
   const g = art.frame('arch', { x: 100, y: 100, w: 80, h: 120 }, inner);
   assert.equal(g.t, 'group');
-  const [clipped, framed] = g.items;
-  assert.equal(clipped.clip, 'M100 100L180 100 180 220 100 220Z', 'the opening, fitted to the box');
-  assert.deepEqual(clipped.items, inner);
-  assert.equal(framed.t, 'group', 'a frame casts the soft shadow by default');
-  assert.deepEqual(framed.items.at(-1), { t: 'use', ref: 'pc-arch', tf: [2, 0, 0, 2, 100, 100] });
+  assert.deepEqual(g.tf, [2, 0, 0, 2, 100, 100], 'the opening, fitted to the box');
+  const [clipped, ...framed] = g.items;
+  assert.equal(clipped.clip, LIB.symbols.arch.clip, 'the compiled opening as it is: a group clip lies inside the group transform');
+  // the inner items are page points, carried back through the inverse so they land where they were
+  const [back] = clipped.items;
+  assert.deepEqual(back.items, inner);
+  near(apply(g.tf, ...apply(back.tf, 123, 456)), [123, 456]);
+  // the soft shadow, offset in page points: 1.7 and 2.3 points are 0.85 and 1.15 of the frame's units
+  assert.deepEqual(framed.map((u) => u.tf ?? null), [[1, 0, 0, 1, 2.55, 3.45], [1, 0, 0, 1, 1.7, 2.3], [1, 0, 0, 1, 0.85, 1.15], null]);
+  assert.deepEqual(framed.at(-1), { t: 'use', ref: 'pc-arch' });
   // contain keeps proportion and centres; stretch fills the box
-  assert.equal(art.frame('arch', { x: 0, y: 0, w: 80, h: 60 }, inner, { shadow: false }).items[0].clip, 'M20 0L60 0 60 60 20 60Z');
-  assert.equal(art.frame('arch', { x: 0, y: 0, w: 80, h: 60 }, inner, { shadow: false, fit: 'stretch' }).items[0].clip, 'M0 0L80 0 80 60 0 60Z');
-  assert.deepEqual(art.frame('arch', { x: 0, y: 0, w: 40, h: 60 }, [], { shadow: false }).items, [{ t: 'use', ref: 'pc-arch', tf: [1, 0, 0, 1, 0, 0] }], 'nothing to clip, no clip');
+  assert.deepEqual(art.frame('arch', { x: 0, y: 0, w: 80, h: 60 }, inner, { shadow: false }).tf, [1, 0, 0, 1, 20, 0]);
+  assert.deepEqual(art.frame('arch', { x: 0, y: 0, w: 80, h: 60 }, inner, { shadow: false, fit: 'stretch' }).tf, [2, 0, 0, 1, 0, 0]);
+  assert.deepEqual(art.frame('arch', { x: 0, y: 0, w: 40, h: 60 }, [], { shadow: false }).items, [{ t: 'use', ref: 'pc-arch' }], 'nothing to clip, no clip');
   assert.throws(() => art.frame('box', { x: 0, y: 0, w: 1, h: 1 }, inner), /"box" has no opening/);
   assert.throws(() => art.frame('arch', { x: 0, y: 0, w: 0, h: 1 }, inner), /positive size/);
   assert.throws(() => art.frame('arch', { x: 0, y: 0, w: 1, h: 1 }, inner, { fit: 'cover' }), /fit "cover"/);
   assert.deepEqual(validateBook(bookOf([g], art, defs)), []);
-});
-
-test('mapPath moves every point of a compiled path through an affine', () => {
-  assert.equal(mapPath('M0 0L10 0C1 2 3 4 5 6Q1-1 .5 .5Z', [2, 0, 0, 2, 1, 1]), 'M1 1L21 1C3 5 7 9 11 13Q3 -1 2 2Z');
-  assert.throws(() => mapPath('M0 0L1', [1, 0, 0, 1, 0, 0]), /odd count/);
+  // svg.js puts the clip inside the transform, as Android's save / concat / clipPath does
+  assert.match(paint(bookOf([g], art, defs)), /<g transform="matrix\(2 0 0 2 100 100\)"><g clip-path="url\(#p0-clip0\)">/);
 });
 
 test('a book carries exactly the symbols it used, their parts, and nothing else - never an empty map', () => {
@@ -197,14 +201,13 @@ test('the seeded art places, shadows and frames into a book that validates and p
   assert.deepEqual(validateBook(book), []);
   assert.deepEqual(Object.keys(book.symbols), ['pc-arch-jharokha', 'pc-diya', 'pc-marigold']);
   assert.equal(book.format, 2);
-  assert.match(paintPage(book, 0, { photo: () => null, font: (k) => k }), /<svg/);
+  assert.match(paint(book), /<svg/);
   const { symbols } = LIBRARY;
   assert.equal(symbols['arch-jharokha'].kind, 'frame');
   assert.ok(symbols['arch-jharokha'].clip && symbols['arch-jharokha'].opening);
 });
 
-test('seeded() moved to art/seed.js, and blocks/art.js still hands out the same generator', () => {
-  assert.equal(seededFromBlocks, seeded);
+test('seeded() in art/seed.js is the generator blocks/art.js always used', () => {
   // the first three draws for this seed, taken from blocks/art.js on main before the move
   const r = seeded('family:ch1:p42');
   assert.deepEqual([r(), r(), r()].map((v) => Math.round(v * 1e9)), [407217673, 113194933, 426290741]);
@@ -213,10 +216,11 @@ test('seeded() moved to art/seed.js, and blocks/art.js still hands out the same 
 test('art/index.js reaches every module by static import, and the art modules are composer-safe', () => {
   const src = stripComments(readFileSync(path.join(here, 'art', 'index.js'), 'utf8'));
   assert.doesNotMatch(src, /\bimport\s*\(/, 'no dynamic import(): Android\'s staging walk cannot see one');
-  const files = importClosure(path.join(here, 'art', 'index.js')).map((f) => path.relative(here, f).split(path.sep).join('/'));
+  const closure = importClosure(path.join(here, 'art', 'index.js'));
+  const files = closure.map((f) => path.relative(here, f).split(path.sep).join('/'));
   for (const kind of ['scenes', 'avatars', 'frames', 'motifs', 'ornaments']) assert.ok(files.includes(`art/papercut/${kind}.js`), kind);
   assert.ok(files.includes('art/draw.js'));
   const repoRoot = path.resolve(here, '..', '..');
-  assert.deepEqual(bannedApiViolations(importClosure(path.join(here, 'art', 'index.js')), { repoRoot }), []);
+  assert.deepEqual(bannedApiViolations(closure, { repoRoot }), []);
   assert.deepEqual(bannedApiViolations(importClosure(path.join(here, 'art', 'seed.js')), { repoRoot }), []);
 });

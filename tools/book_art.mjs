@@ -38,9 +38,10 @@ import path from 'node:path';
 import process from 'node:process';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
-import { rect, circle, path as pathItem, group, use, r2, validateBook, PAGE, MAX_SYMBOL_DEPTH } from '../site/book/format.js';
+import { rect, circle, path as pathItem, text, group, use, r2, validateBook, PAGE, MAX_SYMBOL_DEPTH } from '../site/book/format.js';
 import { PAPERCUT_PALETTE_KEYS } from '../site/book/template.js';
-import { anchorPoint } from '../site/book/art/draw.js';
+import { anchorPoint, apply, createArt } from '../site/book/art/draw.js';
+import { paintPage } from '../site/book/svg.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.join(here, '..');
@@ -76,7 +77,7 @@ function decode(s, fail) {
  * what an SVG editor writes: elements, attributes, text, comments, CDATA, processing instructions
  * and a DOCTYPE without an internal subset.
  */
-export function parseXml(src, file = 'input.svg') {
+function parseXml(src, file = 'input.svg') {
   const root = { name: '#document', attrs: {}, children: [], line: 1 };
   const stack = [root];
   let i = 0, line = 1;
@@ -149,7 +150,7 @@ export function parseXml(src, file = 'input.svg') {
 const IDENTITY = [1, 0, 0, 1, 0, 0];
 
 /** m after n: apply n first, then m. SVG's [a b c d e f]. */
-export function mul(m, n) {
+function mul(m, n) {
   return [
     m[0] * n[0] + m[2] * n[1], m[1] * n[0] + m[3] * n[1],
     m[0] * n[2] + m[2] * n[3], m[1] * n[2] + m[3] * n[3],
@@ -157,7 +158,6 @@ export function mul(m, n) {
   ];
 }
 
-const apply = (m, x, y) => [m[0] * x + m[2] * y + m[4], m[1] * x + m[3] * y + m[5]];
 const EPS = 1e-9;
 /** Rotation, uniform scale, translation and reflection only: circles stay circles, strokes stay even. */
 const isSimilarity = (m) => (Math.abs(m[0] - m[3]) < EPS && Math.abs(m[1] + m[2]) < EPS) || (Math.abs(m[0] + m[3]) < EPS && Math.abs(m[1] - m[2]) < EPS);
@@ -165,8 +165,9 @@ const isAxisAligned = (m) => Math.abs(m[1]) < EPS && Math.abs(m[2]) < EPS;
 const scaleOf = (m) => Math.sqrt(Math.abs(m[0] * m[3] - m[1] * m[2]));
 
 const NUMBER = /[+-]?(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?/y;
+const NUMBERS = new RegExp(NUMBER.source, 'g');
 
-export function parseTransform(s, fail) {
+function parseTransform(s, fail) {
   let m = IDENTITY;
   if (s === undefined) return m;
   const re = /\s*(matrix|translate|scale|rotate|skewX|skewY)\s*\(([^)]*)\)\s*,?/y;
@@ -177,7 +178,7 @@ export function parseTransform(s, fail) {
     const t = re.exec(src);
     if (!t) fail(`transform "${s}" is not a list of matrix, translate, scale, rotate, skewX or skewY`);
     at = re.lastIndex;
-    const n = (t[2].match(/[+-]?(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?/g) ?? []).map(Number);
+    const n = (t[2].match(NUMBERS) ?? []).map(Number);
     const want = { matrix: [6], translate: [1, 2], scale: [1, 2], rotate: [1, 3], skewX: [1], skewY: [1] }[t[1]];
     if (!want.includes(n.length)) fail(`transform ${t[1]}(${t[2]}) takes ${want.join(' or ')} numbers`);
     const rad = (deg) => (deg * Math.PI) / 180;
@@ -308,10 +309,7 @@ export function arcToCubics(x1, y1, rx, ry, rotDeg, large, sweep, x2, y2) {
   if (large === sweep) co = -co;
   const cxp = (co * rx * y1p) / ry, cyp = (-co * ry * x1p) / rx;
   const cx = cos * cxp - sin * cyp + (x1 + x2) / 2, cy = sin * cxp + cos * cyp + (y1 + y2) / 2;
-  const angle = (ux, uy, vx, vy) => {
-    const a = Math.atan2(ux * vy - uy * vx, ux * vx + uy * vy);
-    return a;
-  };
+  const angle = (ux, uy, vx, vy) => Math.atan2(ux * vy - uy * vx, ux * vx + uy * vy);
   const t1 = angle(1, 0, (x1p - cxp) / rx, (y1p - cyp) / ry);
   let dt = angle((x1p - cxp) / rx, (y1p - cyp) / ry, (-x1p - cxp) / rx, (-y1p - cyp) / ry);
   if (!sweep && dt > 0) dt -= 2 * Math.PI;
@@ -436,21 +434,21 @@ export function serialize(segs) {
 
 /* ----------------------------------------------------------------------------- the rules */
 
+const NO_TEXT = 'no text inside art: the composer sets every word, measured, in the book\'s own fonts';
+const NO_ANIMATION = 'no animation in art';
 const REFUSED = {
   filter: 'the painters draw no filters: cut the effect as shapes (a glow is stacked translucent circles)',
   mask: 'the painters draw no masks: use a clip-path on a <g>, or cut the shape itself',
   pattern: 'the painters draw no patterns: draw the repeated shape once in <defs> and <use> it',
   image: 'art is vector only: no embedded images',
-  text: 'no text inside art: the composer sets every word, measured, in the book\'s own fonts',
-  tspan: 'no text inside art: the composer sets every word, measured, in the book\'s own fonts',
-  textPath: 'no text inside art: the composer sets every word, measured, in the book\'s own fonts',
+  text: NO_TEXT, tspan: NO_TEXT, textPath: NO_TEXT,
   style: 'no stylesheets: set fill, stroke and opacity as attributes on each shape',
   script: 'no scripts in art',
   foreignObject: 'no foreign objects in art',
   marker: 'the painters draw no markers: draw the arrowhead or dot as its own shape',
   switch: 'no <switch>: draw one version',
   a: 'no links in art',
-  animate: 'no animation in art', animateTransform: 'no animation in art', animateMotion: 'no animation in art', set: 'no animation in art',
+  animate: NO_ANIMATION, animateTransform: NO_ANIMATION, animateMotion: NO_ANIMATION, set: NO_ANIMATION,
 };
 const REFUSED_ATTRS = {
   class: 'no classes: set fill, stroke and opacity as attributes on each shape (Inkscape: Preferences > Input/Output > SVG output, "presentation attributes"; Figma already exports them)',
@@ -510,8 +508,8 @@ const DEFAULT_PAINT = Object.freeze({
   'stroke-dasharray': 'none', 'stroke-dashoffset': '0', 'stroke-linecap': 'butt', 'stroke-linejoin': 'miter', 'stroke-miterlimit': '4',
   'clip-rule': 'nonzero', defaultFill: true,
 });
-const INHERITED = ['fill', 'fill-opacity', 'fill-rule', 'stroke', 'stroke-width', 'stroke-opacity', 'stroke-dasharray',
-  'stroke-dashoffset', 'stroke-linecap', 'stroke-linejoin', 'stroke-miterlimit', 'clip-rule'];
+/** The paint properties a shape takes from its ancestors: all of PAINT but the three that are not inherited. */
+const INHERITED = PAINT.filter((k) => !['opacity', 'display', 'visibility'].includes(k));
 
 /** A swatch table: lower-case "#rrggbb" -> token. */
 export function readSwatches(file) {
@@ -654,39 +652,42 @@ export function compileSvg(src, { file = 'input.svg', id, kind, swatches }) {
       if (!Number.isFinite(n)) fail(gnode, `${k}="${v}" is not a number`);
       return n;
     };
+    if (units !== 'userSpaceOnUse' && units !== 'objectBoundingBox') fail(gnode, `gradientUnits="${units}" is not userSpaceOnUse or objectBoundingBox`);
+    const similar = (t) => isSimilarity(t) || fail(gnode, 'this gradient is skewed or stretched (by gradientTransform or the shape\'s transform); the painters draw gradients without a transform of their own');
+    let cx, cy;
+    if (!linear) {
+      if (units === 'objectBoundingBox' && geom.kind !== 'circle') fail(shapeNode, 'a radial gradient in objectBoundingBox units only works on a circle; use gradientUnits="userSpaceOnUse"');
+      cx = coord('cx', '50%'); cy = coord('cy', '50%');
+      if ((attr('fx') !== undefined && coord('fx') !== cx) || (attr('fy') !== undefined && coord('fy') !== cy)) fail(gnode, 'a focal point (fx, fy) off the centre: the painters draw centred radial gradients');
+      if (attr('fr') !== undefined && coord('fr') !== 0) fail(gnode, 'fr: the painters draw radial gradients from a point');
+    }
     let def;
     if (units === 'userSpaceOnUse') {
       const t = mul(m, gT);
-      if (!isSimilarity(t)) fail(gnode, 'this gradient is skewed or stretched (by gradientTransform or the shape\'s transform); the painters draw gradients without a transform of their own');
+      similar(t);
       if (linear) {
         const [x1, y1] = apply(t, coord('x1', '0'), coord('y1', '0'));
         const [x2, y2] = apply(t, coord('x2', '100%'), coord('y2', '0'));
         def = { type: 'linear', x1: r2(x1), y1: r2(y1), x2: r2(x2), y2: r2(y2), stops };
       } else {
-        const cx = coord('cx', '50%'), cy = coord('cy', '50%');
-        if ((attr('fx') !== undefined && coord('fx') !== cx) || (attr('fy') !== undefined && coord('fy') !== cy)) fail(gnode, 'a focal point (fx, fy) off the centre: the painters draw centred radial gradients');
-        if (attr('fr') !== undefined && coord('fr') !== 0) fail(gnode, 'fr: the painters draw radial gradients from a point');
         const [x, y] = apply(t, cx, cy);
         def = { type: 'radial', cx: r2(x), cy: r2(y), r: r2(coord('r', '50%') * scaleOf(t)), stops };
       }
-    } else if (units === 'objectBoundingBox') {
+    } else {
       if (attr('gradientTransform') !== undefined) fail(gnode, 'gradientTransform on an objectBoundingBox gradient: set gradientUnits="userSpaceOnUse"');
       if (!linear) {
-        if (geom.kind !== 'circle') fail(shapeNode, 'a radial gradient in objectBoundingBox units only works on a circle; use gradientUnits="userSpaceOnUse"');
-        const cx = coord('cx', '50%'), cy = coord('cy', '50%');
-        if ((attr('fx') !== undefined && coord('fx') !== cx) || (attr('fy') !== undefined && coord('fy') !== cy)) fail(gnode, 'a focal point (fx, fy) off the centre: the painters draw centred radial gradients');
         const r4 = (v) => Math.round(v * 10000) / 10000;
         def = { type: 'radial', units: 'item', cx: r4((cx - 0.5) * 2), cy: r4((cy - 0.5) * 2), r: r4(coord('r', '50%') * 2), stops };
       } else {
+        similar(m);
         const [bx, by, bw, bh] = segBBox(geom.segs);
         const x1 = coord('x1', '0'), y1 = coord('y1', '0'), x2 = coord('x2', '1'), y2 = coord('y2', '0');
         if (!(x1 === x2 || y1 === y2 || Math.abs(bw - bh) < 1e-6)) fail(gnode, 'a diagonal objectBoundingBox gradient on a shape that is not square would change angle in the painters; set gradientUnits="userSpaceOnUse"');
         const [ux1, uy1] = apply(m, bx + x1 * bw, by + y1 * bh);
         const [ux2, uy2] = apply(m, bx + x2 * bw, by + y2 * bh);
-        if (!isSimilarity(m)) fail(gnode, 'this gradient is skewed or stretched by the shape\'s transform; the painters draw gradients without a transform of their own');
         def = { type: 'linear', x1: r2(ux1), y1: r2(uy1), x2: r2(ux2), y2: r2(uy2), stops };
       }
-    } else fail(gnode, `gradientUnits="${units}" is not userSpaceOnUse or objectBoundingBox`);
+    }
     const key = JSON.stringify(def);
     if (!gradientKeys.has(key)) {
       const gid = `${id}-g${gradientKeys.size}`;
@@ -741,7 +742,7 @@ export function compileSvg(src, { file = 'input.svg', id, kind, swatches }) {
       }
       case 'line': return { kind: 'path', segs: [['M', n('x1', 0), n('y1', 0)], ['L', n('x2', 0), n('y2', 0)]] };
       case 'polyline': case 'polygon': {
-        const v = (node.attrs.points ?? '').match(/[+-]?(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?/g)?.map(Number) ?? [];
+        const v = (node.attrs.points ?? '').match(NUMBERS)?.map(Number) ?? [];
         if (v.length < 4 || v.length % 2) fail(node, 'points must be at least two x,y pairs');
         const segs = [];
         for (let k = 0; k < v.length; k += 2) segs.push([k ? 'L' : 'M', v[k], v[k + 1]]);
@@ -783,18 +784,15 @@ export function compileSvg(src, { file = 'input.svg', id, kind, swatches }) {
 
     // A stroke or a gradient cannot be baked through a skew or a stretch: keep the shape in its own
     // coordinates and let a group carry the transform, as the painters concatenate one.
-    let keep = !isSimilarity(m) && (stroke || fill?.grad);
-    let bake = keep ? IDENTITY : m;
-    let k = scaleOf(bake);
     // SVG draws nothing for a zero-width stroke, but Android draws width 0 as a one-pixel hairline:
     // a stroke that rounds to nothing is no stroke at all.
-    if (stroke && r2(sw * (keep ? scaleOf(m) : k)) === 0) {
+    if (stroke && r2(sw * scaleOf(m)) === 0) {
       stroke = null;
       if (!fill) return [];
-      keep = !isSimilarity(m) && !!fill.grad;
-      bake = keep ? IDENTITY : m;
-      k = scaleOf(bake);
     }
+    const keep = !isSimilarity(m) && (stroke || fill?.grad);
+    const bake = keep ? IDENTITY : m;
+    const k = scaleOf(bake);
     const style = {
       fill: fill ? (fill.grad ? gradientFor(fill.grad, bake, geom, node) : fill.token) : undefined,
       stroke: stroke?.token,
@@ -963,21 +961,25 @@ const bytes = (v) => Buffer.byteLength(JSON.stringify(v), 'utf8');
  * gradients - what crosses the WebView bridge in `book.symbols` and `book.defs`. The placement
  * metadata (viewBox, anchor, zones, a frame's opening) stays in the composer and is not counted.
  */
-export const costOf = (c) => bytes(Object.values(c.symbols).map((s) => s.items)) + bytes(c.gradients);
+const costOf = (c) => bytes(Object.values(c.symbols).map((s) => s.items)) + bytes(c.gradients);
 
-/** Every token and gradient a symbol's items name, as a check that nothing dangles. */
-function tokensIn(items, out = new Set()) {
-  for (const it of items) {
-    if (typeof it.fill === 'string') out.add(it.fill);
-    if (it.stroke) out.add(it.stroke);
-    if (it.t === 'group') tokensIn(it.items, out);
-  }
-  return out;
+/**
+ * Draws one drawing the way a page will - placed, and framed if it has an opening - through
+ * draw.js with a palette of one colour, and returns what validateBook says of that book.
+ */
+function drawable(c, library, keys) {
+  const P = Object.fromEntries(keys.map((k) => [k, '#000000']));
+  const defs = {};
+  const art = createArt({ P, gradient: (gid, def) => { defs[gid] = def; return { ref: gid }; } }, library);
+  const items = [art.place(c.id, { x: 0, y: 0 })];
+  if (c.symbols[c.id].clip) items.push(art.frame(c.id, { x: 0, y: 0, w: 100, h: 100 }, [rect(0, 0, 100, 100, { fill: '#000000' })]));
+  return validateBook({ format: 2, size: { ...PAGE }, fonts: {}, defs, symbols: art.symbols(), pages: [{ label: c.id, items }] });
 }
 
 /**
  * Compiles every source under `srcDir` into the five module texts. Every drawing's problems are
  * collected before failing, so one run names them all.
+ * @returns { modules, report, library, swatches }
  */
 export function compileAll(srcDir = SRC_DIR, { swatches, keys = PAPERCUT_PALETTE_KEYS } = {}) {
   const errors = [];
@@ -990,7 +992,8 @@ export function compileAll(srcDir = SRC_DIR, { swatches, keys = PAPERCUT_PALETTE
     for (const f of files) {
       const file = `${dir}/${f}`;
       try {
-        compiled.push(compileSvg(readFileSync(path.join(full, f), 'utf8'), { file, id: f.slice(0, -4), kind: KINDS[dir], swatches }));
+        const c = compileSvg(readFileSync(path.join(full, f), 'utf8'), { file, id: f.slice(0, -4), kind: KINDS[dir], swatches });
+        compiled.push({ ...c, bytes: costOf(c) });
       } catch (e) {
         if (!(e instanceof ArtError)) throw e;
         errors.push(e.message);
@@ -1004,29 +1007,18 @@ export function compileAll(srcDir = SRC_DIR, { swatches, keys = PAPERCUT_PALETTE
   }
   for (const c of compiled) {
     for (const ref of c.assetRefs) if (!byId.has(ref)) errors.push(`${c.file}: data-asset="${ref}" names no drawing under src/papercut/`);
-    const cost = costOf(c), budget = BUDGETS[c.kind];
-    if (cost > budget) errors.push(`${c.file}: compiles to ${cost} bytes, over the ${c.kind} budget of ${budget} (${budget / 1024} KB). Draw repeated shapes once and <use> them, and simplify paths`);
+    const budget = BUDGETS[c.kind];
+    if (c.bytes > budget) errors.push(`${c.file}: compiles to ${c.bytes} bytes, over the ${c.kind} budget of ${budget} (${budget / 1024} KB). Draw repeated shapes once and <use> them, and simplify paths`);
   }
+  const library = {
+    symbols: Object.assign({}, ...compiled.map((c) => c.symbols)),
+    gradients: Object.assign({}, ...compiled.map((c) => c.gradients)),
+  };
+  // Every drawing must be one the painters can draw. Only worth asking once the set is sound.
   if (!errors.length) {
-    // Every drawing must be a book a painter can draw: build one per drawing and validate it.
-    const symbols = {}, gradients = {};
-    for (const c of compiled) { Object.assign(symbols, c.symbols); Object.assign(gradients, c.gradients); }
-    const hex = '#000000';
-    const paint = (items) => items.map((it) => {
-      const o = { ...it };
-      if (typeof o.fill === 'string') o.fill = hex;
-      if (o.stroke) o.stroke = hex;
-      if (o.t === 'group') o.items = paint(o.items);
-      return o;
-    });
-    const all = Object.fromEntries(Object.entries(symbols).map(([k, s]) => [k, { items: paint(s.items) }]));
-    const defs = Object.fromEntries(Object.entries(gradients).map(([k, g]) => [k, { ...g, stops: g.stops.map(([o, , a]) => (a === undefined ? [o, hex] : [o, hex, a])) }]));
     for (const c of compiled) {
-      const book = { format: 2, size: { ...PAGE }, fonts: {}, defs, symbols: all, pages: [{ label: c.id, items: [use(c.id)] }] };
-      const problems = validateBook(book);
+      const problems = drawable(c, library, keys);
       if (problems.length) errors.push(`${c.file}: the painters could not draw it: ${problems.slice(0, 5).join('; ')} (MAX_SYMBOL_DEPTH is ${MAX_SYMBOL_DEPTH})`);
-      for (const s of Object.values(c.symbols)) for (const t of tokensIn(s.items)) if (!keys.includes(t)) errors.push(`${c.file}: token ${t} is not in the paper-cut palette`);
-      for (const g of Object.values(c.gradients)) for (const [, t] of g.stops) if (!keys.includes(t)) errors.push(`${c.file}: gradient token ${t} is not in the paper-cut palette`);
     }
   }
   if (errors.length) throw new ArtError(errors.join('\n'));
@@ -1035,7 +1027,7 @@ export function compileAll(srcDir = SRC_DIR, { swatches, keys = PAPERCUT_PALETTE
     const mine = compiled.filter((c) => c.kind === kind).sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
     modules[dir] = renderModule(dir, mine);
   }
-  return { modules, report: compiled.map((c) => ({ file: c.file, bytes: costOf(c), budget: BUDGETS[c.kind] })) };
+  return { modules, report: compiled.map((c) => ({ file: c.file, bytes: c.bytes, budget: BUDGETS[c.kind] })), library, swatches };
 }
 
 function renderModule(dir, compiled) {
@@ -1050,24 +1042,20 @@ function renderModule(dir, compiled) {
 
 /* ------------------------------------------------------------------------------ the sheet */
 
-/** Every compiled drawing, placed with its paper shadow, painted by svg.js: one page to look at. */
-export async function sheet(swatches) {
-  const { createArt } = await import('../site/book/art/draw.js');
-  const { LIBRARY } = await import('../site/book/art/index.js');
-  const { paintPage } = await import('../site/book/svg.js');
-  const { rect: r, text: t } = await import('../site/book/format.js');
+/** Every drawing just compiled, placed with its paper shadow, painted by svg.js: one page to look at. */
+function sheet(library, swatches) {
   const P = Object.fromEntries(Object.entries(swatches).map(([h, tok]) => [tok, h]));
   const defs = {};
-  const art = createArt({ P, gradient: (gid, def) => { defs[gid] = def; return { ref: gid }; } }, LIBRARY);
-  const ids = Object.keys(LIBRARY.symbols).filter((k) => LIBRARY.symbols[k].vb).sort();
-  const items = [r(0, 0, PAGE.w, PAGE.h, { fill: P.paper })];
+  const art = createArt({ P, gradient: (gid, def) => { defs[gid] = def; return { ref: gid }; } }, library);
+  const ids = Object.keys(library.symbols).filter((k) => library.symbols[k].vb).sort();
+  const items = [rect(0, 0, PAGE.w, PAGE.h, { fill: P.paper })];
   const cols = 3, cw = (PAGE.w - 60) / cols, ch = 190;
   ids.forEach((aid, i) => {
     const x = 30 + (i % cols) * cw, y = 40 + Math.floor(i / cols) * ch;
-    const [, , vw, vh] = LIBRARY.symbols[aid].vb;
+    const [, , vw, vh] = library.symbols[aid].vb;
     const k = Math.min((cw - 30) / vw, (ch - 50) / vh);
-    items.push(art.place(aid, { x: x + cw / 2, y: y + (ch - 40) / 2, s: k, anchor: 'center', shadow: LIBRARY.symbols[aid].kind === 'frame' ? 'soft' : true }));
-    items.push(t(x + cw / 2, y + ch - 18, aid, 'text', 9, P.inkSoft, { align: 'middle' }));
+    items.push(art.place(aid, { x: x + cw / 2, y: y + (ch - 40) / 2, s: k, anchor: 'center', shadow: library.symbols[aid].kind === 'frame' ? 'soft' : true }));
+    items.push(text(x + cw / 2, y + ch - 18, aid, 'text', 9, P.inkSoft, { align: 'middle' }));
   });
   const book = { format: 2, size: { ...PAGE }, fonts: { text: 'book_text' }, defs, symbols: art.symbols(), pages: [{ label: 'art sheet', items }] };
   const problems = validateBook(book);
@@ -1092,7 +1080,7 @@ async function main(argv) {
   if (sheetAt >= 0) {
     const out = argv[sheetAt + 1];
     if (!out) { console.error('book_art: --sheet needs an output path'); return 1; }
-    writeFileSync(out, await sheet(readSwatches(path.join(SRC_DIR, 'swatches.json'))));
+    writeFileSync(out, sheet(result.library, result.swatches));
     console.log(`  wrote ${out}`);
     return 0;
   }

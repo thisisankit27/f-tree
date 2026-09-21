@@ -9,9 +9,6 @@
 import { circle, path, group, PathData, r2 } from '../format.js';
 import { seeded } from '../art/seed.js';
 
-/* seeded() lives in art/seed.js now (#247); re-exported so every existing import keeps working. */
-export { seeded };
-
 export function starfield(seed, count, box, colour) {
   const rand = seeded(seed);
   const items = [];
