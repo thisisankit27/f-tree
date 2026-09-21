@@ -154,12 +154,12 @@ class BookFormat2PdfTest {
         val painter = BookPainter(printer.fonts) { null }
         render(book, page, painter = painter)
 
-        val distinct = mutableSetOf<String>()
+        val distinct = mutableSetOf<Pair<String, Boolean>>()   // path data and fill rule, as the cache keys it
         var drawn = 0
         fun walk(items: List<Item>) {
             for (it in items) when (it) {
-                is Item.Path -> if (it.d.isNotEmpty()) { distinct += it.d; drawn++ }
-                is Item.Group -> { it.clip?.let { clip -> distinct += clip; drawn++ }; walk(it.items) }
+                is Item.Path -> if (it.d.isNotEmpty()) { distinct += it.d to (it.rule == "evenodd"); drawn++ }
+                is Item.Group -> { it.clip?.let { clip -> distinct += clip to false; drawn++ }; walk(it.items) }
                 is Item.Use -> walk(book.symbols.getValue(it.ref).items)
                 else -> Unit
             }

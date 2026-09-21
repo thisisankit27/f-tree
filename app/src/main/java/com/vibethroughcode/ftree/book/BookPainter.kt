@@ -36,18 +36,18 @@ import kotlin.math.roundToInt
  * |-------------------------------------------------|-------------------------------------------------|
  * | `paintPage`'s format check                      | [readBook] refuses the book before it gets here |
  * | `<rect rx>` / `<circle>` / `<path fill-rule>`    | [draw], `Item.Rect` / `Item.Circle` / `Item.Path` |
- * | `fillAttr`, `gradient` (userSpaceOnUse)         | [applyFill], [shaderFor], in the current matrix |
+ * | `fillAttr`, `gradient` (userSpaceOnUse)         | [fillPaint], [shaderFor], in the current matrix |
  * | `gradient` with `units: 'item'`                 | [shaderFor], a RadialGradient per circle        |
  * | `stroke()`: width, dasharray, linecap, linejoin | [strokePaint]                                   |
  * | `opacity` on an item                            | [alphaOf] on the item's paint                   |
  * | `transform="matrix(...)"` on a `<g>`            | `concat` with [matrixOf]                        |
- * | `opacity` on a `<g>` (group or use)             | [layer]: one saveLayerAlpha                     |
- * | `clip-path` on a group, inside its transform    | [draw] `Item.Group`: save, concat, clipPath     |
+ * | `opacity` on a `<g>` (group or use)             | [drawNested]: one saveLayerAlpha                |
+ * | `clip-path` on a group, inside its transform    | [drawNested]: save, concat, clipPath            |
  * | `<text>` + `fitText`                            | [drawText], shrinking into `w`                  |
  * | `<image>` + `preserveAspectRatio slice`, clip   | [drawImage]                                     |
  * | `expand`: a use written out inline              | [draw] `Item.Use`: the symbol's items, drawn    |
  * | `expand`'s MAX_SYMBOL_DEPTH throw               | [draw] `Item.Use`'s depth check                 |
- * | `silhouette()`                                  | the `silhouette` colour passed down [draw]      |
+ * | `silhouette()`                                  | [fillPaint] / [strokePaint]'s `silhouette`      |
  * | (none: SVG parses each `d` itself)              | [paths], each path's data parsed once           |
  *
  * @param fonts font file key (`book_display`, ...) to its typeface
@@ -63,17 +63,34 @@ class BookPainter(
 
     /**
      * Every path and clip, parsed once for the life of this painter: a lamp drawn forty times
-     * across a book is parsed once, not forty times. Keyed by the path data, so two symbols
-     * that happen to share a shape share its parse too.
+     * across a book is parsed once, not forty times. Keyed by the path data and its fill rule, so
+     * a parse is never shared between two rules, and two symbols that happen to share a shape
+     * share its parse too.
      */
-    private val paths = PathCache<Path> { d -> PathParser.createPathFromPathData(d) }
+    private val paths = PathCache<Path> { d, evenOdd ->
+        PathParser.createPathFromPathData(d).apply { fillType = if (evenOdd) Path.FillType.EVEN_ODD else Path.FillType.WINDING }
+    }
 
-    /** How many distinct path strings have been parsed, for the tests: the cache must hit. */
+    /** How many distinct paths have been parsed, for the tests: the cache must hit. */
     val pathsParsed: Int get() = paths.parsed
 
+    /*
+     * One fill and one stroke paint, reset for every shape: a page expands to thousands of items.
+     * Reuse is safe because a Canvas - a PdfDocument page's, or a Picture's while it records -
+     * copies a paint when it draws with it.
+     */
+    private val shapeFill = Paint()
+    private val shapeStroke = Paint()
+
+    /** Each user-space gradient's shader, built once. Item-relative ones differ per circle. */
+    private val shaders = HashMap<Gradient, Shader>()
+
+    /** Scratch for [matrixOf]; concat copies it, so one is enough however deep the nesting. */
+    private val matrix = Matrix()
+    private val matrixValues = FloatArray(9).also { it[8] = 1f }
+
     fun paint(canvas: Canvas, book: Book, pageIndex: Int) {
-        val page = book.pages[pageIndex]
-        page.items.forEach { draw(canvas, book, it, 1f, null, 0) }
+        book.pages[pageIndex].items.forEach { draw(canvas, book, it, null, 0) }
     }
 
     /**
@@ -81,81 +98,64 @@ class BookPainter(
      *   (Ankit's rule, 2026-09-21); null otherwise. The outermost silhouette wins, as svg.js's does.
      * @param depth how many symbols deep this item is drawn
      */
-    private fun draw(canvas: Canvas, book: Book, item: Item, inherited: Float, silhouette: Colour?, depth: Int) {
+    private fun draw(canvas: Canvas, book: Book, item: Item, silhouette: Colour?, depth: Int) {
         when (item) {
             is Item.Rect -> {
                 val box = RectF(item.x, item.y, item.x + item.w, item.y + item.h)
-                fillPaint(book, cast(item.fill, silhouette), item.op, inherited, box)?.let { paint ->
-                    if (item.r != null) canvas.drawRoundRect(box, item.r, item.r, paint) else canvas.drawRect(box, paint)
-                }
-                strokePaint(silhouette.over(item.stroke), item.sw, item.dash, null, null, item.op, inherited)?.let { paint ->
-                    if (item.r != null) canvas.drawRoundRect(box, item.r, item.r, paint) else canvas.drawRect(box, paint)
-                }
+                val r = item.r
+                fun drawWith(paint: Paint) = if (r != null) canvas.drawRoundRect(box, r, r, paint) else canvas.drawRect(box, paint)
+                fillPaint(book, item.fill, item.op, silhouette)?.let(::drawWith)
+                strokePaint(item.stroke, item.sw, item.dash, null, null, item.op, silhouette)?.let(::drawWith)
             }
             is Item.Circle -> {
-                val box = RectF(item.cx - item.r, item.cy - item.r, item.cx + item.r, item.cy + item.r)
-                fillPaint(book, cast(item.fill, silhouette), item.op, inherited, box, circle = item)?.let { canvas.drawCircle(item.cx, item.cy, item.r, it) }
-                strokePaint(silhouette.over(item.stroke), item.sw, item.dash, null, null, item.op, inherited)?.let { canvas.drawCircle(item.cx, item.cy, item.r, it) }
+                fillPaint(book, item.fill, item.op, silhouette, circle = item)?.let { canvas.drawCircle(item.cx, item.cy, item.r, it) }
+                strokePaint(item.stroke, item.sw, item.dash, null, null, item.op, silhouette)?.let { canvas.drawCircle(item.cx, item.cy, item.r, it) }
             }
             is Item.Path -> {
                 if (item.d.isEmpty()) return   // the composer's "no lines to draw"
-                val path = paths[item.d]
-                // The parse is shared, so the fill rule is set for this drawing, every time.
-                path.fillType = if (item.rule == "evenodd") Path.FillType.EVEN_ODD else Path.FillType.WINDING
-                val bounds = RectF().also { path.computeBounds(it, true) }
-                fillPaint(book, cast(item.fill, silhouette), item.op, inherited, bounds)?.let { canvas.drawPath(path, it) }
-                strokePaint(silhouette.over(item.stroke), item.sw, item.dash, item.cap, item.join, item.op, inherited)?.let { canvas.drawPath(path, it) }
+                val path = paths[item.d, item.rule == "evenodd"]
+                fillPaint(book, item.fill, item.op, silhouette)?.let { canvas.drawPath(path, it) }
+                strokePaint(item.stroke, item.sw, item.dash, item.cap, item.join, item.op, silhouette)?.let { canvas.drawPath(path, it) }
             }
-            is Item.Text -> drawText(canvas, book, item, inherited)
-            is Item.Image -> drawImage(canvas, item, inherited)
-            is Item.Group -> {
-                canvas.withSave {
-                    item.tf?.let { concat(matrixOf(it)) }
-                    // Inside the transform: the clip is in the group's own coordinates.
-                    item.clip?.let { clip -> clipPath(paths[clip].also { it.fillType = Path.FillType.WINDING }) }
-                    layer(this, item.op)
-                    item.items.forEach { draw(this, book, it, inherited, silhouette, depth) }
-                }
-            }
+            is Item.Text -> drawText(canvas, book, item)
+            is Item.Image -> drawImage(canvas, item)
+            is Item.Group -> drawNested(canvas, book, item.tf, item.clip, item.op, item.items, silhouette, depth)
             is Item.Use -> {
                 // readBook refused a book that could get here; this is the painter's own guard, as
                 // svg.js's expand() has, so a hand-built book cannot recurse without end.
                 val symbol = book.symbols[item.ref] ?: error("unknown symbol ${item.ref}")
                 check(depth < Book.MAX_SYMBOL_DEPTH) { "symbol ${item.ref} is used more than ${Book.MAX_SYMBOL_DEPTH} deep" }
-                canvas.withSave {
-                    item.tf?.let { concat(matrixOf(it)) }
-                    // The use's op is one layer over everything it draws, never pushed down to the
-                    // items: shapes overlapping inside a dimmed lamp, or its shadow, do not darken.
-                    layer(this, item.op)
-                    val colour = silhouette ?: item.fill
-                    symbol.items.forEach { draw(this, book, it, inherited, colour, depth + 1) }
-                }
+                drawNested(canvas, book, item.tf, null, item.op, symbol.items, silhouette ?: item.fill, depth + 1)
             }
         }
     }
 
     /**
-     * Opacity on a group or a use applies to it as one picture, not to each item in turn -
-     * overlapping items inside must not show through each other. That is a layer, and the
-     * caller's withSave restore takes it down with the rest.
+     * A group, or a symbol drawn by a use: save, concat the transform, clip in the coordinates
+     * that leaves, then draw. Opacity applies to the whole as one picture, not to each item in
+     * turn - overlapping items inside, or inside a shadow, must not darken where they meet. That
+     * is a layer, and withSave's restore takes it down with the rest.
      */
-    private fun layer(canvas: Canvas, op: Float?) {
-        val alpha = op ?: 1f
-        if (alpha < 1f) canvas.saveLayerAlpha(null, (alpha * 255).roundToInt())
+    private fun drawNested(
+        canvas: Canvas, book: Book, tf: List<Float>?, clip: String?, op: Float?,
+        items: List<Item>, silhouette: Colour?, depth: Int,
+    ) {
+        canvas.withSave {
+            tf?.let { concat(matrixOf(it)) }
+            clip?.let { clipPath(paths[it, false]) }
+            if (op != null && op < 1f) saveLayerAlpha(null, (op * 255).roundToInt())
+            items.forEach { draw(this, book, it, silhouette, depth) }
+        }
     }
 
-    /** SVG's `matrix(a b c d e f)` as an android [Matrix]. */
-    private fun matrixOf(tf: List<Float>): Matrix =
-        Matrix().apply { setValues(floatArrayOf(tf[0], tf[2], tf[4], tf[1], tf[3], tf[5], 0f, 0f, 1f)) }
+    /** SVG's `matrix(a b c d e f)` as an android [Matrix], in the one scratch matrix. */
+    private fun matrixOf(tf: List<Float>): Matrix {
+        matrixValues[0] = tf[0]; matrixValues[1] = tf[2]; matrixValues[2] = tf[4]
+        matrixValues[3] = tf[1]; matrixValues[4] = tf[3]; matrixValues[5] = tf[5]
+        return matrix.apply { setValues(matrixValues) }
+    }
 
-    /** A silhouette turns any fill, a gradient included, into its one solid colour; no fill stays none. */
-    private fun cast(fill: Fill?, silhouette: Colour?): Fill? =
-        if (fill != null && silhouette != null) Fill.Solid(silhouette) else fill
-
-    /** A silhouette colours a stroke that is there, keeping its width, dash, cap and join; it adds none. */
-    private fun Colour?.over(stroke: Colour?): Colour? = if (stroke != null) this ?: stroke else null
-
-    private fun drawText(canvas: Canvas, book: Book, item: Item.Text, inherited: Float) {
+    private fun drawText(canvas: Canvas, book: Book, item: Item.Text) {
         // readBook refuses a book naming a face this app does not carry, so this cannot miss; if
         // it ever does, the page fails loudly rather than printing without a line of text.
         val key = book.fonts[item.font] ?: error("text font ${item.font} is not in the book's fonts")
@@ -169,7 +169,8 @@ class BookPainter(
                 else -> Paint.Align.LEFT
             }
         }
-        applyFill(paint, book, item.fill, item.op, inherited, null)
+        applyFill(paint, book, item.fill, null)
+        paint.alpha = alphaOf(item.op)
         val width = item.w
         if (width != null && width > 0f) {
             val measured = paint.measureText(item.s)
@@ -181,7 +182,7 @@ class BookPainter(
         canvas.drawText(item.s, item.x, item.y, paint)
     }
 
-    private fun drawImage(canvas: Canvas, item: Item.Image, inherited: Float) {
+    private fun drawImage(canvas: Canvas, item: Item.Image) {
         val bitmap = photo(item.id) ?: return
         val dst = RectF(item.x, item.y, item.x + item.w, item.y + item.h)
         // Cover the box, cropping the middle - SVG's preserveAspectRatio="xMidYMid slice".
@@ -197,34 +198,36 @@ class BookPainter(
             } else {
                 clipRect(dst)
             }
-            val paint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG).apply { alpha = alphaOf(item.op, inherited) }
+            val paint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG).apply { alpha = alphaOf(item.op) }
             drawBitmap(bitmap, src, dst, paint)
         }
     }
 
-    private fun fillPaint(book: Book, fill: Fill?, op: Float?, inherited: Float, bounds: RectF, circle: Item.Circle? = null): Paint? {
+    /**
+     * The shared fill paint for a shape, or null for no fill. Under a silhouette any fill, a
+     * gradient included, becomes its one solid colour; no fill stays none.
+     */
+    private fun fillPaint(book: Book, fill: Fill?, op: Float?, silhouette: Colour?, circle: Item.Circle? = null): Paint? {
         fill ?: return null
-        return Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        return shapeFill.apply {
+            reset()
+            isAntiAlias = true
             style = Paint.Style.FILL
-            applyFill(this, book, fill, op, inherited, circle)
+            if (silhouette != null) color = silhouette.argb else applyFill(this, book, fill, circle)
+            alpha = alphaOf(op)
         }
     }
 
-    private fun applyFill(paint: Paint, book: Book, fill: Fill, op: Float?, inherited: Float, circle: Item.Circle?) {
+    private fun applyFill(paint: Paint, book: Book, fill: Fill, circle: Item.Circle?) {
         when (fill) {
-            is Fill.Solid -> {
-                paint.color = fill.colour.argb
-                paint.alpha = alphaOf(op, inherited)
-            }
-            is Fill.Ref -> {
-                val gradient = book.defs[fill.id] ?: error("unknown gradient ${fill.id}")
-                paint.shader = shaderFor(gradient, circle)
-                paint.alpha = alphaOf(op, inherited)
-            }
+            is Fill.Solid -> paint.color = fill.colour.argb
+            is Fill.Ref -> paint.shader = shaderFor(book.defs[fill.id] ?: error("unknown gradient ${fill.id}"), circle)
         }
     }
 
     private fun shaderFor(g: Gradient, circle: Item.Circle?): Shader {
+        val relativeTo = circle?.takeIf { g.units == "item" }
+        if (relativeTo == null) shaders[g]?.let { return it }
         val colours = IntArray(g.stops.size) { i ->
             val s = g.stops[i]
             (((s.opacity.coerceIn(0f, 1f) * 255).roundToInt()) shl 24) or (s.colour.argb and 0xFFFFFF)
@@ -232,20 +235,26 @@ class BookPainter(
         val positions = FloatArray(g.stops.size) { g.stops[it].offset }
         return when {
             g.type == "linear" -> LinearGradient(g.x1, g.y1, g.x2, g.y2, colours, positions, Shader.TileMode.CLAMP)
-            g.units == "item" && circle != null -> RadialGradient(
-                circle.cx + g.cx * circle.r, circle.cy + g.cy * circle.r, (g.r * circle.r).coerceAtLeast(0.01f),
+            relativeTo != null -> RadialGradient(
+                relativeTo.cx + g.cx * relativeTo.r, relativeTo.cy + g.cy * relativeTo.r, (g.r * relativeTo.r).coerceAtLeast(0.01f),
                 colours, positions, Shader.TileMode.CLAMP,
             )
             else -> RadialGradient(g.cx, g.cy, g.r.coerceAtLeast(0.01f), colours, positions, Shader.TileMode.CLAMP)
-        }
+        }.also { if (relativeTo == null) shaders[g] = it }
     }
 
-    private fun strokePaint(stroke: Colour?, sw: Float?, dash: List<Float>?, cap: String?, join: String?, op: Float?, inherited: Float): Paint? {
+    /**
+     * The shared stroke paint for a shape, or null for no stroke. A silhouette colours a stroke
+     * that is there, keeping its width, dash, cap and join; it adds none.
+     */
+    private fun strokePaint(stroke: Colour?, sw: Float?, dash: List<Float>?, cap: String?, join: String?, op: Float?, silhouette: Colour?): Paint? {
         stroke ?: return null
-        return Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        return shapeStroke.apply {
+            reset()
+            isAntiAlias = true
             style = Paint.Style.STROKE
-            color = stroke.argb
-            alpha = alphaOf(op, inherited)
+            color = (silhouette ?: stroke).argb
+            alpha = alphaOf(op)
             strokeWidth = sw ?: 1f
             strokeCap = when (cap) {
                 "round" -> Paint.Cap.ROUND
@@ -264,5 +273,5 @@ class BookPainter(
         }
     }
 
-    private fun alphaOf(op: Float?, inherited: Float): Int = ((op ?: 1f) * inherited * 255f).roundToInt().coerceIn(0, 255)
+    private fun alphaOf(op: Float?): Int = ((op ?: 1f) * 255f).roundToInt().coerceIn(0, 255)
 }

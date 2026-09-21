@@ -271,14 +271,18 @@ class BookFormat2Test {
 
     @Test
     fun `a path drawn many times is parsed once`() {
-        val calls = mutableListOf<String>()
-        val cache = PathCache { d -> calls += d; StringBuilder(d) }
+        val calls = mutableListOf<Pair<String, Boolean>>()
+        val cache = PathCache { d, evenOdd -> calls += d to evenOdd; StringBuilder(d) }
         val lamp = "M0 0 L24 0 C22.5 8.5 18 12.6 12 12.6 Z"
         val first = cache[lamp]
         repeat(40) { assertSame(first, cache[lamp]) }
         cache["M0 0 L1 1"]
-        assertEquals(listOf(lamp, "M0 0 L1 1"), calls)
-        assertEquals(2, cache.parsed)
+        // The same data under the other fill rule is its own parse, so neither leaks its rule.
+        val evenOdd = cache[lamp, true]
+        assertTrue(evenOdd !== first)
+        assertSame(evenOdd, cache[lamp, true])
+        assertEquals(listOf(lamp to false, "M0 0 L1 1" to false, lamp to true), calls)
+        assertEquals(3, cache.parsed)
     }
 
     // --- one answer in both languages ------------------------------------------------------------
