@@ -286,6 +286,45 @@ has a season. No screen changes.
 | `find` | *Find yourself*: every named person with their page, in three columns. Left out below six names |
 | `closing` | *Is someone missing?*, the edition's month, and the QR code to the website |
 
+## Story planner: circles
+
+`site/book/story/kin.js` (#250) places everyone in scope into the featured person's circles.
+The story planner (#251) calls `kinOf(family, featuredId, { words })` once per book. It is not
+reached from `compose.js` yet, so no format-1 book changes.
+
+**Claim order.** Each person gets exactly one circle, and the first claim wins:
+
+1. self
+2. parents
+3. spouses: current, former or late, by `spouseLabel`'s rule
+4. children, grouped by the other parent
+5. siblings: full, half (grouped by parent set), and explicit links followed transitively
+6. grandparents, per side
+7. descendants
+8. ancestors beyond the grandparents
+9. branches: one per aunt or uncle, with their spouses, the cousins and the cousins' families
+10. in-laws: one marriage from the core
+11. lane: everyone else joined to F
+12. elsewhere: people in scope the record does not join to F
+
+**Each entry** is `{id, circle, role, side, gen, branch, via, namedBy}`:
+- `side` is paternal, maternal or none.
+- `gen` is the generation offset from F.
+- `branch` is the group key within the circle.
+- `namedBy` is `{id, word}` for a person with no name, so they can be called "Shyam Lal's wife".
+
+Each `circles[c]` is sorted deterministically, by side, then branch (eldest first), then
+generation, birth year, name and id. The code's header comment has the full table of roles and
+branch keys.
+
+**Words.** `words(id)` returns `{en, hi, term, word}`.
+- People one step from F take the app's label rules (`parentLabel`, `spouseLabel`,
+  `childLabel`, `siblingLabel`).
+- Everyone else takes `relate()`'s term with `hindiTerm` and `hindiWord`. `relate()` runs once
+  per person asked about, and never for the partition itself.
+- Parents are पिताजी / माँ.
+- A former spouse or a partner has no Hindi word, so the English one is used.
+
 ## Options and the allowance
 
 `options`: `now` (required), `scope` (`{kind:'everyone'}` or `{kind:'branch', personId}`, the same
