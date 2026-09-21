@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import {
   DEFAULT_OPTIONS, scopeFor, todayIso, formatEstimate,
   decisionAllowance, canSave, decisionMessage, nextBookUsage, bookRequest,
+  pickerGraph, featuresPerson, coverOptions, wordsFor,
 } from './book-options.js';
 
 test('DEFAULT_OPTIONS opens on the whole tree, without photos left off or dates widened', () => {
@@ -11,6 +12,108 @@ test('DEFAULT_OPTIONS opens on the whole tree, without photos left off or dates 
   assert.equal(DEFAULT_OPTIONS.photos, true);
   assert.equal(DEFAULT_OPTIONS.livingDates, false);
   assert.equal(DEFAULT_OPTIONS.titleOverride, null);
+});
+
+test('DEFAULT_OPTIONS lets the composer choose "whose story", and starts notes off (#249)', () => {
+  // `null` -- not an id -- is what tells `book.js` "nobody has overridden `resolveFeatured` yet".
+  assert.equal(DEFAULT_OPTIONS.featured, null);
+  assert.equal(DEFAULT_OPTIONS.notes, false);
+});
+
+/* ---------------------------------------------------------------------------------------------
+ * pickerGraph: the "Whose story" picker's own scope filtering (#249).
+ *
+ * hub -- w1 -- c1, c2
+ *    \-- w2 -- c3, c4
+ * ------------------------------------------------------------------------------------------- */
+
+function docFixture() {
+  return {
+    format: 'f-tree', version: 1,
+    people: [
+      { id: 'hub', name: 'Hub Devi', gender: 'UNSPECIFIED' },
+      { id: 'w1', name: 'Wife One', gender: 'FEMALE' },
+      { id: 'w2', name: 'Wife Two', gender: 'FEMALE' },
+      { id: 'c1', name: 'Child One', gender: 'MALE' },
+      { id: 'c2', name: 'Child Two', gender: 'MALE' },
+      { id: 'c3', name: 'Child Three', gender: 'FEMALE' },
+      { id: 'c4', name: 'Child Four', gender: 'FEMALE' },
+    ],
+    relationships: [
+      { id: 'r1', type: 'SPOUSE', from: 'hub', to: 'w1' },
+      { id: 'r2', type: 'SPOUSE', from: 'hub', to: 'w2' },
+      { id: 'r3', type: 'PARENT', from: 'hub', to: 'c1' },
+      { id: 'r4', type: 'PARENT', from: 'w1', to: 'c1' },
+      { id: 'r5', type: 'PARENT', from: 'hub', to: 'c2' },
+      { id: 'r6', type: 'PARENT', from: 'w1', to: 'c2' },
+      { id: 'r7', type: 'PARENT', from: 'hub', to: 'c3' },
+      { id: 'r8', type: 'PARENT', from: 'w2', to: 'c3' },
+      { id: 'r9', type: 'PARENT', from: 'hub', to: 'c4' },
+      { id: 'r10', type: 'PARENT', from: 'w2', to: 'c4' },
+    ],
+  };
+}
+
+test('pickerGraph offers everyone in the file when the dialog was not scoped to a branch', () => {
+  const graph = pickerGraph(docFixture(), { scopeKind: 'everyone' }, null);
+  assert.deepEqual([...graph.people.keys()].sort(), ['c1', 'c2', 'c3', 'c4', 'hub', 'w1', 'w2']);
+});
+
+test('pickerGraph narrows to a branch exactly as the composer itself would (site/book/family.js)', () => {
+  // w1's branch: her, her children by hub, and hub himself (her spouse) - never hub's other
+  // marriage or its children, the same cut `branchFrom` makes for the composed book.
+  const graph = pickerGraph(docFixture(), { scopeKind: 'branch' }, 'w1');
+  assert.deepEqual([...graph.people.keys()].sort(), ['c1', 'c2', 'hub', 'w1']);
+});
+
+test('pickerGraph falls back to everyone when "branch" is asked for but no scope person is known', () => {
+  // scopeFor's own rule: a branch request naming nobody is never honoured (book-options.js above).
+  const graph = pickerGraph(docFixture(), { scopeKind: 'branch' }, null);
+  assert.equal(graph.people.size, 7);
+});
+
+test('pickerGraph falls back to everyone when the named branch person is not actually in the file', () => {
+  const graph = pickerGraph(docFixture(), { scopeKind: 'branch' }, 'nope');
+  assert.equal(graph.people.size, 7);
+});
+
+/* ---------------------------------------------------------------------------------------------
+ * featuresPerson: which templates the "Whose story" picker actually shapes anything on (#249).
+ * ------------------------------------------------------------------------------------------- */
+
+test('featuresPerson is true only for a format-2 story template', () => {
+  assert.equal(featuresPerson({ format: 2 }), true);
+  assert.equal(featuresPerson({ format: 1 }), false); // Heirloom, today
+  assert.equal(featuresPerson(null), false);
+  assert.equal(featuresPerson(undefined), false);
+});
+
+/* ---------------------------------------------------------------------------------------------
+ * coverOptions: a template chip's own cover, stopped at the first page (#249).
+ * ------------------------------------------------------------------------------------------- */
+
+test('coverOptions carries every option through and adds coverOnly', () => {
+  const base = { now: '2026-09-15', scope: { kind: 'everyone' }, photos: true };
+  assert.deepEqual(coverOptions(base), { ...base, coverOnly: true });
+});
+
+test('coverOptions never mutates the options object it was given', () => {
+  const base = { now: '2026-09-15' };
+  coverOptions(base);
+  assert.deepEqual(base, { now: '2026-09-15' });
+});
+
+/* ---------------------------------------------------------------------------------------------
+ * wordsFor: the Family-words setting, in composeBook's own shape (#249).
+ * ------------------------------------------------------------------------------------------- */
+
+test('wordsFor reads Hindi only from an exact "hi", English for everything else', () => {
+  assert.equal(wordsFor({ familyWords: 'hi' }), 'hi');
+  assert.equal(wordsFor({ familyWords: 'en' }), 'en');
+  assert.equal(wordsFor({ familyWords: 'HI' }), 'en'); // not a case-fold, an exact match
+  assert.equal(wordsFor({}), 'en');
+  assert.equal(wordsFor(null), 'en');
+  assert.equal(wordsFor(undefined), 'en');
 });
 
 test('scopeFor is everyone unless a branch was asked for and a person is known', () => {
