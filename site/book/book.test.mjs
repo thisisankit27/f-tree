@@ -27,6 +27,7 @@ import { METRICS } from './metrics/index.js';
 import { SITE_QR, SITE_URL } from './qr.js';
 import { sortKey, byKey, readFamily } from './family.js';
 import { orbitPositions } from './blocks/cover.js';
+import { importClosure, bannedApiViolations, staleExceptions, stripComments } from './qa/closure.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const read = (p) => readFileSync(path.join(here, p), 'utf8');
@@ -282,13 +283,142 @@ test('the painter refuses a book from a newer composer', async () => {
   assert.throws(() => paintPage({ ...book, format: 3 }, 0, { photo: () => null, font: (k) => k }), /format 3/);
 });
 
-test('the composer runs without a DOM, a clock or a locale', () => {
-  for (const file of ['compose.js', 'family.js', 'text.js', 'format.js', 'template.js', 'blocks/cover.js', 'blocks/tree.js', 'blocks/numbers.js', 'blocks/generations.js', 'blocks/find.js', 'blocks/closing.js', 'blocks/art.js', 'blocks/words.js', 'story/featured.js']) {
-    const src = read(file).replace(/\/\*[\s\S]*?\*\/|\/\/.*$/gm, '');
-    for (const banned of ['new Date', 'Date.now', 'localeCompare', 'Intl.', 'document.', 'window.', 'Math.random', 'requestAnimationFrame', 'setTimeout', 'fetch(']) {
-      assert.ok(!src.includes(banned), `${file} uses ${banned}`);
-    }
-  }
+/*
+ * The banned-API guard, over the composer's real static import closure rather than a file list
+ * anybody has to remember to extend.
+ *
+ * `bookEngine()` (app/build.gradle.kts:61-72) is what decides which JS actually ships inside the
+ * Android release: it seeds a queue with compose.js, matches only static relative import/export
+ * specifiers, and resolves them breadth-first. `importClosure` (qa/closure.mjs) is the same walk,
+ * so this test guards exactly what gets staged into the WebView -- new files under story/ or art/
+ * are covered the day compose.js reaches them, with nobody adding them to a list by hand, and an
+ * accidental import of a UI-only module (svg.js, or site/playground/search.js) is caught too,
+ * because the walk does not know or care which files were meant to be reachable.
+ */
+/*
+ * Two narrow, reviewed exceptions, not a way past the guard.
+ *
+ * family.js reaches into the viewer's own model and layout (site/playground/model.js,
+ * layout.js) for buildGraph/branchFrom/restrictedGraph/displayDate and layoutArchive, so both
+ * files are genuinely part of the closure Android stages, and both contain a banned substring
+ * today. Each exception is scoped to the one function that earns it, keyed by the file's path
+ * relative to the repo root (never a bare basename, so a same-named file elsewhere can never
+ * inherit somebody else's exception) -- a second, unrelated occurrence of the same substring
+ * anywhere else in the file is still a violation:
+ *   - model.js's `new Date()` is inside `ageOf` (model.js:247). storybook-plan.md's own trap list
+ *     names this: "ageOf reads the clock, so never call it from the composer." It is checked, not
+ *     just believed - the second assertion below fails if any file this guard covers ever calls or
+ *     imports it. ageOf is called only from playground/main.js, the interactive viewer.
+ *   - layout.js's `localeCompare` (layout.js:145) is `byBirth`'s tie-break when two people in the
+ *     same row share a birth year or have none - and `layoutArchive` is what places people on the
+ *     composer's `tree` page. That *is* reached from the composer, so this one is a genuine,
+ *     unresolved determinism gap (the tree page's left-right order of two same-birth-year, no-name
+ *     -date siblings could differ by ICU locale between Node, Electron and an Android WebView) -
+ *     out of scope for this issue to fix, since layout.js belongs to the viewer (#245 only builds
+ *     the guard). Flagged here on purpose rather than silently allowed past an unmarked exception;
+ *     see the QA report for the follow-up this needs. Once that follow-up removes the localeCompare
+ *     call from byBirth, `staleExceptions` below fails until this entry is deleted too.
+ */
+const repoRoot = path.resolve(here, '..', '..');
+const KNOWN_EXCEPTIONS = new Map([
+  ['site/playground/model.js', [{ banned: 'new Date', fn: 'ageOf' }]],
+  ['site/playground/layout.js', [{ banned: 'localeCompare', fn: 'byBirth' }]],
+]);
+
+test('the composer\'s whole staged closure runs without a DOM, a clock or a locale', () => {
+  const files = importClosure(path.join(here, 'compose.js'));
+  // Sanity on the walk itself: it must have actually walked somewhere, and it must not have wandered
+  // outside site/ (site/book and its one legitimate dependency, site/playground, where family.js
+  // reads the viewer's own model and layout).
+  assert.ok(files.length >= 13, `expected at least the composer's known modules, got ${files.length}`);
+  const site = path.resolve(here, '..');
+  for (const f of files) assert.ok(f.startsWith(site), `${f} escaped site/`);
+
+  const violations = bannedApiViolations(files, { allow: KNOWN_EXCEPTIONS, repoRoot });
+  assert.deepEqual(violations, [], violations.map((v) => `${path.relative(here, v.file)} uses ${v.banned}`).join('; '));
+
+  // A stale exception is a hole with a comment taped over it: if the function it names stops
+  // existing, or stops containing the substring it was carved out for, it must be deleted, not
+  // left in place quietly excusing nothing (or, worse, still keyed loosely enough to excuse
+  // something new).
+  const stale = staleExceptions(files, KNOWN_EXCEPTIONS, { repoRoot });
+  assert.deepEqual(stale, [], stale.map((s) => `${s.file}: ${s.reason}`).join('; '));
+
+  // The behavioural half of the ageOf exception: nobody reachable from the composer may call or
+  // import it, whatever the file that defines it is allowed to contain. A plain `.includes('ageOf(')`
+  // both under- and over-matches: it misses `import { ageOf } from ...` (no call, but still a route
+  // by which a future edit could call it unnoticed), and it would false-positive on an unrelated
+  // identifier like `averageOf(`.
+  const touchesAgeOf = files.filter((f) => {
+    if (!/\.m?js$/.test(f)) return false;
+    const src = stripComments(readFileSync(f, 'utf8'));
+    return /\bageOf\s*\(/.test(src) || /\bimport\s*\{[^}]*\bageOf\b[^}]*\}/.test(src);
+  });
+  // Excluded by full repo-relative path, not a bare basename suffix -- the same rule KNOWN_EXCEPTIONS
+  // itself follows, and for the same reason: a second file that happened to also be named model.js
+  // elsewhere in the closure must not inherit this exemption.
+  const relPath = (f) => path.relative(repoRoot, f).split(path.sep).join('/');
+  assert.deepEqual(touchesAgeOf.filter((f) => relPath(f) !== 'site/playground/model.js'), [],
+    'ageOf reads the clock - the composer must never call or import it (storybook-plan.md)');
+});
+
+/*
+ * Meta-tests: a guard that only ever reports "clean" could be doing nothing at all. Each of these
+ * proves the walker and the scanner actually catch something, on fixtures built for the purpose
+ * (qa/fixtures/*.mjs) rather than on the real composer, so the real closure never has to carry a
+ * violation to prove the test means something.
+ */
+test('meta: the closure walker follows a relative import two hops deep, and the scanner catches what it finds', () => {
+  const files = importClosure(path.join(here, 'qa/fixtures/violating-entry.mjs'));
+  assert.equal(files.length, 2, 'the entry and the leaf it imports');
+  const violations = bannedApiViolations(files);
+  assert.ok(violations.some((v) => v.banned === 'Date.now' && v.file.endsWith('violating-leaf.mjs')),
+    'the guard failed to catch a real Date.now() call - it would be catching nothing in production');
+});
+
+test('meta: a closure with no banned call reports no violations', () => {
+  const files = importClosure(path.join(here, 'qa/fixtures/clean-entry.mjs'));
+  assert.deepEqual(bannedApiViolations(files), []);
+});
+
+test('meta: the walker would stage svg.js the day the composer imports it, which today\'s fixed list did not cover', () => {
+  const files = importClosure(path.join(here, 'qa/fixtures/would-import-svg.mjs'));
+  assert.ok(files.some((f) => f.endsWith(`${path.sep}svg.js`)), 'svg.js was not reached');
+});
+
+test('meta: the guard catches an import of the UI-only search module, which sorts with localeCompare', () => {
+  const files = importClosure(path.join(here, 'qa/fixtures/would-import-search.mjs'));
+  assert.ok(files.some((f) => f.endsWith(`${path.sep}search.js`)), 'search.js was not reached - the walk itself is broken');
+  const violations = bannedApiViolations(files);
+  assert.ok(violations.some((v) => v.banned === 'localeCompare' && v.file.endsWith('search.js')),
+    'importing search.js must be caught: it sorts with localeCompare and is UI-only forever');
+});
+
+test('meta: a function-scoped exception does not excuse a second, unrelated call in the same file', () => {
+  const files = importClosure(path.join(here, 'qa/fixtures/scoped-exception-entry.mjs'));
+  const allow = new Map([
+    ['site/book/qa/fixtures/scoped-exception-leaf.mjs', [{ banned: 'new Date', fn: 'insideException' }]],
+  ]);
+  const violations = bannedApiViolations(files, { allow, repoRoot });
+  assert.ok(violations.some((v) => v.banned === 'new Date' && v.file.endsWith('scoped-exception-leaf.mjs')),
+    'a second new Date outside the excepted function must still be caught, not excused by a file-wide exception');
+});
+
+test('meta: an exception that no longer matches anything is reported stale, not silently accepted', () => {
+  const files = importClosure(path.join(here, 'qa/fixtures/clean-entry.mjs'));
+  const goneFn = new Map([
+    ['site/book/qa/fixtures/clean-leaf.mjs', [{ banned: 'new Date', fn: 'greet' }]],
+  ]);
+  const stale = staleExceptions(files, goneFn, { repoRoot });
+  assert.ok(stale.some((s) => s.file === 'site/book/qa/fixtures/clean-leaf.mjs' && s.banned === 'new Date'),
+    'an exception for a substring the named function no longer contains must be flagged stale');
+
+  const goneFile = new Map([
+    ['site/book/qa/fixtures/does-not-exist.mjs', [{ banned: 'new Date', fn: 'anything' }]],
+  ]);
+  const staleFile = staleExceptions(files, goneFile, { repoRoot });
+  assert.ok(staleFile.some((s) => s.reason === 'file is not in the closure'),
+    'an exception for a file the closure no longer reaches must be flagged stale too');
 });
 
 /*
