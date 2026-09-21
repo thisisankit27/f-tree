@@ -45,6 +45,36 @@ const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 
  * @param allowance what the policy granted: { maxGenerations?, attribution? } - empty means all
  */
 export function composeBook(doc, options, template, allowance = {}) {
+  return compose(doc, options, template, allowance, null);
+}
+
+/**
+ * The same book, plus what the QA harness (#245) checks it against: `{ book, report }`.
+ *
+ * `book` is byte-for-byte what `composeBook` returns - the report is gathered beside the book,
+ * never written into it. `report` is:
+ *   - `shown`: `{ [personId]: [page, ...] }`, every page (1-based) that names or portrays someone.
+ *     A block records a person with `ctx.show(id)`; `ctx.portrait` does it for every portrait, so a
+ *     format-1 book reports its tree and generation pages without any block changing.
+ *   - `textBoxes`: `[{ page, x, y, w, h, size, font, kind, op, s }]`, one per `text` item, in page
+ *     coordinates after every group transform. The box is the line's ink band: from 0.75 of its
+ *     size above the baseline to 0.2 below, across the width it prints at. `size` is the size
+ *     it prints at (scaled by any group transform). `kind` is what the page said the line is -
+ *     `ctx.line(..., { kind: 'body' | 'name' | 'caption' | ... })` - or null when it said nothing,
+ *     as no format-1 block does.
+ *   - `artZones`: `[{ page, kind: 'text' | 'face' | 'busy', x, y, w, h }]`, recorded by the art
+ *     with `ctx.zone(kind, box)` in page coordinates. Format-1 art records none.
+ *   - `minSize`: the smallest printed text size in the book, or null for a book with no text.
+ *   - `pages`: `[{ page, label, archetype, variant, people }]`. A story page describes itself with
+ *     `ctx.describePage({ archetype, variant, people })`; a format-1 page has nulls there.
+ */
+export function composeWithReport(doc, options, template, allowance = {}) {
+  const rec = { shown: new Map(), zones: [], kinds: new WeakMap(), pages: new Map() };
+  const book = compose(doc, options, template, allowance, rec);
+  return { book, report: finishReport(book, rec) };
+}
+
+function compose(doc, options, template, allowance, rec) {
   const tpl = validateTemplate(template);
   // A format-2 (storybook) template validates here but has no `pages` to walk. Say so, rather
   // than fail on the loop below, until the story planner (#251) draws it.
@@ -53,7 +83,7 @@ export function composeBook(doc, options, template, allowance = {}) {
   if (!now) throw new Error('composeBook: options.now must be an ISO date - the composer never reads the clock');
 
   const family = readFamily(doc, options, allowance);
-  const ctx = context(family, options, tpl, allowance, { year: Number(now[1]), month: Number(now[2]) });
+  const ctx = context(family, options, tpl, allowance, { year: Number(now[1]), month: Number(now[2]) }, rec);
   const pages = [];
   for (const name of pageBlocks(tpl, options)) {
     for (const page of BLOCKS[name](ctx, pages.length + 1)) {
@@ -133,7 +163,7 @@ function fileName(title, tpl) {
  * through here is what keeps every line measured, every photograph at a size the PDF can afford,
  * and every date within the privacy rule.
  */
-function context(family, options, tpl, allowance, now) {
+function context(family, options, tpl, allowance, now, rec) {
   const P = tpl.palette;
   const metricsOf = (role) => METRICS[tpl.fonts[role]];
   const defs = {};
@@ -155,19 +185,41 @@ function context(family, options, tpl, allowance, now) {
     pageNo: 1,
     pageOf: new Map(),
 
+    /*
+     * The QA report (`composeWithReport`). Each is a no-op when nobody asked for a report, and a
+     * Map or array push when somebody did, so a story page can call them for every person and
+     * every piece of art it places without costing `composeBook` anything. None of them touches
+     * the book: its bytes are the same either way.
+     */
+    /** This person is named or portrayed on the page being drawn. */
+    show(id) {
+      if (!rec) return;
+      const pages = rec.shown.get(id);
+      if (!pages) rec.shown.set(id, [ctx.pageNo]);
+      else if (pages[pages.length - 1] !== ctx.pageNo) pages.push(ctx.pageNo);
+    },
+    /** Art on this page marks a zone: `text` (words may sit here), `face` or `busy` (they may not). */
+    zone(kind, { x, y, w, h }) {
+      if (rec) rec.zones.push({ page: ctx.pageNo, kind, x, y, w, h });
+    },
+    /** What this page is: its archetype, the variant it took, and the people it is about. */
+    describePage({ archetype = null, variant = null, people = [] } = {}) {
+      if (rec) rec.pages.set(ctx.pageNo, { archetype, variant, people: [...people] });
+    },
+
     measure: (s, role, size) => measure(s, metricsOf(role), size),
     fit: (s, role, size, width, min) => fitSize(s, metricsOf(role), size, width, min),
 
     /** One line, carrying the width it was measured to fit so a painter can hold it there. */
-    line(x, y, s, role, size, fill, { align = 'start', width, op } = {}) {
+    line(x, y, s, role, size, fill, { align = 'start', width, op, kind } = {}) {
       const w = width ?? measure(s, metricsOf(role), size);
-      return text(x, y, s, role, size, fill, { align, w, op });
+      return said(text(x, y, s, role, size, fill, { align, w, op }), kind);
     },
 
     /** A paragraph broken into lines. Returns the items and where the next line would go. */
-    lines(x, y, s, role, size, fill, { width, maxLines, lead = size * 1.35, align = 'start', op } = {}) {
+    lines(x, y, s, role, size, fill, { width, maxLines, lead = size * 1.35, align = 'start', op, kind } = {}) {
       const broken = breakLines(s, metricsOf(role), size, width, maxLines);
-      const items = broken.map((l, i) => text(x, y + i * lead, l, role, size, fill, { align, w: width, op }));
+      const items = broken.map((l, i) => said(text(x, y + i * lead, l, role, size, fill, { align, w: width, op }), kind));
       return { items, bottom: y + (broken.length - 1) * lead, count: broken.length };
     },
 
@@ -183,6 +235,7 @@ function context(family, options, tpl, allowance, now) {
      * 170 pixels an inch, never under 96 or over 200, which is what a family's PDF can carry.
      */
     portrait(p, cx, cy, r, { ring = P.gold, unknownRing = P.goldSoft } = {}) {
+      ctx.show(p.id);
       const items = [];
       if (p.photo && ctx.options.photos) {
         const px = Math.min(200, Math.max(96, Math.ceil(((2 * r) / 72) * 170)));
@@ -211,5 +264,66 @@ function context(family, options, tpl, allowance, now) {
       return { label, items: ground ? [rect(0, 0, PAGE.w, PAGE.h, { fill: ground }), ...items] : items };
     },
   };
+  /** Remembers what kind of line a text item is, for the report only. */
+  const said = (item, kind) => {
+    if (rec && kind) rec.kinds.set(item, kind);
+    return item;
+  };
   return ctx;
+}
+
+/*
+ * A text line's ink band, as fractions of its size: from the baseline up to about the top of a
+ * capital or a Devanagari headline, and down past the baseline for descenders. Deliberately a
+ * little generous, so two lines that print touching are reported as touching.
+ */
+const INK_ABOVE = 0.75;
+const INK_BELOW = 0.2;
+
+const mul = (a, b) => [
+  a[0] * b[0] + a[2] * b[1], a[1] * b[0] + a[3] * b[1],
+  a[0] * b[2] + a[2] * b[3], a[1] * b[2] + a[3] * b[3],
+  a[0] * b[4] + a[2] * b[5] + a[4], a[1] * b[4] + a[3] * b[5] + a[5],
+];
+
+/**
+ * The part of the report a finished book carries on its own: its text boxes, its smallest size and
+ * its page list. Nobody recorded anything while it was drawn, so `shown` and `artZones` are empty.
+ */
+export function reportFromBook(book) {
+  return finishReport(book, { shown: new Map(), zones: [], kinds: new WeakMap(), pages: new Map() });
+}
+
+function finishReport(book, rec) {
+  const textBoxes = [];
+  let minSize = null;
+  const walk = (items, m, page) => {
+    for (const it of items) {
+      if (it.t === 'group') walk(it.items, it.tf ? mul(m, it.tf) : m, page);
+      if (it.t !== 'text') continue;   // symbols hold no text (format.js), so a `use` is never walked
+      // The width it prints at: what the advance tables measure, never more than the width the
+      // composer gave it (a painter shrinks a line to that, format.js). `w` alone is often a whole
+      // column, for a line centred in it.
+      const measured = measure(it.s, METRICS[book.fonts[it.font]], it.size);
+      const w = it.w === undefined ? measured : Math.min(measured, it.w);
+      const x0 = it.align === 'middle' ? it.x - w / 2 : it.align === 'end' ? it.x - w : it.x;
+      const corners = [[x0, it.y - it.size * INK_ABOVE], [x0 + w, it.y - it.size * INK_ABOVE], [x0, it.y + it.size * INK_BELOW], [x0 + w, it.y + it.size * INK_BELOW]]
+        .map(([x, y]) => [m[0] * x + m[2] * y + m[4], m[1] * x + m[3] * y + m[5]]);
+      const xs = corners.map((c) => c[0]), ys = corners.map((c) => c[1]);
+      const size = it.size * Math.sqrt(Math.abs(m[0] * m[3] - m[1] * m[2]));
+      minSize = minSize === null ? size : Math.min(minSize, size);
+      textBoxes.push({
+        page, x: Math.min(...xs), y: Math.min(...ys), w: Math.max(...xs) - Math.min(...xs), h: Math.max(...ys) - Math.min(...ys),
+        size, font: it.font, kind: rec.kinds.get(it) ?? null, op: it.op ?? 1, s: it.s,
+      });
+    }
+  };
+  book.pages.forEach((p, i) => walk(p.items, [1, 0, 0, 1, 0, 0], i + 1));
+  return {
+    shown: Object.fromEntries([...rec.shown].sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))),
+    textBoxes,
+    artZones: rec.zones,
+    minSize,
+    pages: book.pages.map((p, i) => ({ page: i + 1, label: p.label, archetype: null, variant: null, people: [], ...rec.pages.get(i + 1) })),
+  };
 }
