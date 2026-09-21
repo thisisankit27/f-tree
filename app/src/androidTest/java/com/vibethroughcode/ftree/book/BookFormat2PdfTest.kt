@@ -36,11 +36,6 @@ class BookFormat2PdfTest {
         return readBook(assets.open("format2-conformance.json").bufferedReader().use { it.readText() })
     }
 
-    private fun portrait(): Bitmap = Bitmap.createBitmap(200, 200, Bitmap.Config.ARGB_8888).apply {
-        eraseColor(Color.rgb(90, 120, 160))
-        setHasAlpha(false)
-    }
-
     /** One page through the painter, at [scale] pixels to the point, on white as the PDF is. */
     private fun render(book: Book, page: Int, scale: Float = 1f, painter: BookPainter = BookPainter(printer.fonts) { portrait() }): Bitmap =
         Bitmap.createBitmap((book.size.w * scale).toInt(), (book.size.h * scale).toInt(), Bitmap.Config.ARGB_8888).also {
@@ -73,7 +68,7 @@ class BookFormat2PdfTest {
                         fromPdf.eraseColor(Color.WHITE)
                         page.render(fromPdf, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
                         val fromPainter = render(book, i, painter = BookPainter(printer.fonts) { photos[it] })
-                        save(fromPdf, "format2-page-$i.png")
+                        save(app, fromPdf, "format2-page-$i.png")
                         val diff = meanDifference(fromPdf, fromPainter)
                         assertTrue("page ${i + 1} differs from its preview by $diff", diff < 6.0)
                     }
@@ -89,7 +84,7 @@ class BookFormat2PdfTest {
         assertEquals("The same shape, offset", book.pages[page].label)
         val s = 2f
         val bitmap = render(book, page, s)
-        save(bitmap, "format2-silhouette.png")
+        save(app, bitmap, "format2-silhouette.png")
         fun at(x: Float, y: Float) = bitmap.getPixel((x * s).toInt(), (y * s).toInt())
         fun local(lx: Float, ly: Float) = at(152f + 1.5f * lx, 300f + 1.5f * ly)
 
@@ -177,24 +172,5 @@ class BookFormat2PdfTest {
             abs(Color.green(want) - Color.green(got)) > tolerance ||
             abs(Color.blue(want) - Color.blue(got)) > tolerance
         assertTrue("$what: wanted #%06x, got #%06x".format(want and 0xFFFFFF, got and 0xFFFFFF), !far)
-    }
-
-    /** Mean absolute difference per channel, 0-255. Anti-aliasing alone stays well under 6. */
-    private fun meanDifference(a: Bitmap, b: Bitmap): Double {
-        var total = 0L
-        var n = 0L
-        for (y in 0 until a.height step 3) for (x in 0 until a.width step 3) {
-            val p = a.getPixel(x, y)
-            val q = b.getPixel(x, y)
-            total += abs(Color.red(p) - Color.red(q)) + abs(Color.green(p) - Color.green(q)) + abs(Color.blue(p) - Color.blue(q))
-            n += 3
-        }
-        return total.toDouble() / n
-    }
-
-    /** Kept for a human to look at: `adb pull` the files from the app's external files dir. */
-    private fun save(bitmap: Bitmap, name: String) {
-        val dir = app.getExternalFilesDir(null) ?: return
-        File(dir, name).outputStream().use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }
     }
 }
