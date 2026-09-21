@@ -6,6 +6,8 @@ import android.content.IntentFilter
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
+import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
@@ -15,13 +17,20 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performTextInput
+import androidx.test.espresso.Espresso
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.vibethroughcode.ftree.FTreeApplication
 import com.vibethroughcode.ftree.MainActivity
 import com.vibethroughcode.ftree.data.Person
 import com.vibethroughcode.ftree.data.RelativeKind
+import com.vibethroughcode.ftree.ui.book.BookFeaturedListTag
+import com.vibethroughcode.ftree.ui.book.BookFeaturedResetTag
+import com.vibethroughcode.ftree.ui.book.BookFeaturedRowTag
+import com.vibethroughcode.ftree.ui.book.BookFeaturedSearchTag
 import com.vibethroughcode.ftree.ui.book.BookLivingDatesTag
+import com.vibethroughcode.ftree.ui.book.BookNotesTag
 import com.vibethroughcode.ftree.ui.book.BookPageLabelTag
 import com.vibethroughcode.ftree.ui.book.BookPreviewTag
 import com.vibethroughcode.ftree.ui.book.BookScreenTag
@@ -126,5 +135,82 @@ class BookFlowTest {
         waitForBook()
         rule.onNodeWithTag(BookLivingDatesTag).performScrollTo().assertIsOff().performClick()
         rule.onNodeWithTag(BookLivingDatesTag).assertIsOn()
+    }
+
+    @Test
+    fun includingNotesIsOffUntilTheReaderTurnsItOn() {
+        rule.waitUntil(10_000) { rule.onAllNodesWithTag(TreeBookTag).fetchSemanticsNodes().isNotEmpty() }
+        rule.onNodeWithTag(TreeBookTag).performClick()
+        waitForBook()
+        rule.onNodeWithTag(BookNotesTag).performScrollTo().assertIsOff().performClick()
+        rule.onNodeWithTag(BookNotesTag).assertIsOn()
+    }
+
+    /**
+     * The shared `PersonPicker` (#248), reached from "Whose story": picking somebody replaces the
+     * row's own wording with their name and offers a way back, and reset returns to the composer's
+     * own choice rather than leaving nobody picked.
+     */
+    @Test
+    fun whoseStoryCanBePickedAndReset() {
+        rule.waitUntil(10_000) { rule.onAllNodesWithTag(TreeBookTag).fetchSemanticsNodes().isNotEmpty() }
+        rule.onNodeWithTag(TreeBookTag).performClick()
+        waitForBook()
+
+        rule.onNodeWithTag(BookFeaturedRowTag).performScrollTo().performClick()
+        rule.waitUntil(5_000) { rule.onAllNodesWithTag(BookFeaturedSearchTag).fetchSemanticsNodes().isNotEmpty() }
+        rule.onNodeWithTag(BookFeaturedSearchTag).performTextInput("Aarav")
+        val row = hasText("Aarav Sharma") and hasAnyAncestor(hasTestTag(BookFeaturedListTag))
+        rule.waitUntil(5_000) { rule.onAllNodes(row).fetchSemanticsNodes().isNotEmpty() }
+        rule.onNode(row).performClick()
+
+        val chosen = hasText("Aarav Sharma") and hasAnyAncestor(hasTestTag(BookFeaturedRowTag))
+        rule.waitUntil(5_000) { rule.onAllNodes(chosen).fetchSemanticsNodes().isNotEmpty() }
+        rule.onNodeWithTag(BookFeaturedResetTag).assertExists()
+
+        rule.onNodeWithTag(BookFeaturedResetTag).performClick()
+        rule.waitUntil(5_000) { rule.onAllNodes(chosen).fetchSemanticsNodes().isEmpty() }
+        rule.onAllNodesWithTag(BookFeaturedResetTag).assertCountEquals(0)
+    }
+
+    /**
+     * Backing out of the picker without choosing anybody leaves the row exactly as it was - the
+     * repo's lesson about sheets: dismiss with the back gesture, then wait for the sheet's own
+     * content to be gone before asserting on what is left underneath it.
+     */
+    @Test
+    fun cancellingWhoseStoryLeavesTheChoiceAlone() {
+        rule.waitUntil(10_000) { rule.onAllNodesWithTag(TreeBookTag).fetchSemanticsNodes().isNotEmpty() }
+        rule.onNodeWithTag(TreeBookTag).performClick()
+        waitForBook()
+
+        rule.onNodeWithTag(BookFeaturedRowTag).performScrollTo().performClick()
+        rule.waitUntil(5_000) { rule.onAllNodesWithTag(BookFeaturedSearchTag).fetchSemanticsNodes().isNotEmpty() }
+
+        Espresso.pressBack()
+        rule.waitUntil(5_000) { rule.onAllNodesWithTag(BookFeaturedSearchTag).fetchSemanticsNodes().isEmpty() }
+        rule.onAllNodesWithTag(BookFeaturedResetTag).assertCountEquals(0)
+    }
+
+    /**
+     * Heirloom draws the whole family as one constellation, nobody at its centre, so "Whose story"
+     * says why it can't do anything there yet - and the hint goes away the moment another template
+     * that does feature somebody is chosen (#248).
+     */
+    @Test
+    fun heirloomExplainsWhyWhoseStoryDoesNothingThereYet() {
+        rule.waitUntil(10_000) { rule.onAllNodesWithTag(TreeBookTag).fetchSemanticsNodes().isNotEmpty() }
+        rule.onNodeWithTag(TreeBookTag).performClick()
+        waitForBook()
+
+        rule.onNodeWithText("Heirloom").performClick()
+        rule.waitUntil(5_000) {
+            rule.onAllNodesWithText("Heirloom doesn't feature one person yet.").fetchSemanticsNodes().isNotEmpty()
+        }
+
+        rule.onNodeWithText("Diwali").performClick()
+        rule.waitUntil(5_000) {
+            rule.onAllNodesWithText("Heirloom doesn't feature one person yet.").fetchSemanticsNodes().isEmpty()
+        }
     }
 }
