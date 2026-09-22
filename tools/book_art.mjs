@@ -14,8 +14,9 @@
  *   - every colour becomes a palette TOKEN through src/papercut/swatches.json, and a colour that is
  *     not a swatch fails the build, naming the file, the element and the colour;
  *   - filter, mask, pattern, image, text, style and class are refused, with the reason;
- *   - `data-anchor` (on the root), `<rect data-zone="text|face|busy">` and a frame's
- *     `data-clip` opening are read into the drawing's metadata and never drawn;
+ *   - `data-anchor` (on the root), `<rect data-zone="text|face|busy">` (named by an optional
+ *     `data-name`) and a frame's `data-clip` opening are read into the drawing's metadata and
+ *     never drawn;
  *   - byte budgets per kind fail the build: avatar 2.5 KB, frame 4 KB, scene 40 KB (and 4 KB for a
  *     motif or an ornament).
  *
@@ -906,7 +907,9 @@ export function compileSvg(src, { file = 'input.svg', id, kind, swatches }) {
       const g = geometry(node);
       if (!g) fail(node, 'an empty zone');
       const [x, y, w, h] = segBBox(mapSegs(g.segs, m));
-      zones.push({ kind, x: r2(x), y: r2(y), w: r2(w), h: r2(h) });
+      const name = node.attrs['data-name'];
+      if (name !== undefined && !ID.test(name)) fail(node, `data-name="${name}" on a zone is not a name a page can ask for: lower case, words joined by single hyphens`);
+      zones.push({ kind, ...(name === undefined ? {} : { name }), x: r2(x), y: r2(y), w: r2(w), h: r2(h) });
       return [];
     }
     if (node.attrs['data-clip'] !== undefined) {

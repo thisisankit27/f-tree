@@ -198,14 +198,16 @@ export function createArt(ctx, library) {
 
     /**
      * The drawing's marked zones (`data-zone` in its source) where a placement puts them, in page
-     * points: `[{ kind: 'text' | 'face' | 'busy', x, y, w, h }]`. Words may sit in a text zone and
-     * never on a busy one; a face zone is where a face would be. Draws nothing.
+     * points: `[{ kind: 'text' | 'face' | 'busy', name?, x, y, w, h }]`. Words may sit in a text
+     * zone and never on a busy one; a face zone is where a face would be. `name` is the source's
+     * `data-name`, for a page that asks for one zone ('title', 'lamps'). Draws nothing.
      */
     zones(id, o = {}) {
       const { a, tf } = layout(id, o);
-      return (a.zones ?? []).map(({ kind, x, y, w, h }) => {
+      return (a.zones ?? []).map(({ kind, name, x, y, w, h }) => {
         const [x0, y0] = apply(tf, x, y), [x1, y1] = apply(tf, x + w, y + h);
-        return { kind, x: r2(Math.min(x0, x1)), y: r2(Math.min(y0, y1)), w: r2(Math.abs(x1 - x0)), h: r2(Math.abs(y1 - y0)) };
+        const box = { x: r2(Math.min(x0, x1)), y: r2(Math.min(y0, y1)), w: r2(Math.abs(x1 - x0)), h: r2(Math.abs(y1 - y0)) };
+        return name === undefined ? { kind, ...box } : { kind, name, ...box };
       });
     },
 
