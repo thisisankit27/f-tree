@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import {
   DEFAULT_OPTIONS, scopeFor, todayIso, formatEstimate,
   decisionAllowance, canSave, decisionMessage, nextBookUsage, bookRequest,
-  pickerGraph, featuresPerson, coverOptions, wordsFor,
+  pickerGraph, featuresPerson, coverOptions,
 } from './book-options.js';
 
 test('DEFAULT_OPTIONS opens on the whole tree, without photos left off or dates widened', () => {
@@ -101,19 +101,6 @@ test('coverOptions never mutates the options object it was given', () => {
   const base = { now: '2026-09-15' };
   coverOptions(base);
   assert.deepEqual(base, { now: '2026-09-15' });
-});
-
-/* ---------------------------------------------------------------------------------------------
- * wordsFor: the Family-words setting, in composeBook's own shape (#249).
- * ------------------------------------------------------------------------------------------- */
-
-test('wordsFor reads Hindi only from an exact "hi", English for everything else', () => {
-  assert.equal(wordsFor({ familyWords: 'hi' }), 'hi');
-  assert.equal(wordsFor({ familyWords: 'en' }), 'en');
-  assert.equal(wordsFor({ familyWords: 'HI' }), 'en'); // not a case-fold, an exact match
-  assert.equal(wordsFor({}), 'en');
-  assert.equal(wordsFor(null), 'en');
-  assert.equal(wordsFor(undefined), 'en');
 });
 
 test('scopeFor is everyone unless a branch was asked for and a person is known', () => {

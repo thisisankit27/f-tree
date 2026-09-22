@@ -33,12 +33,13 @@ import { resolveFeatured } from '../../site/book/story/featured.js';
 import { loadPolicy, decide } from '../../site/book/policy.js';
 import { readCatalog, listing } from '../../site/book/catalog.js';
 import { searchPeople } from '../../site/playground/search.js';
-import { displayName, lifespan, restrictedGraph } from '../../site/playground/model.js';
+import { restrictedGraph } from '../../site/playground/model.js';
+import { searchResultRow } from './search-row.js';
 
 import {
   DEFAULT_OPTIONS, scopeFor, todayIso, formatEstimate,
   decisionAllowance, canSave, decisionMessage, nextBookUsage, bookRequest,
-  pickerGraph, featuresPerson, coverOptions, wordsFor,
+  pickerGraph, featuresPerson, coverOptions,
 } from './book-options.js';
 
 const $ = (id) => document.getElementById(id);
@@ -139,9 +140,14 @@ export function createBook({ shell, hooks }) {
     derivedTitle: '',
     /** The composer's own pick for "Whose story" (`resolveFeatured`), recomputed every recompute. */
     derivedFeaturedId: null,
-    /** The "Whose story" picker: the graph it searches (rebuilt only when the scope changes, not
-     *  per keystroke -- #249's own gotcha), the current matches, and which one the arrow keys sit on. */
-    story: { graph: null, results: [], activeIndex: -1 },
+    /**
+     * The "Whose story" picker. `scopeGraph` is everyone the current scope allows, rebuilt only on
+     * a scope change or reopen -- never per keystroke (#249's own gotcha). `graph` is what
+     * `searchPeople` actually runs against: `scopeGraph` itself, or `scopeGraph` narrowed by the
+     * policy's allowance once one applies, memoized by `allowanceKey` so an unrelated recompute
+     * (a title edit, a photos toggle) never re-derives it for nothing.
+     */
+    story: { scopeGraph: null, graph: null, allowanceKey: undefined, results: [], activeIndex: -1 },
     decision: null,
     book: null,
     photoUrls: new Map(),
@@ -219,9 +225,13 @@ export function createBook({ shell, hooks }) {
    * Rebuilds the graph the picker searches, for the scope as it stands right now, and drops a
    * reader's own pick if the new scope no longer includes them -- a stale `options.featured` would
    * otherwise sit there silently ignored by `resolveFeatured` while the picker kept showing it.
+   * Clears `allowanceKey` too, so the next `recompute()` re-derives `graph` from this fresh
+   * `scopeGraph` rather than trusting a memo taken against the scope this just replaced.
    */
   function refreshStoryGraph() {
-    session.story.graph = pickerGraph(session.doc, session.options, session.scopePersonId);
+    session.story.scopeGraph = pickerGraph(session.doc, session.options, session.scopePersonId);
+    session.story.graph = session.story.scopeGraph;
+    session.story.allowanceKey = undefined;
     if (session.options.featured && !session.story.graph.people.has(session.options.featured)) {
       session.options.featured = null;
     }
@@ -265,19 +275,9 @@ export function createBook({ shell, hooks }) {
       storyResults.append(none);
     } else {
       people.forEach((person, i) => {
-        const li = document.createElement('li');
+        const li = searchResultRow(person, pickStoryPerson);
         li.id = `book-story-option-${i}`;
         li.setAttribute('role', 'option');
-        const button = document.createElement('button');
-        button.type = 'button';
-        const name = document.createElement('span');
-        name.textContent = displayName(person);
-        const dates = document.createElement('span');
-        dates.className = 'row-dates';
-        dates.textContent = lifespan(person) || '';
-        button.append(name, dates);
-        button.addEventListener('click', () => pickStoryPerson(person));
-        li.append(button);
         storyResults.append(li);
       });
     }
@@ -442,7 +442,9 @@ export function createBook({ shell, hooks }) {
         livingDates: session.options.livingDates,
         featured: session.options.featured ?? undefined,
         notes: session.options.notes === true,
-        words: wordsFor(hooks.getSettings()),
+        // settings.js already normalises familyWords to exactly 'hi' or 'en' on every load and
+        // save, so the only case left here is a settings object not read yet.
+        words: hooks.getSettings()?.familyWords ?? 'en',
       };
 
       const request = bookRequest({
@@ -457,14 +459,22 @@ export function createBook({ shell, hooks }) {
       });
       const allowance = decisionAllowance(decision);
 
-      // A Limited decision can trim generations the picker's scope filter above knows nothing
-      // about (`readFamily`'s allowance, applied again for real inside `composeBook` below) -- so
-      // whoever the allowance would cut is dropped from the graph "Whose story" searches, and a
-      // pick that lands on one of them is cleared, before the dialog can show a person as chosen
-      // whom the composed book is about to silently leave out (`resolveFeatured`'s own fallback).
-      if (session.story.graph && Object.keys(allowance).length) {
-        const limited = readFamily(session.doc, { now, scope }, allowance);
-        session.story.graph = restrictedGraph(session.story.graph, new Set(limited.byId.keys()));
+      // A Limited decision can trim generations the picker's scope filter (`session.story.scopeGraph`)
+      // knows nothing about (`readFamily`'s allowance, applied again for real inside `composeBook`
+      // below) -- so whoever the allowance would cut is dropped from the graph "Whose story"
+      // searches, and a pick that lands on one of them is cleared, before the dialog can show a
+      // person as chosen whom the composed book is about to silently leave out (`resolveFeatured`'s
+      // own fallback). Keyed on the allowance itself, always narrowed from the untouched scope
+      // graph rather than chained onto whatever the previous recompute narrowed it to -- switching
+      // templates can change the decision (and so the allowance) without the scope changing, and an
+      // empty allowance (the common case) never calls `readFamily` or `restrictedGraph` at all.
+      const allowanceKey = JSON.stringify(allowance);
+      if (session.story.scopeGraph && session.story.allowanceKey !== allowanceKey) {
+        session.story.graph = Object.keys(allowance).length
+          ? restrictedGraph(session.story.scopeGraph,
+              new Set(readFamily(session.doc, { now, scope }, allowance).byId.keys()))
+          : session.story.scopeGraph;
+        session.story.allowanceKey = allowanceKey;
         if (session.options.featured && !session.story.graph.people.has(session.options.featured)) {
           session.options.featured = null;
           paintStoryValue();
@@ -597,7 +607,9 @@ export function createBook({ shell, hooks }) {
     session.token += 1; // any recompute still in flight is now stale and paints nothing
     session.doc = null;
     session.book = null;
+    session.story.scopeGraph = null;
     session.story.graph = null;
+    session.story.allowanceKey = undefined;
     closeStoryList();
     preview.replaceChildren();
     templatesBox.replaceChildren();

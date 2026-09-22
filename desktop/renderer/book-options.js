@@ -79,11 +79,6 @@ export function coverOptions(baseOptions) {
   return { ...baseOptions, coverOnly: true };
 }
 
-/** The Family-words setting (`desktop/settings.js`), in the shape `composeBook`'s `options.words` expects. */
-export function wordsFor(settings) {
-  return settings?.familyWords === 'hi' ? 'hi' : 'en';
-}
-
 /**
  * Today, as the composer requires it: a local date, never read from inside the composer itself
  * (`docs/family-book.md`'s determinism rule). Local, not UTC -- a book made at 11pm should carry
