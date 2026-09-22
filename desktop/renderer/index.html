@@ -357,6 +357,35 @@
           </div>
         </section>
 
+        <!--
+          Whose story the book is told around (#249, docs/storybook-plan.md). Stays visible on
+          every template, including one like Heirloom that does not build a page around this
+          person yet -- `book-story-hint` says so rather than hiding a control that will start
+          doing something the day #256-258's story pages land.
+
+          An editable combobox (WAI-ARIA "combobox with list autocomplete"): the input carries
+          `role="combobox"` itself rather than wrapping it in a separate element, `book-story-results`
+          is the listbox it owns, and `book.js` keeps `aria-expanded`/`aria-activedescendant` and the
+          options' `aria-selected` in step with the arrow keys, Enter and Escape.
+        -->
+        <section class="prefs-group" id="book-story-group">
+          <h3 class="prefs-heading">Whose story</h3>
+          <div class="book-story-row">
+            <div class="search book-story-picker" id="book-story-picker">
+              <label class="sr-only" for="book-story-input">Whose story</label>
+              <input type="text" id="book-story-input" class="prefs-control book-story-input"
+                     role="combobox" aria-autocomplete="list" aria-expanded="false"
+                     aria-controls="book-story-results" autocomplete="off" spellcheck="false"
+                     placeholder="Search for a person">
+              <ul class="search-results book-story-results" id="book-story-results"
+                  role="listbox" aria-label="People matching your search" hidden></ul>
+            </div>
+            <button type="button" class="btn quiet" id="book-story-reset" hidden>Reset</button>
+          </div>
+          <p class="prefs-note" id="book-story-note"></p>
+          <p class="prefs-note" id="book-story-hint" hidden>Heirloom doesn’t feature one person yet.</p>
+        </section>
+
         <section class="prefs-group">
           <div class="prefs-row">
             <label class="prefs-label" for="book-photos">Photographs</label>
@@ -367,6 +396,14 @@
             <label class="prefs-label" for="book-living-dates">Full dates for living people</label>
             <input type="checkbox" id="book-living-dates" class="prefs-check">
             <p class="prefs-note">When off, living people show only the year they were born.</p>
+          </div>
+          <!-- Off by default, and a checkbox rather than Android's switch: the same deliberate,
+               documented native-idiom difference as Photographs (docs/family-book.md). -->
+          <div class="prefs-row">
+            <label class="prefs-label" for="book-notes">Include notes</label>
+            <input type="checkbox" id="book-notes" class="prefs-check">
+            <p class="prefs-note">Notes are the family’s own words, written for someone in
+              particular — and this book may be forwarded to people you didn’t choose.</p>
           </div>
         </section>
 

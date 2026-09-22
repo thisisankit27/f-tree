@@ -41,6 +41,7 @@ import { planImport, applyImport, ImportRefused } from './import.js';
 import { MatchTier } from './matching.js';
 import { renderBands } from './bands.js';
 import { sentenceFor, unrelatedWording, paintSentence, nameNode, hindiFor } from './relation.js';
+import { searchResultRow } from './search-row.js';
 import { decode, encode, asImageUrl, freeName, squareCrop } from './photo.js';
 import {
   DateProblem, draftFrom, withChange, dateProblems, isDirty, fieldsFrom, isBlankPerson,
@@ -1208,22 +1209,12 @@ function wireRelate() {
       }
 
       for (const person of found) {
-        const li = document.createElement('li');
-        const button = document.createElement('button');
-        button.type = 'button';
-        button.append(nameNode(person));
-        const dates = document.createElement('span');
-        dates.className = 'row-dates';
-        dates.textContent = lifespan(person) || '';
-        button.append(dates);
-        button.addEventListener('click', () => {
-          state[slot === 'a' ? 'relateA' : 'relateB'] = person.id;
-          input.value = displayName(person);
+        list.append(searchResultRow(person, (picked) => {
+          state[slot === 'a' ? 'relateA' : 'relateB'] = picked.id;
+          input.value = displayName(picked);
           list.hidden = true;
           renderRelation();
-        });
-        li.append(button);
-        list.append(li);
+        }));
       }
       list.hidden = false;
     });

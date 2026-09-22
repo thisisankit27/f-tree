@@ -8,6 +8,8 @@
  * rather than trusting a screenshot to notice a reducer that quietly stopped clearing a field.
  */
 
+import { buildGraph, branchFrom, restrictedGraph } from '../../site/playground/model.js';
+
 /** What the dialog opens with, before anything is read from the tree. */
 export const DEFAULT_OPTIONS = Object.freeze({
   templateId: null,
@@ -16,6 +18,10 @@ export const DEFAULT_OPTIONS = Object.freeze({
   scopeKind: 'everyone',
   photos: true,
   livingDates: false,
+  /** `null` means "let the composer pick" (`site/book/story/featured.js`); a string is a reader's own choice. */
+  featured: null,
+  /** Off by default: a note is the family's own words, and this book may be forwarded (`family.js`). */
+  notes: false,
 });
 
 /**
@@ -29,6 +35,48 @@ export function scopeFor(options, branchPersonId) {
   return options.scopeKind === 'branch' && branchPersonId
     ? { kind: 'branch', personId: branchPersonId }
     : { kind: 'everyone' };
+}
+
+/**
+ * The graph the "Whose story" picker searches over: everyone in the file, or -- once scope narrows
+ * the book to a branch -- exactly the people that branch would put in it. The same cut
+ * `site/book/family.js` makes for the composer itself (`branchFrom` + `restrictedGraph`), so the
+ * picker never offers somebody the book would leave out, and never a stale answer once the reader
+ * flips "Who's in it".
+ *
+ * Built once per scope, not once per keystroke: `searchPeople` (`site/playground/search.js`) only
+ * reads the graph it is given, so the caller is what decides how often this runs, and the book
+ * dialog rebuilds it only when the document or the scope changes (`book.js`'s own gotcha, #249).
+ */
+export function pickerGraph(doc, options, branchPersonId) {
+  const graph = buildGraph(doc);
+  const scope = scopeFor(options, branchPersonId);
+  return scope.kind === 'branch' && graph.people.has(scope.personId)
+    ? restrictedGraph(graph, branchFrom(graph, scope.personId))
+    : graph;
+}
+
+/**
+ * Whether a template tells its story around one person.
+ *
+ * A format-2 storybook template does -- the featured person is who the pages are built for
+ * (#256-258). A format-1 template like Heirloom does not yet: `composeBook` resolves a featured
+ * person for every template (`site/book/story/featured.js`) but nothing in a format-1 book reads
+ * it, so the dialog says so rather than let the picker sit there appearing to do nothing.
+ */
+export function featuresPerson(template) {
+  return template?.format === 2;
+}
+
+/**
+ * The options a template chip's own cover needs -- the same request, stopped at the first page.
+ *
+ * `composeBook`'s `coverOnly` (`site/book/compose.js`) is what makes this cheap: without it, every
+ * chip nobody has picked still composes its whole book on every debounced keystroke, which is fine
+ * at Heirloom's ten-odd pages and is not at the storybook's twenty-something (#249's own gotcha).
+ */
+export function coverOptions(baseOptions) {
+  return { ...baseOptions, coverOnly: true };
 }
 
 /**

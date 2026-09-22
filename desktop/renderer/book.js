@@ -29,12 +29,17 @@
 import { composeBook, estimateBytes } from '../../site/book/compose.js';
 import { paintPage, fitText } from '../../site/book/svg.js';
 import { readFamily } from '../../site/book/family.js';
+import { resolveFeatured } from '../../site/book/story/featured.js';
 import { loadPolicy, decide } from '../../site/book/policy.js';
 import { readCatalog, listing } from '../../site/book/catalog.js';
+import { searchPeople } from '../../site/playground/search.js';
+import { restrictedGraph } from '../../site/playground/model.js';
+import { searchResultRow } from './search-row.js';
 
 import {
   DEFAULT_OPTIONS, scopeFor, todayIso, formatEstimate,
   decisionAllowance, canSave, decisionMessage, nextBookUsage, bookRequest,
+  pickerGraph, featuresPerson, coverOptions,
 } from './book-options.js';
 
 const $ = (id) => document.getElementById(id);
@@ -94,7 +99,7 @@ async function resolvePhotoUrls(photoSpecs, personById, photoBytes) {
  *   getDocument()                the open tree, in the exchange shape `composeBook` reads
  *   personName(id)                a person's display name, for "Who's in it" and the toast
  *   photoBytes(path)              => bytes for a stored photo path, or null
- *   getSettings()                 the settings object last read, for `bookUsage`
+ *   getSettings()                 the settings object last read, for `bookUsage` and Family words
  *   setBookUsage(next)             writes it back through the one path every setting takes
  *   onSaved(fileName, path)       a save just finished; the page shows its own toast
  */
@@ -107,9 +112,16 @@ export function createBook({ shell, hooks }) {
   const titleReset = $('book-title-reset');
   const whoGroup = $('book-who-group');
   const whoBox = $('book-who');
+  const storyPicker = $('book-story-picker');
+  const storyInput = $('book-story-input');
+  const storyResults = $('book-story-results');
+  const storyReset = $('book-story-reset');
+  const storyNote = $('book-story-note');
+  const storyHint = $('book-story-hint');
   const photosCheck = $('book-photos');
   const photosNote = $('book-photos-note');
   const livingCheck = $('book-living-dates');
+  const notesCheck = $('book-notes');
   const decisionNote = $('book-decision');
   const status = $('book-status');
   const saveButton = $('book-save');
@@ -126,6 +138,16 @@ export function createBook({ shell, hooks }) {
     /** What the picker offers, worked out from the catalogue each time the dialog opens (it may be a new day). */
     templates: [],
     derivedTitle: '',
+    /** The composer's own pick for "Whose story" (`resolveFeatured`), recomputed every recompute. */
+    derivedFeaturedId: null,
+    /**
+     * The "Whose story" picker. `scopeGraph` is everyone the current scope allows, rebuilt only on
+     * a scope change or reopen -- never per keystroke (#249's own gotcha). `graph` is what
+     * `searchPeople` actually runs against: `scopeGraph` itself, or `scopeGraph` narrowed by the
+     * policy's allowance once one applies, memoized by `allowanceKey` so an unrelated recompute
+     * (a title edit, a photos toggle) never re-derives it for nothing.
+     */
+    story: { scopeGraph: null, graph: null, allowanceKey: undefined, results: [], activeIndex: -1 },
     decision: null,
     book: null,
     photoUrls: new Map(),
@@ -163,8 +185,11 @@ export function createBook({ shell, hooks }) {
     if (flag) status.textContent = label;
     else if (status.textContent === 'Making your book…') status.textContent = '';
     for (const el of templatesBox.querySelectorAll('button')) el.disabled = flag;
-    for (const el of [titleInput, titleReset, photosCheck, livingCheck]) el.disabled = flag;
+    for (const el of [titleInput, titleReset, photosCheck, livingCheck, storyInput, storyReset, notesCheck]) {
+      el.disabled = flag;
+    }
     for (const el of whoBox.querySelectorAll('button')) el.disabled = flag;
+    if (flag) closeStoryList();
     paintSaveState();
   }
 
@@ -192,6 +217,102 @@ export function createBook({ shell, hooks }) {
     for (const button of whoBox.querySelectorAll('button')) {
       button.setAttribute('aria-pressed', String(button.dataset.scope === session.options.scopeKind));
     }
+  }
+
+  /* -------------------------------------------------------- whose story: an accessible combobox */
+
+  /**
+   * Rebuilds the graph the picker searches, for the scope as it stands right now, and drops a
+   * reader's own pick if the new scope no longer includes them -- a stale `options.featured` would
+   * otherwise sit there silently ignored by `resolveFeatured` while the picker kept showing it.
+   * Clears `allowanceKey` too, so the next `recompute()` re-derives `graph` from this fresh
+   * `scopeGraph` rather than trusting a memo taken against the scope this just replaced.
+   */
+  function refreshStoryGraph() {
+    session.story.scopeGraph = pickerGraph(session.doc, session.options, session.scopePersonId);
+    session.story.graph = session.story.scopeGraph;
+    session.story.allowanceKey = undefined;
+    if (session.options.featured && !session.story.graph.people.has(session.options.featured)) {
+      session.options.featured = null;
+    }
+    closeStoryList();
+  }
+
+  function closeStoryList() {
+    session.story.results = [];
+    session.story.activeIndex = -1;
+    storyResults.hidden = true;
+    storyResults.replaceChildren();
+    storyInput.setAttribute('aria-expanded', 'false');
+    storyInput.removeAttribute('aria-activedescendant');
+  }
+
+  /** Keeps `aria-selected` on the options and `aria-activedescendant` on the input in step with
+   *  `session.story.activeIndex`, the one piece of state the arrow keys and a mouse hover both move. */
+  function updateStoryActiveDescendant() {
+    const options = storyResults.querySelectorAll('li[role="option"]');
+    options.forEach((li, i) => li.setAttribute('aria-selected', String(i === session.story.activeIndex)));
+    const active = session.story.activeIndex >= 0 ? options[session.story.activeIndex] : null;
+    if (active) storyInput.setAttribute('aria-activedescendant', active.id);
+    else storyInput.removeAttribute('aria-activedescendant');
+  }
+
+  function moveStoryActive(delta) {
+    const n = session.story.results.length;
+    if (!n) return;
+    session.story.activeIndex = (session.story.activeIndex + delta + n) % n;
+    updateStoryActiveDescendant();
+  }
+
+  function paintStoryResults(people) {
+    session.story.results = people;
+    session.story.activeIndex = people.length ? 0 : -1;
+    storyResults.replaceChildren();
+    if (!people.length) {
+      const none = document.createElement('li');
+      none.className = 'row-none';
+      none.textContent = 'Nobody by that name in this scope.';
+      storyResults.append(none);
+    } else {
+      people.forEach((person, i) => {
+        const li = searchResultRow(person, pickStoryPerson);
+        li.id = `book-story-option-${i}`;
+        li.setAttribute('role', 'option');
+        storyResults.append(li);
+      });
+    }
+    storyResults.hidden = false;
+    storyInput.setAttribute('aria-expanded', 'true');
+    updateStoryActiveDescendant();
+  }
+
+  function pickStoryPerson(person) {
+    session.options.featured = person.id;
+    closeStoryList();
+    paintStoryValue();
+    scheduleRecompute();
+  }
+
+  /**
+   * The input's value, the Reset button and the "Chosen for you" note, kept in step with whether
+   * the reader has overridden the composer's own choice -- the same derived-value/Reset pattern
+   * `titleInput`/`titleReset` use above, applied to a person instead of a string.
+   */
+  function paintStoryValue() {
+    const overridden = session.options.featured !== null;
+    const activeId = overridden ? session.options.featured : session.derivedFeaturedId;
+    const name = activeId ? hooks.personName(activeId) : null;
+    storyInput.value = name ?? '';
+    storyReset.hidden = !overridden;
+    storyNote.hidden = overridden || !name;
+    storyNote.textContent = name ? `Chosen for you: ${name}` : '';
+  }
+
+  /** "Heirloom doesn’t feature one person yet." -- shown while the selected template is format 1
+   *  (`book-options.js`'s `featuresPerson`), so the picker never looks broken on a template that
+   *  simply has no page built around it yet (#256-258). */
+  function paintStoryHint(entry) {
+    storyHint.hidden = featuresPerson(entry?.template);
   }
 
   /** The template chips, each with a mini cover painted from page 0 of that template's own book. */
@@ -306,12 +427,24 @@ export function createBook({ shell, hooks }) {
       if (session.options.titleOverride === null) titleInput.value = session.derivedTitle;
       titleReset.hidden = session.options.titleOverride === null;
 
+      // The same "what would the composer pick" question `resolveFeatured` answers for real
+      // (`site/book/story/featured.js`), asked with no override so "Whose story" always has a
+      // default to show and to reset back to, exactly as the title field does above.
+      session.derivedFeaturedId = resolveFeatured(probe, { scope });
+      paintStoryHint(entry);
+      paintStoryValue();
+
       const baseOptions = {
         now,
         scope,
         title: session.options.titleOverride ?? undefined,
         photos: session.options.photos,
         livingDates: session.options.livingDates,
+        featured: session.options.featured ?? undefined,
+        notes: session.options.notes === true,
+        // settings.js already normalises familyWords to exactly 'hi' or 'en' on every load and
+        // save, so the only case left here is a settings object not read yet.
+        words: hooks.getSettings()?.familyWords ?? 'en',
       };
 
       const request = bookRequest({
@@ -326,6 +459,28 @@ export function createBook({ shell, hooks }) {
       });
       const allowance = decisionAllowance(decision);
 
+      // A Limited decision can trim generations the picker's scope filter (`session.story.scopeGraph`)
+      // knows nothing about (`readFamily`'s allowance, applied again for real inside `composeBook`
+      // below) -- so whoever the allowance would cut is dropped from the graph "Whose story"
+      // searches, and a pick that lands on one of them is cleared, before the dialog can show a
+      // person as chosen whom the composed book is about to silently leave out (`resolveFeatured`'s
+      // own fallback). Keyed on the allowance itself, always narrowed from the untouched scope
+      // graph rather than chained onto whatever the previous recompute narrowed it to -- switching
+      // templates can change the decision (and so the allowance) without the scope changing, and an
+      // empty allowance (the common case) never calls `readFamily` or `restrictedGraph` at all.
+      const allowanceKey = JSON.stringify(allowance);
+      if (session.story.scopeGraph && session.story.allowanceKey !== allowanceKey) {
+        session.story.graph = Object.keys(allowance).length
+          ? restrictedGraph(session.story.scopeGraph,
+              new Set(readFamily(session.doc, { now, scope }, allowance).byId.keys()))
+          : session.story.scopeGraph;
+        session.story.allowanceKey = allowanceKey;
+        if (session.options.featured && !session.story.graph.people.has(session.options.featured)) {
+          session.options.featured = null;
+          paintStoryValue();
+        }
+      }
+
       const book = composeBook(session.doc, baseOptions, template, allowance);
       const personById = new Map(session.doc.people.map((p) => [p.id, p]));
       const photoUrls = book.photos.length
@@ -335,13 +490,16 @@ export function createBook({ shell, hooks }) {
 
       // Every template's own mini cover, painted from the same options so the picker shows the
       // reader's own family rather than a stock thumbnail (docs/family-book.md). A template that
-      // fails to compose loses only its own chip's cover, not the dialog.
+      // fails to compose loses only its own chip's cover, not the dialog. `coverOptions` stops
+      // each non-selected template at its own first page (`compose.js`'s `coverOnly`) rather than
+      // composing the whole book just to throw away everything after page one.
       const covers = new Map();
+      const coverBaseOptions = coverOptions(baseOptions);
       for (const other of session.templates) {
         try {
           const coverBook = other.id === entry.id
             ? book
-            : composeBook(session.doc, baseOptions, other.template, allowance);
+            : composeBook(session.doc, coverBaseOptions, other.template, allowance);
           covers.set(other.id, paintPage(coverBook, 0, {
             photo: () => null, font: (key) => key, idPrefix: `tpl-${other.id}-`,
           }));
@@ -423,10 +581,14 @@ export function createBook({ shell, hooks }) {
       scopeKind: scopePersonId ? 'branch' : 'everyone',
     };
     session.error = null;
+    session.derivedFeaturedId = null;
+    refreshStoryGraph();
 
     paintWho();
     photosCheck.checked = session.options.photos;
     livingCheck.checked = session.options.livingDates;
+    notesCheck.checked = session.options.notes;
+    storyHint.hidden = true;
     decisionNote.hidden = true;
     status.textContent = '';
     preview.replaceChildren();
@@ -445,6 +607,10 @@ export function createBook({ shell, hooks }) {
     session.token += 1; // any recompute still in flight is now stale and paints nothing
     session.doc = null;
     session.book = null;
+    session.story.scopeGraph = null;
+    session.story.graph = null;
+    session.story.allowanceKey = undefined;
+    closeStoryList();
     preview.replaceChildren();
     templatesBox.replaceChildren();
   });
@@ -471,7 +637,11 @@ export function createBook({ shell, hooks }) {
     button.addEventListener('click', () => {
       if (session.options.scopeKind === button.dataset.scope) return;
       session.options.scopeKind = button.dataset.scope;
+      // The scope just changed who "Whose story" may offer at all -- rebuild before anything else
+      // touches the picker, so a stale search never outlives the scope it was run against.
+      refreshStoryGraph();
       paintWho();
+      paintStoryValue();
       scheduleRecompute();
     });
   }
@@ -483,6 +653,69 @@ export function createBook({ shell, hooks }) {
   livingCheck.addEventListener('change', () => {
     session.options.livingDates = livingCheck.checked;
     scheduleRecompute();
+  });
+  notesCheck.addEventListener('change', () => {
+    session.options.notes = notesCheck.checked;
+    scheduleRecompute();
+  });
+
+  /*
+   * "Whose story": an editable combobox over `searchPeople` (`site/playground/search.js`), built to
+   * the WAI-ARIA "combobox with list autocomplete" pattern -- `role="combobox"` on the input itself
+   * rather than a wrapping element, `aria-expanded`/`aria-activedescendant` kept in step with the
+   * highlighted option, arrow keys move the highlight, Enter picks it, Escape closes the list
+   * without touching the dialog underneath it.
+   */
+  storyInput.addEventListener('input', () => {
+    const query = storyInput.value.trim();
+    if (!query || !session.story.graph) { closeStoryList(); return; }
+    paintStoryResults(searchPeople(session.story.graph, query, 8));
+  });
+
+  storyInput.addEventListener('keydown', (event) => {
+    if (event.key === 'ArrowDown') {
+      event.preventDefault();
+      if (storyResults.hidden) {
+        const query = storyInput.value.trim();
+        if (query && session.story.graph) paintStoryResults(searchPeople(session.story.graph, query, 8));
+      } else {
+        moveStoryActive(1);
+      }
+    } else if (event.key === 'ArrowUp') {
+      if (!storyResults.hidden) { event.preventDefault(); moveStoryActive(-1); }
+    } else if (event.key === 'Enter') {
+      if (!storyResults.hidden && session.story.activeIndex >= 0) {
+        event.preventDefault();
+        const person = session.story.results[session.story.activeIndex];
+        if (person) pickStoryPerson(person);
+      }
+    } else if (event.key === 'Escape' && !storyResults.hidden) {
+      // Closes the list only. A second Escape reaches the dialog's own Escape-to-cancel, same as
+      // it would from any other field in this dialog.
+      event.preventDefault();
+      event.stopPropagation();
+      closeStoryList();
+    }
+  });
+
+  // A blur that lands back inside this control -- typically a click on one of its own option
+  // buttons -- is not "the reader left the field", so only a focus that actually leaves closes it.
+  // `paintStoryValue` puts the input's text back in step with the real selection: leaving behind a
+  // typed query that was never picked (no match wanted, or the reader just moved on) must not go
+  // on looking like a choice the composer never actually made.
+  storyPicker.addEventListener('focusout', (event) => {
+    if (!storyPicker.contains(event.relatedTarget)) {
+      closeStoryList();
+      paintStoryValue();
+    }
+  });
+
+  storyReset.addEventListener('click', () => {
+    session.options.featured = null;
+    closeStoryList();
+    paintStoryValue();
+    scheduleRecompute();
+    storyInput.focus();
   });
 
   return { open, close, get isOpen() { return dialog.open; } };

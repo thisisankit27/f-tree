@@ -2244,6 +2244,33 @@
 
 .editor .book-who { margin: 0 20px 16px; }
 
+/*
+ * "Whose story" reuses playground.css's `.search`/`.search-results` (the same rows the top bar's
+ * own search and the relation finder's pickers use), narrowed to the options column's width and
+ * given a Reset button beside it, the same row shape `.book-title-row` uses above.
+ */
+.editor .book-story-row { display: flex; align-items: flex-start; gap: 10px; padding: 0 20px 6px; }
+
+.editor .book-story-picker { flex: 1; min-width: 0; }
+/* `.editor .book-story-picker input` outranks playground.css's `.search input` (both a class and
+   an element there), which would otherwise keep this dialog's search box in the top bar's pill
+   shape rather than the rest of this dialog's `.prefs-control` fields. */
+.editor .book-story-picker input {
+  width: 100%;
+  font-family: var(--serif);
+  font-size: 15px;
+  border-radius: 8px;
+}
+.editor .book-story-results { max-height: 220px; }
+/* The row the arrow keys are on, exactly as `.search-results button:hover`/`:focus-visible`
+   (playground.css) mark the one a mouse is over -- keyboard and mouse need the same tell, since
+   Enter picks whichever one `aria-selected` names, not whichever one the pointer happens to sit on. */
+.editor .book-story-results li[aria-selected='true'] button { background: var(--bone-dim); }
+
+.editor .book-story-row .btn { margin-top: 1px; }
+
+.editor #book-story-group .prefs-note { margin: 0 20px 16px; }
+
 .editor .book-decision {
   margin: 0 20px 16px;
   padding: 10px 14px;
