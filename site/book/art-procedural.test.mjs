@@ -193,6 +193,17 @@ test('toran hangs a leaf at every slot and a marigold at every other one, more o
   assert.equal(book.format, 2, 'a toran uses the mango-leaf and marigold symbols, so it must declare format 2');
 });
 
+test('toran alternates leaf and leafDeep by tint, at no extra symbol cost (round 2)', () => {
+  const { art } = kit();
+  const t = toran(art, P, 0, 300, 0, 'seed');
+  // op is only ever set on a shadow use (art/draw.js SHADOW.op); the un-shadowed, tinted leaf
+  // itself carries no op, so this excludes the ink-filled shadow copies from the fill check.
+  const leafFills = usesIn(t).filter((u) => u.ref === 'pc-mango-leaf' && u.op === undefined).map((u) => u.fill);
+  assert.ok(leafFills.length > 0);
+  assert.ok(leafFills.every((f) => f === P.leaf || f === P.leafDeep));
+  assert.ok(new Set(leafFills).size === 2, 'both leaf and leafDeep should appear');
+});
+
 test('toran hangs nothing across a span too short for even one leaf', () => {
   const { art } = kit();
   assert.equal(toran(art, P, 10, 10.2, 0, 'seed'), null);
@@ -211,12 +222,12 @@ test('the toran\'s sag scales with the span, not the flower size (round 1: 0.35w
   assert.ok(Math.abs(dipOf(toran(art, P, 0, 500, 0, 'x')) - 500 * 0.03) < 1);
 });
 
-test('a full page-width toran stays within its measured budget', () => {
+test('a full page-width toran (round 2: densely overlapped leaves) stays within its measured budget', () => {
   const { art, defs } = kit();
   const t = toran(art, P, 40, PAGE.w - 40, 40, 'header');
   const book = bookOf([t], defs, art);
   const spent = cost(book);
-  assert.ok(spent < 200_000, `a page-width toran grew from ~157 KB to ${Math.round(spent)} - update the budget comment if this is intended`);
+  assert.ok(spent < 380_000, `a page-width toran grew from ~330 KB to ${Math.round(spent)} - update the budget comment if this is intended`);
 });
 
 // -------------------------------------------------------------------------------------------

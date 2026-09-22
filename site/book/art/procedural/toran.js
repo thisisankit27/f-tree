@@ -12,10 +12,11 @@
  *
  * Budget: each leaf and flower is placed with its paper shadow (a second `use` of the same
  * symbol), and neither symbol carries a gradient, so the cost is bytes and translucent layers
- * only. Measured (art-procedural.test.mjs) at a full page width (about 41 leaves and flowers at
- * the default spacing): roughly 157 KB of estimated PDF bytes by compose.js's artTerm. A page
- * that hangs more than one toran should budget for this per toran, the same way it would for any
- * other art.
+ * only. Measured (art-procedural.test.mjs) at a full page width, densely overlapped as the
+ * approved frame draws it (round 2: about 116 leaves and 58 flowers at the default 0.7 gap):
+ * roughly 330 KB of estimated PDF bytes by compose.js's artTerm - more than double round 1's
+ * sparser spacing. A page that hangs more than one toran should budget for this per toran, the
+ * same way it would for any other art.
  *
  * Composer-path code: deterministic only through seed.js's seeded().
  */
@@ -29,15 +30,16 @@ import { seeded } from '../seed.js';
  *   P     the template's resolved palette (`ctx.P`), for the cord's own colour.
  *   seed  the one source of variety between two torans - never the page number.
  *   size  a leaf's width in page points (13 by default); the marigolds are drawn a little smaller.
- *   gap   spacing between leaves, as a multiple of `size`: a wider door gets more leaves, never
- *         bigger ones.
+ *   gap   spacing between leaves, as a multiple of `size` - 0.7 by default so leaves overlap
+ *         densely, as the approved frame draws them: a wider door gets more leaves, never bigger
+ *         ones.
  *   sag   how far the cord dips at its centre, as a fraction of the span - about 0.03 reads as a
  *         hung cord; 0 draws it straight. (Round 1: 0.35 of a flower's width read as a wobbly
  *         straight line rather than a dip, because it didn't scale with the span.)
  * Returns one group item (the cord, every leaf and every other slot's marigold, each with its
  * paper shadow), or `null` for a span too short to hang even one leaf.
  */
-export function toran(art, P, x1, x2, y, seed, { size = 13, gap = 1.5, sag = 0.03 } = {}) {
+export function toran(art, P, x1, x2, y, seed, { size = 13, gap = 0.7, sag = 0.03 } = {}) {
   const span = x2 - x1;
   if (Math.abs(span) < size * 0.5) return null;
   const rand = seeded(seed);
@@ -63,7 +65,9 @@ export function toran(art, P, x1, x2, y, seed, { size = 13, gap = 1.5, sag = 0.0
     // n is always >= 1 here (the Math.max above), so i / n never divides by zero.
     const [lx, ly] = at(i / n);
     const leafSize = size * (0.86 + 0.24 * ((i % 3) / 2));
-    items.push(art.place('mango-leaf', { x: lx, y: ly, w: leafSize, flip: i % 2 ? 'x' : undefined, shadow }));
+    // alternate leaf/leafDeep with a tint - free (no new symbol or bytes beyond the use's own
+    // fill), and matches the approved reference's own alternation (style-frames/motifs.mjs).
+    items.push(art.place('mango-leaf', { x: lx, y: ly, w: leafSize, flip: i % 2 ? 'x' : undefined, shadow, tint: i % 2 ? 'leafDeep' : 'leaf' }));
   }
   for (let i = 0; i <= n; i += 2) {
     const [mx, my] = at(i / n);
