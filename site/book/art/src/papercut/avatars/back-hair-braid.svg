@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" data-anchor="bottom-center">
+<desc>A girl's single braid down her back, tied with a ribbon. A cut shared by the heroes seen from behind (motifs.mjs backBust(), #240). Original f-tree work, MIT.</desc>
+<path d="M36.28 43.16C34.46 38.57 33.01 29.11 35.55 25.1C38.09 21.09 46.23 18.99 51.5 19.08C56.77 19.17 64.69 21.6 67.16 25.62C69.63 29.63 68.05 38.66 66.29 43.16C64.53 47.66 59.89 51.04 56.58 52.62C53.26 54.2 49.81 54.2 46.43 52.62C43.04 51.04 38.09 47.75 36.28 43.16Z" fill="#2a1a33"/>
+<path d="M51.5 50.04Q54 70 50.5 88" fill="none" stroke="#2a1a33" stroke-width="6" stroke-linecap="round" stroke-dasharray="3.6 1"/>
+<circle cx="50.5" cy="91" r="2.2" fill="#d6336c"/>
+</svg>

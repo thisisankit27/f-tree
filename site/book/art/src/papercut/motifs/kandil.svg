@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -2 60 72" data-anchor="top-center">
+<desc>An akash kandil: the star-cut paper lantern hung at Diwali, lit from inside, its paper tails below. From motifs.mjs kandil() (#240). Original f-tree work, MIT.</desc>
+<path d="M30 -2L30 9.6" fill="none" stroke="#f2b84b" stroke-width="0.8"/>
+<circle cx="30" cy="22" r="30" fill="#f2b84b" opacity="0.05"/>
+<circle cx="30" cy="22" r="25.2" fill="#f2b84b" opacity="0.06"/>
+<circle cx="30" cy="22" r="20.4" fill="#f2b84b" opacity="0.07"/>
+<circle cx="30" cy="22" r="15.6" fill="#f2b84b" opacity="0.09"/>
+<circle cx="30" cy="22" r="10.8" fill="#f2b84b" opacity="0.1"/>
+<path d="M23.6 30.4Q22 44.4 24.24 58.4" fill="none" stroke="#f2a71b" stroke-width="1.4" stroke-linecap="round"/>
+<path d="M26.8 30.4Q28.4 43.4 26.16 56.4" fill="none" stroke="#d6336c" stroke-width="1.4" stroke-linecap="round"/>
+<path d="M30 30.4Q28.4 49.4 30.64 68.4" fill="none" stroke="#e8762b" stroke-width="1.4" stroke-linecap="round"/>
+<path d="M33.2 30.4Q34.8 42.4 32.56 54.4" fill="none" stroke="#d6336c" stroke-width="1.4" stroke-linecap="round"/>
+<path d="M36.4 30.4Q34.8 44.9 37.04 59.4" fill="none" stroke="#f2a71b" stroke-width="1.4" stroke-linecap="round"/>
+<defs><polygon id="star" points="30,8.98 33.21,13.85 38.77,12.79 37.76,18.62 42.4,22 37.76,25.38 38.77,31.21 33.21,30.15 30,35.02 26.79,30.15 21.23,31.21 22.24,25.38 17.6,22 22.24,18.62 21.23,12.79 26.79,13.85" fill="#d6336c"/></defs>
+<use href="#star" fill="#2a1a33" opacity="0.25" x="1.3" y="1.8"/>
+<use href="#star"/>
+<polygon points="30,14.84 31.77,17.52 34.82,16.94 34.27,20.14 36.82,22 34.27,23.86 34.82,27.06 31.77,26.48 30,29.16 28.23,26.48 25.18,27.06 25.73,23.86 23.18,22 25.73,20.14 25.18,16.94 28.23,17.52" fill="#ffe7a6" opacity="0.92"/>
+<circle cx="30" cy="22" r="2.4" fill="#f2a71b"/>
+<polygon points="27.2,9.2 32.8,9.2 31.6,6.8 28.4,6.8" fill="#f2a71b"/>
+</svg>

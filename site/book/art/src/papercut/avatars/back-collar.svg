@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" data-anchor="bottom-center">
+<desc>The nape, a card collar with its gold edge and its shadow, and the folds of the back. A cut shared by the heroes seen from behind (motifs.mjs backBust(), #240). Original f-tree work, MIT.</desc>
+<defs><path id="collar" d="M38 59.5Q50 55 62 59.5L63 63Q50 59.5 37 63Z" fill="#fff8ec"/></defs>
+<path d="M19 67C17 80 14 90 13 100M81 67C83 80 86 90 87 100" fill="none" stroke="#2a1a33" stroke-width="0.8" opacity="0.3"/>
+<polygon points="42.5,50 57.5,50 59,60 41,60" fill="#b97a52"/>
+<use href="#collar" fill="#2a1a33" opacity="0.2" x="0.8" y="1.1"/>
+<use href="#collar"/>
+<path d="M37 63Q50 59.5 63 63" fill="none" stroke="#f2b84b" stroke-width="0.8"/>
+</svg>

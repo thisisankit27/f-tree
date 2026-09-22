@@ -32,6 +32,13 @@ export const SYMBOL_PREFIX = 'pc-';
 export const SHADOW = Object.freeze({ dx: 1.7, dy: 2.3, op: 0.22, colour: 'ink' });
 const SOFT = [[3, 0.35], [2, 0.3], [1, 0.45]];
 
+/**
+ * Drawings that mean a person has died: the mala hung on a departed person's frame. A garland on a
+ * living person's portrait reads as a death omen, and the art cannot know who is alive, so placing
+ * one takes an explicit `{ departed: true }` from the page that does know.
+ */
+export const DEPARTED_ONLY = Object.freeze(new Set(['mala-departed']));
+
 const ANCHOR_X = { left: 0, center: 0.5, right: 1 };
 const ANCHOR_Y = { top: 0, center: 0.5, bottom: 1 };
 
@@ -174,9 +181,11 @@ export function createArt(ctx, library) {
      *           to override any part of SHADOW. Offsets are page points, not drawing units.
      *   tint    a palette token: the whole drawing in that one colour (silhouette mode).
      *   op      one opacity over the whole drawing, as a layer.
+     *   departed  true: required to place a drawing in DEPARTED_ONLY (the departed's mala).
      * Returns one item: a `use`, or with a shadow a group of the shadow's uses and the drawing's.
      */
     place(id, o = {}) {
+      if (DEPARTED_ONLY.has(id) && o.departed !== true) throw new Error(`art: "${id}" is only for a person who has died - pass { departed: true } once the record says so, and never place it by a living person's portrait`);
       const items = layers(id, layout(id, o).tf, o);
       return items.length === 1 ? items[0] : group(items);
     },

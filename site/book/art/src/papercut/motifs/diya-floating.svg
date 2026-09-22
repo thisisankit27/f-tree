@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-18 0 80 76" data-anchor="center">
+<desc>A diya afloat on a leaf boat (dona), its light laid across the ripples. From motifs.mjs floatingDiya() (#240). Original f-tree work, MIT.</desc>
+<path d="M26.4 54Q34.56 51.2 40 54Q45.44 56.8 53.6 54" fill="none" stroke="#f2b84b" stroke-width="2.4" stroke-linecap="round" opacity="0.45"/>
+<path d="M30.4 70Q36.16 67.2 40 70Q43.84 72.8 49.6 70" fill="none" stroke="#f2b84b" stroke-width="2.4" stroke-linecap="round" opacity="0.2"/>
+<g data-asset="diya-glow" transform="matrix(0.8 0 0 0.8 4 6)"/>
+<path d="M-14 34.8Q20 54.8 58 30.8Q24 42 -14 34.8Z" fill="#2f5a2a"/>
+<path d="M-8 35.6Q20 47.6 52 32.4" fill="none" stroke="#5a8a3c" stroke-width="2"/>
+<g data-asset="diya-small" transform="matrix(0.8 0 0 0.8 4 6)"/>
+</svg>

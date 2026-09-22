@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" data-anchor="center">
+<desc>The medallion ground behind a bust: warm card fading to paperDeep. A cut shared by the front busts (motifs.mjs bust(), #240). Original f-tree work, MIT.</desc>
+<defs><radialGradient id="g" gradientUnits="userSpaceOnUse" cx="50" cy="38" r="64"><stop offset="0" stop-color="#fff8ec"/><stop offset="1" stop-color="#ead7b5"/></radialGradient></defs>
+<rect x="-2" y="-2" width="104" height="104" fill="url(#g)"/>
+</svg>

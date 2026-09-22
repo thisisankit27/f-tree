@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -4 44 42" data-anchor="top-left">
+<desc>A Sanjhi band, one tile two scallops wide, laid end to end along a page's head: one colour of paper, keri (mango) and lotus shapes punched through it with the even-odd rule, so the shadow shows through the holes. Tint it to the band's colour. From motifs.mjs laceBand() (#240). Original f-tree work, MIT.</desc>
+<path d="M0 -4L44 -4L44 28C41.8 37.24 24.2 37.24 22 28C19.8 37.24 2.2 37.24 0 28ZM5.72 18.16C5.72 13.76 12.76 13.32 15.84 16.84Q17.6 18.6 14.96 18.6C12.1 22.12 5.72 22.56 5.72 18.16ZM10.45 17.94A0.99 0.99 0 1 1 8.47 17.94A0.99 0.99 0 1 1 10.45 17.94ZM29.4 14.62C31.47 15.21 32.96 16.89 32.19 17.61C31.42 18.33 29.85 16.73 29.4 14.62ZM33 13.32C34.11 15.17 34.06 17.41 33 17.41C31.94 17.41 31.89 15.17 33 13.32ZM36.6 14.62C36.15 16.73 34.58 18.33 33.81 17.61C33.04 16.89 34.53 15.21 36.6 14.62ZM29.48 19.92Q33 22.12 36.52 19.92Q33 20.8 29.48 19.92ZM23.32 26.9A1.32 1.32 0 1 1 20.68 26.9A1.32 1.32 0 1 1 23.32 26.9Z" fill="#b5562a" fill-rule="evenodd"/>
+</svg>

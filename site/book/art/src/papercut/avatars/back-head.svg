@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" data-anchor="bottom-center">
+<desc>The back of a head and both ears: nothing of a face. A cut shared by the heroes seen from behind (motifs.mjs backBust(), #240). Original f-tree work, MIT.</desc>
+<defs><ellipse id="ear" cx="37.44" cy="40.06" rx="2.47" ry="4.13" fill="#b97a52"/></defs>
+<use href="#ear" fill="#2a1a33" opacity="0.15" x="0.8" y="1.1"/>
+<use href="#ear"/>
+<use href="#ear" fill="#2a1a33" opacity="0.15" x="28.93" y="1.1"/>
+<use href="#ear" x="28.13"/>
+<ellipse cx="51.5" cy="38" rx="14.5" ry="17.2" fill="#b97a52"/>
+</svg>

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" data-anchor="bottom-center">
+<desc>Hair drawn back into a low bun, from behind. A cut shared by the heroes seen from behind (motifs.mjs backBust(), #240). Original f-tree work, MIT.</desc>
+<defs><ellipse id="bun" cx="51.5" cy="50.9" rx="6.38" ry="6.19" fill="#2a1a33"/></defs>
+<path d="M36.13 44.88C34.44 40.01 32.99 28.54 35.55 24.24C38.11 19.94 46.23 18.94 51.5 19.08C56.77 19.22 64.69 20.94 67.16 25.1C69.63 29.26 67.93 39.29 66.29 44.02C64.65 48.75 60.73 51.9 57.3 53.48C53.87 55.06 49.23 54.91 45.7 53.48C42.17 52.05 37.82 49.75 36.13 44.88Z" fill="#2a1a33"/>
+<path d="M48.6 20.46Q40.63 32.84 47.88 47.46" fill="none" stroke="#fff8ec" stroke-width="0.6" opacity="0.16"/>
+<use href="#bun" fill="#2a1a33" opacity="0.25" x="0.7" y="1.2"/>
+<use href="#bun"/>
+</svg>

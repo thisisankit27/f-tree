@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" data-anchor="center">
+<desc>A faceless paper-cut bust of a person whose record gives no gender, as a child (variant a: leafDeep and rani). Built from the shared bust-* cuts; converted from motifs.mjs bust() (#240). Original f-tree work, MIT.</desc>
+<rect data-zone="face" x="34.82" y="34" width="30.36" height="32.8"/>
+<g data-asset="bust-ground"/>
+<g data-asset="bust-shoulders" transform="translate(1.2 1.6) matrix(0.78 0 0 1 11 0)" fill="#2a1a33" opacity="0.2"/>
+<g data-asset="bust-shoulders" transform="matrix(0.78 0 0 1 11 0)" fill="#2f5a2a"/>
+<g data-asset="bust-print" transform="matrix(0.78 0 0 1 11 0)"/>
+<g data-asset="bust-collar" transform="matrix(0.78 0 0 1 11 0)"/>
+<g data-asset="bust-shawl" transform="translate(0.9 1.3) matrix(0.78 0 0 1 11 0)" fill="#2a1a33" opacity="0.18"/>
+<g data-asset="bust-shawl" transform="matrix(0.78 0 0 1 11 0)" fill="#d6336c"/>
+<g data-asset="bust-shawl-border" transform="matrix(0.78 0 0 1 11 0)"/>
+<g data-asset="bust-head" transform="matrix(1.15 0 0 1.025 -7.5 2.02)"/>
+<g data-asset="bust-hair-crop" transform="translate(0.4 1) matrix(1.15 0 0 1.025 -7.5 2.02)" fill="#2a1a33" opacity="0.25"/>
+<g data-asset="bust-hair-crop" transform="matrix(1.15 0 0 1.025 -7.5 2.02)"/>
+</svg>

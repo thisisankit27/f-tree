@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 44 46" data-anchor="bottom-center">
+<desc>Lamplight round a diya's flame: stacked translucent discs, which a PDF draws with plain alpha, never a soft mask. Original f-tree work, MIT.</desc>
+<circle cx="40" cy="17.2" r="50" fill="#f2b84b" opacity="0.03"/>
+<circle cx="40" cy="17.2" r="45" fill="#f2b84b" opacity="0.04"/>
+<circle cx="40" cy="17.2" r="40" fill="#f2b84b" opacity="0.04"/>
+<circle cx="40" cy="17.2" r="35" fill="#f2b84b" opacity="0.05"/>
+<circle cx="40" cy="17.2" r="30" fill="#f2b84b" opacity="0.05"/>
+<circle cx="40" cy="17.2" r="25" fill="#f2b84b" opacity="0.06"/>
+<circle cx="40" cy="17.2" r="20" fill="#f2b84b" opacity="0.07"/>
+<circle cx="40" cy="17.2" r="15" fill="#f2b84b" opacity="0.07"/>
+<circle cx="40" cy="17.2" r="10" fill="#f2b84b" opacity="0.08"/>
+</svg>

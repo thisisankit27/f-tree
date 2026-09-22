@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" data-anchor="center">
+<desc>A kurta placket: a fold line and three gold buttons (one dotted stroke). A cut shared by the front busts (motifs.mjs bust(), #240). Original f-tree work, MIT.</desc>
+<path d="M50 76L50 96" fill="none" stroke="#2a1a33" stroke-width="0.5" opacity="0.35"/>
+<path d="M51.6 80L51.6 91.2" fill="none" stroke="#f2b84b" stroke-width="1.92" stroke-linecap="round" stroke-dasharray="0.01 5.6"/>
+</svg>

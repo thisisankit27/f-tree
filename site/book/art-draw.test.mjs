@@ -199,12 +199,19 @@ test('the seeded art places, shadows and frames into a book that validates and p
   ];
   const book = bookOf(items, art, defs);
   assert.deepEqual(validateBook(book), []);
-  assert.deepEqual(Object.keys(book.symbols), ['pc-arch-jharokha', 'pc-diya', 'pc-marigold']);
+  assert.deepEqual(Object.keys(book.symbols), ['pc-arch-jharokha', 'pc-diya', 'pc-diya-bowl', 'pc-diya-flame', 'pc-diya-glow', 'pc-diya-small', 'pc-marigold'], 'the diya brings the cuts it shares with the other lamps');
   assert.equal(book.format, 2);
   assert.match(paint(book), /<svg/);
   const { symbols } = LIBRARY;
   assert.equal(symbols['arch-jharokha'].kind, 'frame');
   assert.ok(symbols['arch-jharokha'].clip && symbols['arch-jharokha'].opening);
+});
+
+test('the departed\'s mala is placed only when the page says the person has died', () => {
+  const art = artFor({ P, gradient: (id) => ({ ref: id }) });
+  assert.throws(() => art.place('mala-departed', { x: 0, y: 0 }), /"mala-departed" is only for a person who has died - pass \{ departed: true \}/);
+  assert.throws(() => art.place('mala-departed', { x: 0, y: 0, departed: 'yes' }), /only for a person who has died/);
+  assert.equal(art.place('mala-departed', { x: 0, y: 0, departed: true }).ref, 'pc-mala-departed');
 });
 
 test('seeded() in art/seed.js is the generator blocks/art.js always used', () => {

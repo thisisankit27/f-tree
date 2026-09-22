@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 44 46" data-anchor="bottom-center">
+<desc>The lamp kept for a name not known: the app's own mark, a dashed bowl, and still lit. From motifs.mjs diya({ unknown }) (#240). Original f-tree work, MIT.</desc>
+<g data-asset="diya-glow"/>
+<g data-asset="diya-bowl" transform="translate(1.2 2)" fill="#2a1a33" opacity="0.22"/>
+<g data-asset="diya-bowl"/>
+<path d="M0 30C2 42 14 44.4 20 44.4C28.8 44.4 36.8 38 43.2 26.8" fill="none" stroke="#f2b84b" stroke-width="2" stroke-dasharray="3.6 2.8"/>
+<g data-asset="diya-flame"/>
+</svg>

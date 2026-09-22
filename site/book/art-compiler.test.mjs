@@ -214,6 +214,29 @@ test('what a <use> draws inherits the <use>\'s paint, one part per inherited pai
   refuses(svg('<defs><path id="Leaf" d="M0 0L1 1" fill="#fff8ec"/><path id="leaf" d="M0 0L2 2" fill="#fff8ec"/></defs><use href="#Leaf"/><use href="#leaf"/>'), /both become the part fx--leaf/);
 });
 
+test('a fill on a <use> or a <g data-asset> is a silhouette: one part, the shadow and the shape share it', () => {
+  // the hair, its paper shadow (the same shape, offset, in ink) and a silver copy: one part, three uses
+  const c = compile(svg('<defs><path id="hair" d="M0 0L4 0 4 4Z" fill="#2a1a33"/></defs>'
+    + '<use href="#hair" fill="#2a1a33" opacity="0.22" x="0.5" y="0.75"/><use href="#hair"/><use href="#hair" fill="#d9d2ca" x="9"/>'
+    + '<g data-asset="marigold" fill="#5a8a3c" transform="translate(20 0)"/>'));
+  assert.deepEqual(Object.keys(c.symbols).sort(), ['fx', 'fx--hair']);
+  assert.deepEqual(c.symbols.fx.items, [
+    { t: 'use', ref: 'fx--hair', tf: [1, 0, 0, 1, 0.5, 0.75], fill: 'ink', op: 0.22 },
+    { t: 'use', ref: 'fx--hair', tf: [1, 0, 0, 1, 0, 0] },
+    { t: 'use', ref: 'fx--hair', tf: [1, 0, 0, 1, 9, 0], fill: 'silver' },
+    { t: 'use', ref: 'marigold', tf: [1, 0, 0, 1, 20, 0], fill: 'leaf' },
+  ]);
+  // a shape with no fill of its own takes the silhouette's as its part's colour, once
+  const bare = compile(svg('<defs><path id="cloth" d="M0 0L4 0 4 4Z"/></defs><use href="#cloth" fill="#3b4a8c"/><use href="#cloth" fill="#0f7b7a" x="5"/>'));
+  assert.deepEqual(bare.symbols['fx--cloth'].items, [{ t: 'path', d: 'M0 0L4 0 4 4Z', fill: 'indigo' }]);
+  assert.deepEqual(bare.symbols.fx.items.map((u) => [u.ref, u.fill]), [['fx--cloth', 'indigo'], ['fx--cloth', 'peacock']]);
+  // a part compiled with no paint at all is no outline for a silhouette to reuse
+  const clear = compile(svg('<defs><path id="cloth" d="M0 0L4 0 4 4Z"/></defs><g fill="transparent" stroke="#2a1a33"><use href="#cloth"/></g><g stroke="#2a1a33"><use href="#cloth" fill="#3b4a8c"/></g>'));
+  assert.deepEqual(clear.symbols.fx.items.map((u) => u.ref), ['fx--cloth', 'fx--cloth-2']);
+  refuses(svg('<defs><path id="p" d="M0 0L1 1Z"/></defs><use href="#p" fill="none"/>'), /fill="none" on a <use> is a silhouette colour/);
+  refuses(svg('<g data-asset="diya" fill="#123456"/>'), /the silhouette fill #123456 is not a swatch/);
+});
+
 test('nothing an author sets is silently dropped: opacity, clips on placed drawings, zero strokes', () => {
   refuses(svg('<rect width="1" height="1" fill="#fff8ec"/>', 'viewBox="0 0 1 1" opacity="0.3"'), /opacity on the <svg> is not read/);
   refuses(svg('<symbol id="s" opacity="0.3"><rect width="1" height="1" fill="#fff8ec"/></symbol><use href="#s"/>'), /opacity on the <symbol> is not read/);

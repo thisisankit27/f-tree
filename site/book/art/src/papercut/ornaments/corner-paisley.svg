@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" data-anchor="top-left">
+<desc>A corner ornament: a paisley (kairi) cut with a punched eye, a marigold heart in it, and dotted gold borders running along the two edges. Flip it for the other corners. Original f-tree work, MIT.</desc>
+<defs><path id="p" d="M0 11C12.1 11 13.2 -4.4 4.4 -9.9C1.1 -12.1 -1.1 -17.6 -4.4 -20.9C-6.6 -13.2 -12.1 -7.7 -11 0C-9.9 6.6 -5.5 11 0 11ZM4.4 2.2A4.4 4.4 0 1 0 -4.4 2.2A4.4 4.4 0 1 0 4.4 2.2Z" fill="#d6336c" fill-rule="evenodd"/></defs>
+<path d="M5 62L5 5L62 5" fill="none" stroke="#f2b84b" stroke-width="1.8" stroke-linecap="round" stroke-dasharray="0.01 4.6"/>
+<path d="M11 50L11 16Q11 11 16 11L50 11" fill="none" stroke="#e8762b" stroke-width="1.1" stroke-linecap="round" stroke-dasharray="0.01 3.3"/>
+<path d="M17 40Q17 17 40 17" fill="none" stroke="#d6336c" stroke-width="2.2" stroke-linecap="round" stroke-dasharray="0.01 5"/>
+<use href="#p" transform="translate(26.4 27.4) rotate(-45)" fill="#2a1a33" opacity="0.2"/>
+<use href="#p" transform="translate(25 25.5) rotate(-45)"/>
+<circle cx="26.56" cy="27.06" r="1.98" fill="#f2a71b"/>
+</svg>

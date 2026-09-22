@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" data-anchor="center">
+<desc>The neck and a V collar with its gold border. A cut shared by the front busts (motifs.mjs bust(), #240). Original f-tree work, MIT.</desc>
+<rect x="45.2" y="56.8" width="9.6" height="11.5" fill="#b97a52"/>
+<polygon points="44,68 50,76 56,68" fill="#b97a52"/>
+<path d="M43.2 68L50 76.96L56.8 68" fill="none" stroke="#f2b84b" stroke-width="1.12" stroke-linejoin="round"/>
+</svg>
