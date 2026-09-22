@@ -6,7 +6,8 @@
  *
  * Writes, per scene:
  *   <id>.png         the scene alone, at twice page size;
- *   <id>-150.png     the same at 150 px wide, the size a chat app shows a cover at;
+ *   <id>-150.png     the same at 150 px wide, the size a chat app shows a cover at, and
+ *   <id>-copy-150.png that thumbnail with the sample copy and lamps set, as the page will be;
  *   <id>-zones.png   the scene with its zones outlined, the sample copy set in its text zones, and
  *                    stand-in lamps where the page would float them - what a page will look like;
  * then sheet.png, every scene side by side, to judge page-to-page variety, and it prints each
@@ -30,7 +31,7 @@ import { SRC_DIR } from './book_art.mjs';
 const PALETTE = Object.fromEntries(Object.entries(JSON.parse(readFileSync(path.join(SRC_DIR, 'swatches.json'), 'utf8')).swatches).map(([hex, token]) => [token, hex]));
 
 /** One page: the scene, and with `annotate` its zones, the sample copy and stand-in lamps. */
-export function scenePage(id, { annotate = false } = {}) {
+export function scenePage(id, { annotate = false, outline = true } = {}) {
   const defs = {};
   const art = artFor({ P: PALETTE, gradient: (gid, def) => { defs[gid] = def; return { ref: gid }; } });
   const at = { x: 0, y: 0, w: PAGE.w };
@@ -46,7 +47,7 @@ export function scenePage(id, { annotate = false } = {}) {
         items.push(art.place('diya', { x: lamps.x + lamps.w * (0.2 + 0.6 * rand()), y: lamps.y + Math.pow(t, 1.5) * lamps.h, w: 6 + Math.pow(t, 1.6) * 40 }));
       }
     }
-    for (const z of zones) {
+    for (const z of outline ? zones : []) {
       const colour = z.kind === 'text' ? '#1e90ff' : z.kind === 'face' ? '#22aa44' : '#e0303a';
       items.push(pathItem(`M${z.x} ${z.y}L${z.x + z.w} ${z.y}L${z.x + z.w} ${z.y + z.h}L${z.x} ${z.y + z.h}Z`, { stroke: colour, sw: 1, dash: [4, 3] }));
       items.push(text(z.x + 3, z.y + 9, `${z.kind}${z.name ? `: ${z.name}` : ''}`, 'book_text', 7, colour));
@@ -88,6 +89,7 @@ export async function review(out, ids) {
       await shoot(plain, path.join(out, `${id}.png`), PAGE.w, 2);
       await shoot(plain, path.join(out, `${id}-150.png`), 150, 1);
       await shoot(svgOf(scenePage(id, { annotate: true }), `${id}-z-`), path.join(out, `${id}-zones.png`), PAGE.w, 2);
+      await shoot(svgOf(scenePage(id, { annotate: true, outline: false }), `${id}-c-`), path.join(out, `${id}-copy-150.png`), 150, 1);
       const c = sceneCost(id);
       console.log(`  ${id}: ${c.json} B compiled, art term ${c.pdf} B (${JSON.stringify(c.stats)})`);
     }

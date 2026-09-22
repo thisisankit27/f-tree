@@ -32,6 +32,7 @@ import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
+import { execFileSync } from 'node:child_process';
 
 import { resample, wobble, ellipsePts } from '../site/book/art/style-frames/kit.mjs';
 import { seeded } from '../site/book/art/seed.js';
@@ -606,8 +607,8 @@ function aangan() {
   sc.zone('busy', 'houses', 30, top - 10, W - 60, floor - top + 60);
   sc.zone('busy', 'toran-left', 155 - 70, floor - 170, 140, 30);
   sc.zone('busy', 'toran-right', 440 - 70, floor - 170, 140, 30);
-  sc.zone('busy', 'aala-left', 44, floor - 100, 60, 90);
-  sc.zone('busy', 'aala-right', 334, floor - 100, 212, 90);
+  // the wall either side of each door, where a page cuts an aala for a name not known
+  for (const [k, x] of [['left-1', 46], ['left-2', 222], ['right-1', 330], ['right-2', 507]]) sc.zone('busy', `aala-${k}`, x, floor - 100, 44, 90);
   sc.zone('busy', 'figure', 205, floor - 30, 60, 50);
   sc.zone('face', 'household-left', 40, 434, 240, 120);
   sc.zone('face', 'household-right', 316, 434, 240, 120);
@@ -682,6 +683,7 @@ function haveliLane() {
         sc.path(String(d().M(cx - 14, -146).L(cx + 14, -146).L(cx + 16, -141).Q(cx + 11, -138, cx + 7, -141).Q(cx + 2, -138, cx - 2, -141).Q(cx - 7, -138, cx - 11, -141).Q(cx - 14, -139, cx - 16, -141).Z()), { fill: 'card' });
       }
       // the door: a pointed arch in a card frame, and a plain board above it for a nameplate
+      sc.rect(40, -88, 60, 14, { fill: 'card' });
       sc.path(arch(49, -70, 42, 70), { fill: 'card' });
       sc.path(line(70, -50, 70, 0), { stroke: 'ink', sw: 0.6, op: 0.4 });
       sc.path(dots([[60, -38], [60, -28], [60, -18], [80, -38], [80, -28], [80, -18]]), { stroke: 'gold', sw: 2.4, cap: 'round' });
@@ -724,7 +726,7 @@ function haveliLane() {
   sc.zone('busy', 'doors', 10, base - 74, W - 20, 74);
   sc.zone('text', 'footer', 60, 740, W - 120, 30);
   [[14, 142], [156, 140], [296, 146], [442, 140]].forEach(([x, w], i) => {
-    sc.zone('text', `plate-${i + 1}`, x + w / 2 - 34, base - 104, 68, 14);
+    sc.zone('text', `plate-${i + 1}`, x + (w * 40) / 140, base - 88, (w * 60) / 140, 14);
     sc.zone('text', `house-${i + 1}`, x + 4, 614, w - 8, 118);
     sc.zone('busy', `doorstep-${i + 1}`, x + w / 2 - 36, base, 72, 34);
   });
@@ -887,6 +889,8 @@ async function main(argv) {
   const at = argv.indexOf('--review');
   if (at >= 0) {
     if (!argv[at + 1]) throw new Error('--review needs an output directory');
+    // the review paints the compiled library, so compile what was just written first
+    execFileSync(process.execPath, [path.join(here, 'book_art.mjs')], { stdio: 'inherit' });
     const { review } = await import('./book_scene_review.mjs');
     await review(argv[at + 1], Object.keys(SCENES));
   }

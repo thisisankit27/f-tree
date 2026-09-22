@@ -30,8 +30,10 @@
 <rect data-zone="busy" data-name="houses" x="30" y="122" width="535" height="300"/>
 <rect data-zone="busy" data-name="toran-left" x="85" y="202" width="140" height="30"/>
 <rect data-zone="busy" data-name="toran-right" x="370" y="202" width="140" height="30"/>
-<rect data-zone="busy" data-name="aala-left" x="44" y="272" width="60" height="90"/>
-<rect data-zone="busy" data-name="aala-right" x="334" y="272" width="212" height="90"/>
+<rect data-zone="busy" data-name="aala-left-1" x="46" y="272" width="44" height="90"/>
+<rect data-zone="busy" data-name="aala-left-2" x="222" y="272" width="44" height="90"/>
+<rect data-zone="busy" data-name="aala-right-1" x="330" y="272" width="44" height="90"/>
+<rect data-zone="busy" data-name="aala-right-2" x="507" y="272" width="44" height="90"/>
 <rect data-zone="busy" data-name="figure" x="205" y="342" width="60" height="50"/>
 <rect data-zone="face" data-name="household-left" x="40" y="434" width="240" height="120"/>
 <rect data-zone="face" data-name="household-right" x="316" y="434" width="240" height="120"/>
