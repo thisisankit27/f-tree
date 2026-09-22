@@ -34,6 +34,8 @@ art/
    - Mark where text may sit with `<rect data-zone="text">`, and where it must never sit with
      `data-zone="busy"`.
    - Mark a face's area with `data-zone="face"`.
+   - Name a zone a page will ask for with `data-name` (`<rect data-zone="busy" data-name="lamps" …/>`);
+     `art.zones()` returns the name with the box.
    - Put the anchor on the root element: `data-anchor="bottom-center"`.
 4. **Budgets.**
    - After compiling: an avatar ≤ 2.5 KB, a frame ≤ 4 KB, a scene ≤ 40 KB.
@@ -106,6 +108,27 @@ Coordinates are rounded to 0.01, and the output is byte-for-byte deterministic.
 and its gradients (not its viewBox, anchor, zones or opening). Avatar 2.5 KB, frame 4 KB, scene
 40 KB, motif or ornament 4 KB. A curve sampled into hundreds of `L` segments is the usual reason a
 drawing runs over; draw it as a few cubics.
+
+## Scenes
+
+The six scenes (#254) are drawn in code, by `tools/book_scenes.mjs`, because their look is the
+style frames' procedural one (seeded wobble, scattered stars, rows of windows). Edit that file and
+rerun it, then `node tools/book_art.mjs`; never edit `src/papercut/scenes/*.svg` by hand.
+Each is a full page (`viewBox 0 0 595 842`, anchored top-left) with named zones:
+
+| scene | chapter | zones a page uses |
+|---|---|---|
+| `ghat-night` | cover | text `title`, `credit`; busy `lamps` (one floating diya per person), `figures`, `toran`, `far-bank` |
+| `banyan` | roots | text `title`, `story`; face `root-1`…`root-6` (ancestors' medallions, eldest highest) |
+| `aangan` | two courtyards | text `title`, `left`, `right`, `note`; face `household-left/right`; busy `aala-left/right`, `toran-*`, `figure` |
+| `haveli-lane` | our lane | text `title`, `plate-1…4`, `house-1…4`, `footer`; busy `roofs`, `doors`, `doorstep-1…4` |
+| `remembrance-night` | still to be found | text `title`, `names`, `closing`; busy `niches` (an aala per name not known), `rangoli` |
+| `closing-sky` | closing | text `title`, `missing`, `qr`, `credit`; busy `town` |
+
+Scenes count nobody: lamps, figures, frames, torans and rangoli are placed by the pages.
+`site/book/qa/scene-copy.mjs` holds the copy each text zone must fit, and
+`FTREE_PLAYWRIGHT=… node tools/book_scenes.mjs --review <dir>` renders every scene, its zones and a
+150 px thumbnail through svg.js.
 
 ## Placing art on a page
 
