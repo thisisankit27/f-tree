@@ -71,9 +71,13 @@ export const PAPERCUT_PALETTE_KEYS = [
 /** The chapters every paper-cut template must carry, whatever else it adds around them. */
 export const REQUIRED_CHAPTERS = ['cover', 'opening', 'register', 'closing'];
 
-/** `copy` and cover text may only interpolate these - anything else is refused, not skipped. */
-const PLACEHOLDERS = new Set(['featured', 'featured-first', 'family', 'n', 'year']);
-const PLACEHOLDER = /\{([^{}]*)\}/g;
+/**
+ * `copy` and cover text may only interpolate these - anything else is refused, not skipped.
+ * Exported so copy.js (#252) fills placeholders with the same names and the same token syntax
+ * this schema validates against, rather than a second parser that could drift from this one.
+ */
+export const PLACEHOLDERS = new Set(['featured', 'featured-first', 'family', 'n', 'year']);
+export const PLACEHOLDER = /\{([^{}]*)\}/g;
 
 const ART_KINDS = ['papercut'];
 
