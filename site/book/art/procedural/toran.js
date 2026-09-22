@@ -54,8 +54,8 @@ export function toran(art, P, x1, x2, y, seed, { w = 13, gap = 1.55, sag = 0.35 
   const shrink = w / 13;
   const shadow = { dx: 1.7 * shrink, dy: 2.3 * shrink, op: 0.22 };
   for (let i = 0; i <= n; i++) {
-    const t = n === 0 ? 0.5 : i / n;
-    const [mx, my] = at(t);
+    // n is always >= 1 here (the Math.max above), so i / n never divides by zero.
+    const [mx, my] = at(i / n);
     const jitter = (rand() - 0.5) * w * 0.12;
     const size = w * (0.86 + 0.24 * ((i % 3) / 2));
     items.push(art.place('marigold', { x: mx, y: my + jitter, w: size, shadow }));
