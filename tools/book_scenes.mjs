@@ -260,7 +260,7 @@ function ghatNight() {
     sc.circle(W / 2, horizon, 400, { fill: sc.rad(W / 2, horizon, 400, [[0, 'saffron', 0.36], [0.4, 'rani', 0.12], [1, 'rani', 0]]) });
     stars(sc, 'ghat-night', { x: 0, y: 70, w: W, h: 330 }, 150, { avoid: title });
     const lantern = lanternPart(sc), lit = lanternPart(sc, { halo: true });
-    for (const [x, y, s] of [[60, 384, 7], [548, 250, 8.5], [528, 322, 5], [72, 420, 5], [396, 118, 3.8], [206, 104, 3.4], [452, 398, 4.2]]) sc.use(s > 6 ? lit : lantern, { x, y, s: s / 10 });
+    for (const [x, y, s] of [[60, 384, 7], [520, 362, 8.5], [528, 322, 5], [72, 420, 5], [396, 118, 3.8], [206, 104, 3.4], [452, 398, 4.2]]) sc.use(s > 6 ? lit : lantern, { x, y, s: s / 10 });
   });
 
   sc.layer('far-bank', () => {
@@ -466,8 +466,10 @@ function banyan() {
     sc.path(line(162, ground + 4, 434, ground + 4) + line(206, ground - 12, 390, ground - 12), { stroke: 'card', sw: 1.6 });
     sc.path(line(172, ground + 15, 424, ground + 15), { stroke: 'clay', sw: 0.8, dash: [18, 3] });
     // a swing hung from a low root, nobody on it
-    sc.path('M548 352L549 590M580 346L579 590', { stroke: 'clay', sw: 1.2 });
-    sc.cut('swing', poly([[540, 588], [588, 588], [586, 596], [542, 596]]), { fill: 'peacock' }, { dx: 1.2, dy: 1.8, op: 0.25 });
+    // hung from a low bough of the right pillar root, inside the page's safe margin
+    sc.path('M484 520Q520 510 556 516', { stroke: 'clay', sw: 3, cap: 'round' });
+    sc.path('M508 516L509 590M544 514L543 590', { stroke: 'clay', sw: 1.2 });
+    sc.cut('swing', poly([[500, 588], [552, 588], [550, 596], [502, 596]]), { fill: 'peacock' }, { dx: 1.2, dy: 1.8, op: 0.25 });
   });
 
   sc.layer('canopy', () => {
