@@ -206,7 +206,8 @@ function stars(sc, seed, box, count, { avoid, colour = 'flame' } = {}) {
   const small = [], big = [], spark = [];
   for (let i = 0; i < count; i++) {
     const x = box.x + rand() * box.w, y = box.y + Math.pow(rand(), 1.25) * box.h, k = rand();
-    if (avoid && x > avoid.x && x < avoid.x + avoid.w && y > avoid.y && y < avoid.y + avoid.h && k < 0.7) continue;
+    // never in a text zone, with room for a sparkle's points: words sit on plain sky
+    if (avoid && x > avoid.x - 6 && x < avoid.x + avoid.w + 6 && y > avoid.y - 6 && y < avoid.y + avoid.h + 6) continue;
     (k > 0.965 ? spark : k > 0.8 ? big : small).push([x, y]);
   }
   sc.path(dots(small), { stroke: colour, sw: 1.1, cap: 'round', op: 0.45 });
@@ -259,7 +260,7 @@ function ghatNight() {
     sc.circle(W / 2, horizon, 400, { fill: sc.rad(W / 2, horizon, 400, [[0, 'saffron', 0.36], [0.4, 'rani', 0.12], [1, 'rani', 0]]) });
     stars(sc, 'ghat-night', { x: 0, y: 70, w: W, h: 330 }, 150, { avoid: title });
     const lantern = lanternPart(sc), lit = lanternPart(sc, { halo: true });
-    for (const [x, y, s] of [[120, 356, 7], [482, 236, 8.5], [528, 322, 5], [72, 420, 5], [396, 118, 3.8], [206, 104, 3.4], [452, 398, 4.2]]) sc.use(s > 6 ? lit : lantern, { x, y, s: s / 10 });
+    for (const [x, y, s] of [[60, 384, 7], [548, 250, 8.5], [528, 322, 5], [72, 420, 5], [396, 118, 3.8], [206, 104, 3.4], [452, 398, 4.2]]) sc.use(s > 6 ? lit : lantern, { x, y, s: s / 10 });
   });
 
   sc.layer('far-bank', () => {
@@ -465,8 +466,8 @@ function banyan() {
     sc.path(line(162, ground + 4, 434, ground + 4) + line(206, ground - 12, 390, ground - 12), { stroke: 'card', sw: 1.6 });
     sc.path(line(172, ground + 15, 424, ground + 15), { stroke: 'clay', sw: 0.8, dash: [18, 3] });
     // a swing hung from a low root, nobody on it
-    sc.path('M150 386L152 590M196 384L194 590', { stroke: 'clay', sw: 1.2 });
-    sc.cut('swing', poly([[140, 588], [206, 588], [204, 596], [142, 596]]), { fill: 'peacock' }, { dx: 1.2, dy: 1.8, op: 0.25 });
+    sc.path('M548 352L549 590M580 346L579 590', { stroke: 'clay', sw: 1.2 });
+    sc.cut('swing', poly([[540, 588], [588, 588], [586, 596], [542, 596]]), { fill: 'peacock' }, { dx: 1.2, dy: 1.8, op: 0.25 });
   });
 
   sc.layer('canopy', () => {
@@ -607,8 +608,9 @@ function aangan() {
   sc.zone('busy', 'houses', 30, top - 10, W - 60, floor - top + 60);
   sc.zone('busy', 'toran-left', 155 - 70, floor - 170, 140, 30);
   sc.zone('busy', 'toran-right', 440 - 70, floor - 170, 140, 30);
-  // the wall either side of each door, where a page cuts an aala for a name not known
-  for (const [k, x] of [['left-1', 46], ['left-2', 222], ['right-1', 330], ['right-2', 507]]) sc.zone('busy', `aala-${k}`, x, floor - 100, 44, 90);
+  // the right house's wall either side of its door, where a page cuts an aala for a name not known
+  // (frame 3: the left house carries mandana rosettes there)
+  for (const [k, x] of [['right-1', 330], ['right-2', 507]]) sc.zone('busy', `aala-${k}`, x, floor - 100, 44, 90);
   sc.zone('busy', 'figure', 205, floor - 30, 60, 50);
   sc.zone('face', 'household-left', 40, 434, 240, 120);
   sc.zone('face', 'household-right', 316, 434, 240, 120);
@@ -631,7 +633,9 @@ function haveliLane() {
   const base = 560;
   sc.layer('sky', () => {
     sc.rect(0, 0, W, H, { fill: 'paper' });
-    sc.rect(0, 120, W, base - 120, { fill: sc.lin(0, 120, 0, base, [[0, 'paper'], [0.4, 'sky'], [0.75, 'dayHaze'], [1, 'dayMid']]) });
+    // frame 4's dusk: sky, then saffron light going rose toward the roofs
+    sc.rect(0, 0, W, base, { fill: sc.lin(0, 0, 0, base, [[0, 'sky'], [0.55, 'marigold', 0.55], [1, 'rani', 0.5]]) });
+    sc.rect(0, 0, W, 200, { fill: sc.lin(0, 0, 0, 200, [[0, 'paper'], [1, 'paper', 0]]) });
     const bird = birdPart(sc, 'inkSoft');
     for (const [x, y, s] of [[300, 90, 0.6], [318, 80, 0.45], [336, 96, 0.5]]) sc.use(bird, { x, y, s });
     // two kites, their strings running down toward the roofs
@@ -742,12 +746,12 @@ function haveliLane() {
  */
 function remembranceNight() {
   const sc = new Scene('remembrance-night', 'Still to be found: a courtyard wall under the night sky and the floor before it. The page cuts an aala for each name not known in the niches zone.');
-  const wy = 250, wb = 630;
+  const wy = 250, wb = 630, title = { x: 60, y: 58, w: W - 120, h: 86 };
   sc.layer('sky', () => {
     sc.rect(0, 0, W, wy + 20, { fill: sc.lin(0, 0, 0, wy + 20, [[0, 'deep'], [1, 'night']]) });
-    stars(sc, 'remember', { x: 0, y: 24, w: W, h: 220 }, 120, { avoid: { x: 60, y: 60, w: W - 120, h: 90 } });
+    stars(sc, 'remember', { x: 0, y: 24, w: W, h: 220 }, 120, { avoid: title });
     const lantern = lanternPart(sc), lit = lanternPart(sc, { halo: true });
-    for (const [x, y, s] of [[96, 180, 6], [480, 150, 7], [410, 214, 4.5], [170, 226, 4]]) sc.use(s > 5 ? lit : lantern, { x, y, s: s / 10 });
+    for (const [x, y, s] of [[96, 180, 6], [512, 190, 7], [410, 214, 4.5], [170, 226, 4]]) sc.use(s > 5 ? lit : lantern, { x, y, s: s / 10 });
   });
 
   sc.layer('wall', () => {
@@ -765,16 +769,16 @@ function remembranceNight() {
       band.push(i % 2 ? ring(cx, cy, 2.2) : String(d().M(cx - 6, cy).C(cx - 6, cy - 5, cx + 2, cy - 5.5, cx + 5.5, cy - 1.5).Q(cx + 7.5, cy + 0.5, cx + 4.5, cy + 0.5).C(cx + 1.2, cy + 4.5, cx - 6, cy + 5, cx - 6, cy).Z()));
     }
     sc.path(band.join(''), { fill: 'haze', rule: 'evenodd' });
-    // the wall's courses, faint, and its plinth
-    sc.path(line(-6, wy + 150, W + 6, wy + 150) + line(-6, wy + 290, W + 6, wy + 290), { stroke: 'night', sw: 1, op: 0.5 });
+    // the wall is plain, as frame 6 has it; only its plinth
     sc.cut('plinth', poly([[-10, wb - 18], [W + 10, wb - 18], [W + 10, wb], [-10, wb]]), { fill: 'haze' }, { dx: 0, dy: 2, op: 0.4, colour: 'deep' });
   });
 
   sc.layer('floor', () => {
     sc.cut('floor', bandFrom([[-10, wb], [W + 10, wb]], H + 10, 0.8, 'rfloor'), { fill: sc.lin(0, wb, 0, H, [[0, 'dusk'], [0.5, 'haze'], [1, 'glow']]) }, { dx: 0, dy: -1.5, op: 0.45, colour: 'deep', soft: true });
     let t = '';
-    for (let i = 0; i < 16; i++) t += line(W / 2 + (i - 7.5) * 30, wb, W / 2 + (i - 7.5) * 70, H);
-    sc.path(t, { stroke: 'glow', sw: 0.7, op: 0.5 });
+    // the floor's joints only at the foot, clear of the words above
+    for (let i = 0; i < 16; i++) t += line(W / 2 + (i - 7.5) * 56, 772, W / 2 + (i - 7.5) * 70, H);
+    sc.path(t, { stroke: 'glow', sw: 0.7, op: 0.35 });
     const rand = seeded('remember-petals');
     const pet = [[], []];
     for (let i = 0; i < 14; i++) { const x = 30 + rand() * (W - 60); if (x > 190 && x < 410) continue; pet[i % 2].push([x, 772 + rand() * 50]); }
@@ -782,7 +786,7 @@ function remembranceNight() {
     sc.path(dots(pet[1]), { stroke: 'marigold', sw: 3.8, cap: 'round' });
   });
 
-  sc.zone('text', 'title', 60, 58, W - 120, 86);
+  sc.zone('text', 'title', title.x, title.y, title.w, title.h);
   sc.zone('busy', 'niches', 40, wy + 50, W - 80, 230);
   sc.zone('text', 'names', 40, wy + 290, W - 80, 70);
   sc.zone('text', 'closing', 60, wb + 26, W - 120, 104);
@@ -837,7 +841,12 @@ function closingSky() {
     while (x < W + 10) { const w = 36 + rand() * 50, h = 18 + rand() * 46; outline.push([x, roofs - h], [x + w, roofs - h]); tops.push([x, w, h]); x += w; }
     outline.push([W + 10, roofs + 60]);
     const lit = [];
-    for (const [tx, w, h] of tops) for (let k = 0; k < 2; k++) if (rand() < 0.5) lit.push(arch(tx + 6 + rand() * (w - 16), roofs - h + 8 + rand() * (h - 4), 5, 8));
+    for (const [tx, w, h] of tops) for (let k = 0; k < 2; k++) {
+      if (rand() >= 0.5) continue;
+      const wx = tx + 6 + rand() * (w - 16), wy = roofs - h + 8 + rand() * (h - 4);
+      if (wy + 8 > roofs - 50 && wy < roofs - 12) continue;   // not behind a string of lights
+      lit.push(arch(wx, wy, 5, 8));
+    }
     sc.part('closing-roofs', () => {
       sc.path(poly(outline), { fill: 'night' });
       sc.path(lit.join(''), { fill: 'gold' });
@@ -854,16 +863,15 @@ function closingSky() {
     const holes = [];
     for (let i = 0; i < 30; i++) {
       const cx = 12 + i * 20;
-      holes.push(arch(cx - 5, terrace - 58, 10, 26), ring(cx, terrace - 16, 3));
+      holes.push(arch(cx - 5, terrace - 58, 10, 26));
     }
     // lamplight on the terrace floor, seen through the jaali
     sc.rect(-10, terrace - 72, W + 20, 72, { fill: sc.lin(0, terrace - 72, 0, terrace, [[0, 'dusk'], [1, 'saffron']]) });
     sc.cut('parapet', poly([[-10, terrace - 72], [W + 10, terrace - 72], [W + 10, H + 10], [-10, H + 10]]) + holes.join(''), { fill: 'deep', rule: 'evenodd' }, { dx: 0, dy: -2.2, op: 0.5, colour: 'ink' });
     sc.path(line(-10, terrace - 72, W + 10, terrace - 72), { stroke: 'gold', sw: 0.9, op: 0.5 });
     sc.path(line(-10, terrace - 4, W + 10, terrace - 4), { stroke: 'glow', sw: 3 });
-    let tiles = '';
-    for (let i = 0; i < 14; i++) tiles += line(W / 2 + (i - 6.5) * 50, terrace, W / 2 + (i - 6.5) * 90, H);
-    sc.path(tiles + line(-10, terrace + 50, W + 10, terrace + 50), { stroke: 'glow', sw: 0.8 });
+    // stone studs along the parapet's foot, and the terrace floor left plain for the QR and credit
+    sc.path(dots(Array.from({ length: 30 }, (_, i) => [12 + i * 20, terrace - 16])), { stroke: 'clay', sw: 4, cap: 'round' });
     kangura(sc, -6, W + 6, terrace - 72, 'deep', { w: 12, gap: 8, h: 7 });
   });
 

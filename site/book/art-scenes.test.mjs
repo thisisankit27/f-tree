@@ -13,6 +13,7 @@ import { compileAll, compileSvg, readSwatches, BUDGETS, SRC_DIR } from '../../to
 import { SCENES } from '../../tools/book_scenes.mjs';
 import { LIBRARY, artFor } from './art/index.js';
 import { PAPERCUT_PALETTE_KEYS } from './template.js';
+import { pathPoints } from './format.js';
 import { METRICS } from './metrics/index.js';
 import { SAMPLE_COPY, layoutCopy } from './qa/scene-copy.mjs';
 
@@ -105,4 +106,33 @@ test('a zone keeps its data-name, and a name a page could not ask for fails', ()
   const zone = (name) => compileSvg(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><path d="M0 0L5 0 5 5Z" fill="#b5562a"/><rect data-zone="text" data-name="${name}" x="0" y="0" width="4" height="2"/></svg>`, { id: 'fx', kind: 'scene', swatches });
   assert.deepEqual(zone('title').symbols.fx.zones, [{ kind: 'text', name: 'title', x: 0, y: 0, w: 4, h: 2 }]);
   assert.throws(() => zone('Title Zone'), /data-name/);
+});
+
+/**
+ * Everything that glints in a sky - stars (flame dots), sparkles and lanterns - with a box around
+ * each, in page points. The scenes are placed at scale 1, so a scene's units are page points.
+ */
+function glints(id) {
+  const out = [];
+  for (const it of LIBRARY.symbols[id].items) {
+    if (it.t === 'path' && it.stroke === 'flame' && it.cap === 'round' && !it.fill) {
+      for (const [x, y] of pathPoints(it.d)) out.push({ what: 'star', x: x - it.sw, y: y - it.sw, w: 2 * it.sw, h: 2 * it.sw });
+    } else if (it.t === 'use' && /-star$|--lantern/.test(it.ref)) {
+      const [a, , , dd, e, f] = it.tf, r = (/lantern/.test(it.ref) ? 16 : 10) * Math.max(Math.abs(a), Math.abs(dd));
+      out.push({ what: it.ref, x: e - r, y: f - r, w: 2 * r, h: 2 * r });
+    }
+  }
+  return out;
+}
+
+test('no star, sparkle or lantern lies in a text zone: words sit on plain sky', () => {
+  for (const id of NIGHT) {
+    const text = zonesOf(id).filter((z) => z.kind === 'text');
+    const found = glints(id);
+    assert.ok(found.length > 20, `${id} has its stars`);
+    for (const g of found) for (const t of text) {
+      const hit = g.x < t.x + t.w && t.x < g.x + g.w && g.y < t.y + t.h && t.y < g.y + g.h;
+      assert.ok(!hit, `${id}: a ${g.what} at ${Math.round(g.x)},${Math.round(g.y)} is in the ${t.name} zone`);
+    }
+  }
 });
