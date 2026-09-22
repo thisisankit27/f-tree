@@ -997,7 +997,7 @@ function drawable(c, library, keys) {
   const P = Object.fromEntries(keys.map((k) => [k, '#000000']));
   const defs = {};
   const art = createArt({ P, gradient: (gid, def) => { defs[gid] = def; return { ref: gid }; } }, library);
-  const items = [art.place(c.id, { x: 0, y: 0 })];
+  const items = [art.place(c.id, { x: 0, y: 0, departed: true })];
   if (c.symbols[c.id].clip) items.push(art.frame(c.id, { x: 0, y: 0, w: 100, h: 100 }, [rect(0, 0, 100, 100, { fill: '#000000' })]));
   return validateBook({ format: 2, size: { ...PAGE }, fonts: {}, defs, symbols: art.symbols(), pages: [{ label: c.id, items }] });
 }
@@ -1080,7 +1080,7 @@ function sheet(library, swatches) {
     const x = 30 + (i % cols) * cw, y = 40 + Math.floor(i / cols) * ch;
     const [, , vw, vh] = library.symbols[aid].vb;
     const k = Math.min((cw - 30) / vw, (ch - 50) / vh);
-    items.push(art.place(aid, { x: x + cw / 2, y: y + (ch - 40) / 2, s: k, anchor: 'center', shadow: library.symbols[aid].kind === 'frame' ? 'soft' : true }));
+    items.push(art.place(aid, { x: x + cw / 2, y: y + (ch - 40) / 2, s: k, anchor: 'center', departed: true, shadow: library.symbols[aid].kind === 'frame' ? 'soft' : true }));
     items.push(text(x + cw / 2, y + ch - 18, aid, 'text', 9, P.inkSoft, { align: 'middle' }));
   });
   const book = { format: 2, size: { ...PAGE }, fonts: { text: 'book_text' }, defs, symbols: art.symbols(), pages: [{ label: 'art sheet', items }] };

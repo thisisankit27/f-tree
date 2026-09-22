@@ -207,6 +207,13 @@ test('the seeded art places, shadows and frames into a book that validates and p
   assert.ok(symbols['arch-jharokha'].clip && symbols['arch-jharokha'].opening);
 });
 
+test('the departed\'s mala is placed only when the page says the person has died', () => {
+  const art = artFor({ P, gradient: (id) => ({ ref: id }) });
+  assert.throws(() => art.place('mala-departed', { x: 0, y: 0 }), /"mala-departed" is only for a person who has died - pass \{ departed: true \}/);
+  assert.throws(() => art.place('mala-departed', { x: 0, y: 0, departed: 'yes' }), /only for a person who has died/);
+  assert.equal(art.place('mala-departed', { x: 0, y: 0, departed: true }).ref, 'pc-mala-departed');
+});
+
 test('seeded() in art/seed.js is the generator blocks/art.js always used', () => {
   // the first three draws for this seed, taken from blocks/art.js on main before the move
   const r = seeded('family:ch1:p42');

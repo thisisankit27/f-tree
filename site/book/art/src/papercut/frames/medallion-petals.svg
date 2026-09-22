@@ -1,29 +1,39 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="-13 -13 126 126" data-anchor="center">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-11 -11 122 122" data-anchor="center">
 <desc>The group medallion: a ring of marigold petals cut round a gold bezel, so the frame is a flower. A ring of petals, never a string of flowers: a garland around a portrait is for the departed. From motifs.mjs medallion({ petals }) (#240). Original f-tree work, MIT.</desc>
 <circle data-clip="opening" cx="50" cy="50" r="50"/>
 <rect data-zone="face" x="28" y="20" width="44" height="46"/>
-<defs><path id="petal" d="M50 -1.2C53 -3.4 53 -8.8 50 -11.6C47 -8.8 47 -3.4 50 -1.2Z" fill="#f2a71b"/></defs>
+<defs><path id="petal" d="M50 -1.5C53.6 -3 53.4 -6.6 50 -9.2C46.6 -6.6 46.4 -3 50 -1.5Z" fill="#f2a71b"/></defs>
 <use href="#petal" transform="rotate(0 50 50)"/>
-<use href="#petal" transform="rotate(18 50 50)" fill="#e8762b"/>
-<use href="#petal" transform="rotate(36 50 50)"/>
-<use href="#petal" transform="rotate(54 50 50)" fill="#e8762b"/>
+<use href="#petal" transform="rotate(12 50 50)" fill="#e8762b"/>
+<use href="#petal" transform="rotate(24 50 50)"/>
+<use href="#petal" transform="rotate(36 50 50)" fill="#e8762b"/>
+<use href="#petal" transform="rotate(48 50 50)"/>
+<use href="#petal" transform="rotate(60 50 50)" fill="#e8762b"/>
 <use href="#petal" transform="rotate(72 50 50)"/>
-<use href="#petal" transform="rotate(90 50 50)" fill="#e8762b"/>
-<use href="#petal" transform="rotate(108 50 50)"/>
-<use href="#petal" transform="rotate(126 50 50)" fill="#e8762b"/>
+<use href="#petal" transform="rotate(84 50 50)" fill="#e8762b"/>
+<use href="#petal" transform="rotate(96 50 50)"/>
+<use href="#petal" transform="rotate(108 50 50)" fill="#e8762b"/>
+<use href="#petal" transform="rotate(120 50 50)"/>
+<use href="#petal" transform="rotate(132 50 50)" fill="#e8762b"/>
 <use href="#petal" transform="rotate(144 50 50)"/>
-<use href="#petal" transform="rotate(162 50 50)" fill="#e8762b"/>
-<use href="#petal" transform="rotate(180 50 50)"/>
-<use href="#petal" transform="rotate(198 50 50)" fill="#e8762b"/>
+<use href="#petal" transform="rotate(156 50 50)" fill="#e8762b"/>
+<use href="#petal" transform="rotate(168 50 50)"/>
+<use href="#petal" transform="rotate(180 50 50)" fill="#e8762b"/>
+<use href="#petal" transform="rotate(192 50 50)"/>
+<use href="#petal" transform="rotate(204 50 50)" fill="#e8762b"/>
 <use href="#petal" transform="rotate(216 50 50)"/>
-<use href="#petal" transform="rotate(234 50 50)" fill="#e8762b"/>
-<use href="#petal" transform="rotate(252 50 50)"/>
-<use href="#petal" transform="rotate(270 50 50)" fill="#e8762b"/>
+<use href="#petal" transform="rotate(228 50 50)" fill="#e8762b"/>
+<use href="#petal" transform="rotate(240 50 50)"/>
+<use href="#petal" transform="rotate(252 50 50)" fill="#e8762b"/>
+<use href="#petal" transform="rotate(264 50 50)"/>
+<use href="#petal" transform="rotate(276 50 50)" fill="#e8762b"/>
 <use href="#petal" transform="rotate(288 50 50)"/>
-<use href="#petal" transform="rotate(306 50 50)" fill="#e8762b"/>
-<use href="#petal" transform="rotate(324 50 50)"/>
-<use href="#petal" transform="rotate(342 50 50)" fill="#e8762b"/>
+<use href="#petal" transform="rotate(300 50 50)" fill="#e8762b"/>
+<use href="#petal" transform="rotate(312 50 50)"/>
+<use href="#petal" transform="rotate(324 50 50)" fill="#e8762b"/>
+<use href="#petal" transform="rotate(336 50 50)"/>
+<use href="#petal" transform="rotate(348 50 50)" fill="#e8762b"/>
 <path d="M103 50A53 53 0 1 1 -3 50A53 53 0 1 1 103 50ZM100 50A50 50 0 1 1 0 50A50 50 0 1 1 100 50Z" fill="#fff8ec" fill-rule="evenodd"/>
 <circle cx="50" cy="50" r="50" fill="none" stroke="#f2b84b" stroke-width="1.9"/>
 </svg>

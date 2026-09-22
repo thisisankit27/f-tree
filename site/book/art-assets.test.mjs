@@ -107,7 +107,7 @@ test('a medallion with its bust, a departed mala, a lamp kept and a hero at a wi
   const person = { id: 'p1', gender: 'FEMALE', by: 1930, dy: 2001 };
   const items = [
     art.frame('medallion', box, [art.place(avatarFor(person, { year: 2026 }), { x: box.x, y: box.y, w: box.w, anchor: 'top-left' })]),
-    art.place('mala-departed', { x: 130, y: 130, s: 0.6 }),
+    art.place('mala-departed', { x: 130, y: 130, s: 0.6, departed: true }),
     art.place('lamp-unknown', { x: 250, y: 130, w: 22 }),
     art.frame('arch-jharokha', { x: 300, y: 300, w: 180, h: 230 }, [rect(250, 250, 300, 300, { fill: P.sky }),
       art.place(heroFor(person, { year: 2026 }), { x: 390, y: 530, w: 170 })]),

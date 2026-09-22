@@ -46,7 +46,7 @@ function sheet(draw) {
 const medallion = (art, items, frame, id, cx, cy, d) => {
   const box = { x: cx - d / 2, y: cy - d / 2, w: d, h: d };
   items.push(art.frame(frame, box, [art.place(id, { x: box.x, y: box.y, w: d, anchor: 'top-left' })],
-    { shadow: { dx: d * 0.025, dy: d * 0.035, op: 0.22, soft: d > 40 } }));
+    { shadow: { dx: d * 0.02, dy: d * 0.028, op: 0.22 } }));
 };
 
 const people = sheet(({ art, items, label }) => {
@@ -62,7 +62,7 @@ const people = sheet(({ art, items, label }) => {
   // the departed: the mala on the frame; a photograph's carved ring; the group medallion; a lamp kept
   const row = 330;
   medallion(art, items, 'medallion', 'avatar-female-elder-a', 60, row, 64);
-  items.push(art.place('mala-departed', { x: 60, y: row, s: 0.64 }));
+  items.push(art.place('mala-departed', { x: 60, y: row, s: 0.64, departed: true }));
   label(60, row + 56, 'departed: mala on the frame');
   medallion(art, items, 'medallion-carved', 'avatar-male-elder-a', 170, row, 60);
   label(170, row + 56, 'photograph mount (bust as stand-in)');
