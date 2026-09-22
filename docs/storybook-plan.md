@@ -3,17 +3,17 @@
 This is the plan behind umbrella **#239**, written for whoever builds it next, including an AI
 session. It was made on 2026-09-16, and Ankit approved the visual direction the same day.
 
-> **Status (2026-09-22): waves 1 and 2 have landed.**
+> **Status (2026-09-22): wave 1 and the first half of wave 2 have landed.**
 > - **Wave 1:** #241 (Book format 2 in JS), #242 (Kalam `book_hand`), #243 (template format 2) and
 >   #244 (composer options) are done.
-> - **Wave 2:** #246 (Android format 2), #247 (art compiler + `draw.js`), #248 (Android book
->   screen), #249 (desktop book dialog) and #250 (`kin.js`) are done.
+> - **Wave 2, first half:** #246 (Android format 2), #247 (art compiler + `draw.js`), #248
+>   (Android book screen), #249 (desktop book dialog) and #250 (`kin.js`) are done.
 > - **#245 is open**, but only for the storybook half: its invariants run over the story book
 >   once it exists. Everything else in it has landed.
-> - **Next is wave 3,** in this order:
->   - #251 (`plan.js`), #252 (`copy.js`), #253/#254 (assets), #255 (procedural);
->   - then #256–#258 (archetypes);
->   - then #259 (the swap, **must merge by 2026-10-12**) and #260 (release checks).
+> - **Next is the rest of wave 2,** then wave 3 (#239):
+>   - wave 2: #251 (`plan.js`), #252 (`copy.js`), #253/#254 (assets), #255 (procedural);
+>   - wave 3: #256–#258 (archetypes), then #259 (the swap, **must merge by 2026-10-12**) and
+>     #260 (release checks).
 > - Read **"Handover after wave 2"** below before starting.
 
 ## The idea, in one breath
@@ -168,7 +168,7 @@ comment has the detail.
 - **Shells:** Android and desktop both pass `featured`, `notes`, `words` and `coverOnly`. Both decide
   "features one person" from the template's `format === 2`.
 
-**Warnings for wave 3:**
+**Warnings for what comes next** (the rest of wave 2, #251–#255, and wave 3, #256–#260):
 - **Art weight.** At the style frames' density, a 28-page book prints at about 18.6 MB, against the
   10 MB budget. Keep to the per-kind budgets: a repeated shape is one symbol placed many times, or
   a stroke, never copies. Keep paper shadows cheap too.
@@ -333,6 +333,34 @@ Built in #247. The contributor workflow and the `draw.js` API are in
     merge into a "household" page.
   - **Variety:** a page takes the first variant that differs from the previous page's.
   - **Cap:** about 28 story pages. Everyone beyond that is in the register.
+
+  Built in #251 (`site/book/story/plan.js`, tested by `plan.test.mjs`). What it settled:
+  - **Chapter ids** a template may list are `CHAPTERS`: `cover opening roots courtyards parents
+    siblings spouses children lane numbers register still-to-be-found legacy closing`. They
+    include template.js's `REQUIRED_CHAPTERS`, and the planner refuses an id it doesn't know.
+    #259's `diwali-story` must use these.
+  - **Who each chapter shows**, from kin.js's circles: roots = ancestors; courtyards =
+    grandparents; parents = parents, aunts and uncles, and a parent's other spouse; siblings =
+    siblings and their spouses; spouses = spouses and the spouse's parents, siblings and other
+    children; children = children, descendants and their spouses; lane = the aunt/uncle branches
+    and the wider lane, a house per kin branch. still-to-be-found = everyone linked to F with no
+    recorded name. Anyone on no story page is in the register (`registerOnly`), which lists
+    everyone in scope.
+  - **Density:** family pages hold 8, gatherings (roots, courtyards, still-to-be-found) 12, a lane
+    page 4 houses of up to 8, and the register 48 rows, counting one row per section heading.
+    Splits are balanced, with the larger pages last. Consecutive family chapters under 3 people
+    each share a household page; `copyKey` is its first chapter.
+  - **Cap:** each chapter keeps its first page. Extra pages go to parents, courtyards, siblings,
+    spouses, children, roots, still-to-be-found and then the lane, until 28 story pages are used.
+    The register is never cut.
+  - **Shapes:** eldest F (nobody above them) folds roots and courtyards into the opening
+    (`folds`), and spouses and children come before siblings. Child F has no spouse or children
+    pages. A tiny family (at most 5 people) has no numbers page, which gives 5–7 pages. A tree with
+    people but nobody named to feature is a cover, a waiting page, the register and the closing. `story-large`
+    (200 people) plans 25 pages.
+  - **`compose.js`** sends a format-2 template to `storyBook(ctx)`, which runs `kinOf` and the
+    planner, then refuses by name to draw: the archetypes are #256–#258. `DRAWABLE_FORMATS` stays
+    `[1]` until they land.
 - **Supporting modules:** `copy.js` (sentences with fallbacks for missing names, years and
   genders), `avatars.js` (gender × life stage × variant by stable hash; any unknown gender value
   counts as unspecified), `pages/*.js` (the archetypes).

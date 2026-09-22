@@ -13,6 +13,8 @@ import { readFamily, familyFacts, byKey } from './family.js';
 import { validateTemplate } from './template.js';
 import { METRICS } from './metrics/index.js';
 import { resolveFeatured } from './story/featured.js';
+import { kinOf } from './story/kin.js';
+import { planStory } from './story/plan.js';
 import { cover } from './blocks/cover.js';
 import { treePage } from './blocks/tree.js';
 import { numbersPage } from './blocks/numbers.js';
@@ -75,8 +77,9 @@ export function composeWithReport(doc, options, template, allowance = {}) {
 }
 
 /**
- * The template formats this composer can draw. A format-2 (storybook) template validates but has
- * no `pages` to walk until the story planner (#251) draws it; the QA harness asks `drawable`
+ * The template formats this composer can draw. A format-2 (storybook) template validates, and
+ * `storyBook` plans its pages (#251), but nothing draws them until the archetypes (#256-#258)
+ * land; the QA harness asks `drawable`
  * rather than matching the error, so it picks the storybook up the day this list grows.
  */
 export const DRAWABLE_FORMATS = Object.freeze([1]);
@@ -84,12 +87,12 @@ export const drawable = (template) => DRAWABLE_FORMATS.includes(validateTemplate
 
 function compose(doc, options, template, allowance, rec) {
   const tpl = validateTemplate(template);
-  if (!DRAWABLE_FORMATS.includes(tpl.format)) throw new Error(`composeBook: "${tpl.id}" is a format-${tpl.format} storybook template, which this composer cannot draw yet`);
   const now = /^(\d{4})-(\d{2})/.exec(options?.now ?? '');
   if (!now) throw new Error('composeBook: options.now must be an ISO date - the composer never reads the clock');
 
   const family = readFamily(doc, options, allowance);
   const ctx = context(family, options, tpl, allowance, { year: Number(now[1]), month: Number(now[2]) }, rec);
+  if (tpl.format === 2) return storyBook(ctx);
   const pages = [];
   for (const name of pageBlocks(tpl, options)) {
     for (const page of BLOCKS[name](ctx, pages.length + 1)) {
@@ -112,6 +115,21 @@ function compose(doc, options, template, allowance, rec) {
     pages,
   };
   return { format: formatOf(book), ...book };
+}
+
+/**
+ * A format-2 (storybook) template's book: the featured person's circles (`story/kin.js`), then
+ * every page planned and numbered (`story/plan.js`) before any is drawn.
+ *
+ * A stub until the page archetypes land (#256-#258): it plans the whole book, then refuses, by
+ * name, to draw it. `DRAWABLE_FORMATS` stays [1] until then, so `drawable()` and the QA harness
+ * keep treating the storybook as not yet drawable - and invariants.test.mjs's flag test fails the
+ * day format 2 is added there without a template for the suite to run over.
+ */
+function storyBook(ctx) {
+  const kin = kinOf(ctx.family, ctx.featured, { words: ctx.options.words });
+  const plan = planStory(kin, ctx.tpl, ctx.family);
+  throw new Error(`composeBook: "${ctx.tpl.id}" is a format-2 storybook template: its ${plan.pages.length} pages are planned, but their archetypes are not built yet (#256-#258), so this composer cannot draw them`);
 }
 
 /**
