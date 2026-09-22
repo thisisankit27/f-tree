@@ -474,7 +474,7 @@ const ALLOWED = {
   polygon: [...BASE, 'points', 'data-clip'],
   defs: ['id'],
   symbol: ['id', 'data-name', ...PAINT],
-  use: ['id', 'data-name', 'transform', 'href', 'x', 'y', 'opacity', 'display', 'visibility'],
+  use: ['id', 'data-name', 'transform', 'href', 'x', 'y', 'opacity', 'display', 'visibility', 'fill'],
   linearGradient: ['id', 'x1', 'y1', 'x2', 'y2', 'gradientUnits', 'gradientTransform', 'spreadMethod', 'href'],
   radialGradient: ['id', 'cx', 'cy', 'r', 'fx', 'fy', 'fr', 'gradientUnits', 'gradientTransform', 'spreadMethod', 'href'],
   stop: ['id', 'offset', 'stop-color', 'stop-opacity'],
@@ -510,6 +510,14 @@ const DEFAULT_PAINT = Object.freeze({
 });
 /** The paint properties a shape takes from its ancestors: all of PAINT but the three that are not inherited. */
 const INHERITED = PAINT.filter((k) => !['opacity', 'display', 'visibility'].includes(k));
+
+/** An inherited paint (as partFor keys it) with its fill and stroke colours blanked: what a silhouette keeps. */
+const outline = (paint) => {
+  const p = JSON.parse(paint);
+  for (const k of ['fill', 'stroke']) if (p[k] !== 'none') p[k] = '*';
+  delete p.defaultFill;
+  return JSON.stringify(p);
+};
 
 /** A swatch table: lower-case "#rrggbb" -> token. */
 export function readSwatches(file) {
@@ -838,17 +846,18 @@ export function compileSvg(src, { file = 'input.svg', id, kind, swatches }) {
    * What a <use> draws is compiled once, as a part, in its own coordinates. As in SVG, it inherits
    * paint from the <use> (and so from the <use>'s ancestors), not from where it is defined: the
    * same shape used under two different inherited paints is two parts, `-2` onwards in the order
-   * the file uses them.
+   * the file uses them - unless it draws exactly the same items under both (it sets its own
+   * colours), and then it is one. A silhouette repaints every fill and stroke, so it shares any
+   * part of the shape that differs only in those colours: a shadow and its shape are one part.
    */
-  const partFor = (target, from, inherited) => {
+  const partFor = (target, from, inherited, silhouette = false) => {
     const base = `${id}--${String(target.attrs.id).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')}`;
     const paint = JSON.stringify(inherited);
     const variants = Object.keys(parts).filter((k) => parts[k].base === base);
     if (variants.some((k) => parts[k].source !== target)) fail(from, `two shapes' ids both become the part ${base}; rename one`);
-    const hit = variants.find((k) => parts[k].paint === paint);
+    const hit = variants.find((k) => parts[k].paints.has(paint))
+      ?? (silhouette ? variants.find((k) => [...parts[k].paints].some((q) => outline(q) === outline(paint))) : undefined);
     if (hit) return hit;
-    const pid = variants.length ? `${base}-${variants.length + 1}` : base;
-    if (parts[pid]) fail(from, `two shapes' ids both become the part ${pid}; rename one`);
     if (building.has(target)) fail(from, `<use> reaches ${describe(target)} through itself`);
     building.add(target);
     inPart++;
@@ -858,8 +867,24 @@ export function compileSvg(src, { file = 'input.svg', id, kind, swatches }) {
     inPart--;
     building.delete(target);
     if (!items.length) fail(target, 'is used, but draws nothing');
-    parts[pid] = { source: target, base, paint, items };
+    const same = variants.find((k) => JSON.stringify(parts[k].items) === JSON.stringify(items));
+    if (same) { parts[same].paints.add(paint); return same; }
+    const pid = variants.length ? `${base}-${variants.length + 1}` : base;
+    if (parts[pid]) fail(from, `two shapes' ids both become the part ${pid}; rename one`);
+    parts[pid] = { source: target, base, paints: new Set([paint]), items };
     return pid;
+  };
+
+  /**
+   * A `fill` on a <use> or a <g data-asset> is a silhouette (format.js `use.fill`): that one swatch
+   * for every fill and stroke the shape draws, its geometry, stroke widths and inner opacities kept.
+   * It is how a paper shadow is the same shape, offset, and how one cut is tinted to many colours.
+   */
+  const silhouetteOf = (node) => {
+    const v = node.attrs.fill;
+    if (v === undefined) return undefined;
+    if (!hexOf(v)) fail(node, `fill="${v}" on a ${node.name === 'use' ? '<use>' : '<g data-asset>'} is a silhouette colour: one swatch hex, the colour every fill and stroke of the shape takes`);
+    return token(v, node, 'the silhouette fill');
   };
 
   /** A node drawn through the transform `ctm` with the inherited paint `inherited`. */
@@ -897,7 +922,7 @@ export function compileSvg(src, { file = 'input.svg', id, kind, swatches }) {
       if (!ID.test(ref)) fail(node, `data-asset="${ref}" is not a drawing id`);
       if (ref === id) fail(node, 'a drawing cannot place itself');
       assetRefs.add(ref);
-      const placed = use(ref, { tf: m, op: opacityOf(node, node.attrs.opacity, 'opacity') });
+      const placed = use(ref, { tf: m, fill: silhouetteOf(node), op: opacityOf(node, node.attrs.opacity, 'opacity') });
       return [node.attrs['clip-path'] === undefined ? placed : group([placed], { clip: clipFor(node, m) })];
     }
     if (node.name === 'use') {
@@ -907,7 +932,8 @@ export function compileSvg(src, { file = 'input.svg', id, kind, swatches }) {
       if (!target) fail(node, `href="${href}" names nothing in this file`);
       if (!['g', 'symbol', ...SHAPES].includes(target.name)) fail(node, `href="${href}" names a <${target.name}>, which cannot be drawn`);
       const tf = mul(m, [1, 0, 0, 1, numAttr(node, 'x', 0), numAttr(node, 'y', 0)]);
-      return [use(partFor(target, node, st), { tf, op: opacityOf(node, node.attrs.opacity, 'opacity') })];
+      const fill = silhouetteOf(node);
+      return [use(partFor(target, node, st, fill !== undefined), { tf, fill, op: opacityOf(node, node.attrs.opacity, 'opacity') })];
     }
     if (SHAPES.has(node.name)) return shape(node, m, st);
 
