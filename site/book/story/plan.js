@@ -80,6 +80,13 @@ export const CHAPTERS = Object.freeze([
   'lane', 'numbers', 'register', 'still-to-be-found', 'legacy', 'closing',
 ]);
 
+/**
+ * Chapters a person's note (`options.notes`) never appears on: the register lists everyone by
+ * name alone (storybook-plan.md, "Notes"). The one table `copy.js`'s `noteCaption` reads, so the
+ * rule lives here rather than as a chapter-id string copy.js compares against on its own.
+ */
+export const NO_NOTES = Object.freeze(new Set(['register']));
+
 /** About 28 story pages; everyone beyond them is in the register (docs/storybook-plan.md). */
 export const MAX_STORY_PAGES = 28;
 /** A continuation page never holds fewer entries than this, and a chapter below it may merge. */

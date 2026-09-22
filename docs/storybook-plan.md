@@ -370,29 +370,44 @@ Built in #247. The contributor workflow and the `draw.js` API are in
   chapter id and person, for the archetypes (#256-#258) to call:
   - **`renderCopy(entry, vars)`** fills a template's `copy[chapter]` (`{title, line:{one,other}}`)
     from `vars`, choosing the plural by `vars.n`. It reuses `template.js`'s own `PLACEHOLDER`
-    regex (exported for this, alongside `PLACEHOLDERS`) rather than a second parser, and a missing
-    `vars` entry is dropped - never a stray `{placeholder}` or "undefined" - with the punctuation
-    either side tidied so a dropped fact never strands a comma before a full stop.
+    regex (exported for this; the accepted-name set stays private to template.js, which already
+    refuses anything else at load time) rather than a second parser. A missing `vars` entry is
+    dropped - never a stray `{placeholder}` or "undefined" - the tidy-up loops until nothing more
+    changes (three or more dropped facts in a row need more than one pass to clean up fully), and
+    a labelled aside whose one fact is missing is dropped whole, parens included ("Ankit (born
+    {year})." with no year is "Ankit.", not "Ankit (born ).").
+  - **`chapterVars`/`chapterCopy(chapterId, {family, kin, tpl})`** is the table over `renderCopy`
+    for every chapter id `plan.js`'s `CHAPTERS` lists: `{n}` from the same circle `plan.js`'s
+    `MEMBERS` draws that chapter from (never a second tally), `{featured}`/`{featured-first}`/
+    `{year}` only when the featured person is nameable, `{family}` from the family's own title.
   - **`nameOf(family, kin, id)`** is the one name a page ever prints: the record's own, or - belief
     3 - `kin.js`'s `namedBy` turned into a phrase ("Shyam Lal's wife"), never "Unknown".
-  - **`kinCaption(kin, family, id)`** is `words(id).word` (already Hindi-then-English, the app's
-    own fallback) plus the one case it cannot hand back as a single word: `through`, phrased the
-    way the desktop's `sentenceFor` phrases it ("married to Ankit's cousin", "the grandmother of
-    Ankit's wife"), never a possessive chain. Deliberately *not* subtype-blind the way the desktop
-    panel is: an ex-spouse's own record shows through (`kin.words`'s "former wife"), which is more
-    accurate for a family book than the panel's simplification, so the two texts can differ here.
+  - **`kinCaption(kin, family, id, featuredName?)`** is `words(id).word` (already
+    Hindi-then-English, the app's own fallback) plus the one case it cannot hand back as a single
+    word: `through`, phrased the way the desktop's `sentenceFor` phrases it ("married to Ankit's
+    cousin", "the grandmother of Ankit's wife"), never a possessive chain. Deliberately *not*
+    subtype-blind the way the desktop panel is: an ex-spouse's own record shows through
+    (`kin.words`'s "former wife"), more accurate for a family book, so the two texts can differ
+    here. A caller that already has the featured person's name (`stillToBeFoundCaption` does) may
+    pass it, so a page captioning several people off one `kin` never resolves it twice.
   - **`noteCaption(chapterId, family, id, options)`** returns the already-clamped note only when
-    `options.notes` and `chapterId !== 'register'` - centralised so no future archetype has to
-    remember the register never gets one.
+    `options.notes` and `plan.js`'s `NO_NOTES` doesn't name this chapter - that one table (today
+    just the register, which lists everyone by name alone) owns the rule, not a chapter-id string
+    compared here.
   - **`countInCircle`/`numberFact`** read a circle's own count (optionally filtered by `role`),
     never a second tally - "Ankit has 23 cousins" and the copy layer's `{n}` agree by construction.
+    `numberFact`'s noun is a plain string, regularly pluralised, or an explicit `{one, many}` pair
+    for one that isn't ("child" -> "children"; a naive `${noun}s` would print "childs").
   - **`openingLine`, `rootsLine`, `stillToBeFoundCaption`** are composed sentences, not
     placeholder fills, because they need a birth-order claim, a generation count or a side that a
-    5-token template line cannot express. Each clause is independently optional: no birth year
-    drops the ordinal claim ("Ankit is a child of Rajesh and Sunita", never "the eldest" without a
-    year to back it), no recorded parent drops the whole clause, and nothing here ever reaches for
-    a pronoun, so a missing gender never needs handling - `model.js`'s own labels are already
-    gender-neutral where the record doesn't say.
+    5-token template line cannot express. Each clause is independently optional: no birth year (the
+    featured person's own, or *any* full sibling's - an unsorted unknown year would otherwise sort
+    as youngest by accident and risk a false "eldest") drops the ordinal claim ("Ankit is a child
+    of Rajesh and Sunita", never "the eldest" without one to back it), the ordinal past `ORDINALS`'
+    own word list gets English's real suffix (21st, not 21th - 11th-13th excepted), no recorded
+    parent drops the whole clause, and nothing here ever reaches for a pronoun, so a missing gender
+    never needs handling - `model.js`'s own labels are already gender-neutral where the record
+    doesn't say.
 - **Completeness:** `composeWithReport()` returns `{book, report:{shown, textBoxes, artZones,
   minSize}}`. Tests assert that `shown` covers everyone in scope. A template cannot leave out the
   register.

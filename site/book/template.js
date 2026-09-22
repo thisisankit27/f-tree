@@ -73,10 +73,12 @@ export const REQUIRED_CHAPTERS = ['cover', 'opening', 'register', 'closing'];
 
 /**
  * `copy` and cover text may only interpolate these - anything else is refused, not skipped.
- * Exported so copy.js (#252) fills placeholders with the same names and the same token syntax
- * this schema validates against, rather than a second parser that could drift from this one.
+ * `PLACEHOLDER` (the token syntax) is exported so copy.js (#252) finds a `{token}` the same way
+ * this file does, rather than a second parser that could drift from this one. `PLACEHOLDERS`
+ * (the accepted names) stays private: a template's copy is already refused at load time if it
+ * names anything else, so nothing downstream needs the name set again.
  */
-export const PLACEHOLDERS = new Set(['featured', 'featured-first', 'family', 'n', 'year']);
+const PLACEHOLDERS = new Set(['featured', 'featured-first', 'family', 'n', 'year']);
 export const PLACEHOLDER = /\{([^{}]*)\}/g;
 
 const ART_KINDS = ['papercut'];

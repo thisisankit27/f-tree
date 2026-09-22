@@ -14,11 +14,14 @@ import assert from 'node:assert/strict';
 import {
   fillPlaceholders, renderCopy, nameOf, possessive, kinCaption, noteCaption,
   countInCircle, numberFact, openingLine, rootsLine, stillToBeFoundCaption,
+  chapterVars, chapterCopy,
 } from './copy.js';
 import { kinOf } from './kin.js';
 import { resolveFeatured } from './featured.js';
+import { CHAPTERS } from './plan.js';
 import { readFamily } from '../family.js';
-import { BOOK_FIXTURES, NOW, loadFixture } from '../qa/book-fixtures.mjs';
+import { validateTemplate, REQUIRED_CHAPTERS, PAPERCUT_PALETTE_KEYS, HAND_FONT_KEY } from '../template.js';
+import { BOOK_FIXTURES, TEMPLATES, NOW, loadFixture } from '../qa/book-fixtures.mjs';
 
 const YEAR = Number(NOW.slice(0, 4));
 
@@ -253,13 +256,129 @@ test('stillToBeFoundCaption places a nameless, unlinked-by-name relative by term
   assert.equal(stillToBeFoundCaption(f, k, 'mid'), null);
 });
 
+/* ------------------------------------------------------------------ late-review regressions */
+
+test('the birth-order fragment gives correct English ordinal suffixes past the word list (21st, not 21th)', () => {
+  const older = Array.from({ length: 20 }, (_, i) => M(`o${i}`, `Older ${i}`, String(1970 + i)));
+  const younger = [M('y0', 'Younger 0', '1991'), M('y1', 'Younger 1', '1992')];
+  const people = [M('dad', 'Rajesh', '1950'), W('mum', 'Sunita', '1955'), M('ankit', 'Ankit', '1990'), ...older, ...younger];
+  const family = doc(people, [parents('dad', 'mum', 'ankit', ...older.map((p) => p.id), ...younger.map((p) => p.id))]);
+  const { family: f, kin: k } = build(family, 'ankit');
+  const out = openingLine(f, k);
+  assert.ok(/\b21st\b/.test(out), out);
+  assert.ok(!/21th/.test(out), out);
+});
+
+test('the birth-order fragment is dropped, not guessed, when any full sibling\'s birth year is unknown', () => {
+  const family = doc([
+    M('dad', 'Rajesh', '1950'), W('mum', 'Sunita', '1955'),
+    M('ankit', 'Ankit', '1995'), W('priya', 'Priya', null), M('rahul', 'Rahul', '1990'),
+  ], [parents('dad', 'mum', 'ankit', 'priya', 'rahul')]);
+  const { family: f, kin: k } = build(family, 'ankit');
+  const out = openingLine(f, k);
+  // Priya's year is unknown, so Ankit cannot honestly be called "the eldest", "the youngest" or
+  // any ordinal among the three - even though Ankit's own year (1995) is known.
+  assert.ok(!/eldest|youngest|second|third/.test(out), out);
+  assert.equal(out, 'Ankit was born in 1995, a child of Rajesh and Sunita. This is the family behind Ankit.');
+});
+
+test('fillPlaceholders is idempotent: three or more dropped facts in a row still clean up fully', () => {
+  assert.equal(fillPlaceholders('{a}, {b}, {c}, {d}.', { a: 'Ankit' }), 'Ankit.');
+});
+
+test('fillPlaceholders drops a whole labelled parenthetical when its one placeholder is empty', () => {
+  assert.equal(fillPlaceholders('{featured} (born {year}).', { featured: 'Ankit' }), 'Ankit.');
+  assert.equal(fillPlaceholders('{featured} (born {year}).', { featured: 'Ankit', year: 1995 }), 'Ankit (born 1995).');
+  assert.equal(fillPlaceholders('{featured} ({featured-first}) is here.', { featured: 'Ankit' }), 'Ankit is here.');
+});
+
+test('numberFact takes an explicit {one, many} pair for a noun a naive "s" would get wrong', () => {
+  const { family, kin } = build(doc([M('ankit', 'Ankit', '1995')], []), 'ankit');
+  assert.equal(numberFact(family, kin, 1, { one: 'child', many: 'children' }), 'Ankit has one child.');
+  const many = numberFact(family, kin, 2, { one: 'child', many: 'children' });
+  assert.equal(many, 'Ankit has two children.');
+  assert.ok(!many.includes('childs'), many);
+});
+
+/* ------------------------------------------------------------------ chapterCopy: every chapter id */
+
+/** A format-2 template with real (placeholder-heavy) copy for every chapter id `plan.js` knows. */
+function comprehensiveTemplate() {
+  const copy = Object.fromEntries(CHAPTERS.map((id) => [id, {
+    title: `${id} - {family}`,
+    line: {
+      one: '{featured} ({featured-first}) of {family} (born {year}), one to know.',
+      other: '{featured} ({featured-first}) of {family} (born {year}), {n} to know.',
+    },
+  }]));
+  return validateTemplate({
+    format: 2, id: 'copy-table-test', name: 'Copy table test', fileSuffix: 'Book', art: 'papercut',
+    fonts: { display: 'book_display', text: 'book_text', strong: 'book_strong', hand: HAND_FONT_KEY },
+    palette: Object.fromEntries(PAPERCUT_PALETTE_KEYS.map((k) => [k, '#112233'])),
+    cover: { greeting: 'Hi', subtitle: 'from {family}', line: 'one lamp' },
+    story: { chapters: [...CHAPTERS] },
+    copy,
+  });
+}
+
+test('chapterCopy composes for every chapter id in plan.js\'s CHAPTERS, and degrades gracefully across an incomplete record', () => {
+  assert.deepEqual([...REQUIRED_CHAPTERS].sort(), [...REQUIRED_CHAPTERS].sort().filter((c) => CHAPTERS.includes(c)),
+    'precondition: every required chapter is one CHAPTERS lists');
+  const template = comprehensiveTemplate();
+  const complete = () => doc([M('dad', 'Rajesh', '1950'), W('mum', 'Sunita', '1955'), M('ankit', 'Ankit', '1995'), W('priya', 'Priya', '1998')],
+    [parents('dad', 'mum', 'ankit', 'priya')]);
+  const scenarios = {
+    complete: [complete(), {}],
+    'missing year': [(() => { const d = complete(); d.people.find((p) => p.id === 'ankit').birthDate = null; return d; })(), {}],
+    'missing gender': [(() => { const d = complete(); d.people.find((p) => p.id === 'ankit').gender = null; return d; })(), {}],
+    'missing name': [doc([M('ankit', null, '1995')], []), { featured: 'ankit' }],
+  };
+  for (const [label, [document, options]] of Object.entries(scenarios)) {
+    const family = readFamily(document, { now: NOW });
+    const featuredId = resolveFeatured(family, options);
+    const kin = kinOf(family, featuredId, {});
+    for (const chapterId of CHAPTERS) {
+      const rendered = chapterCopy(chapterId, { family, kin, tpl: template });
+      assert.ok(rendered, `${label}/${chapterId}: the template has copy for every chapter`);
+      for (const [part, text] of Object.entries(rendered)) {
+        assert.ok(!/[{}]/.test(text), `${label}/${chapterId}/${part}: stray placeholder in "${text}"`);
+        assert.ok(!/\b(?:undefined|null|NaN)\b/i.test(text), `${label}/${chapterId}/${part}: "${text}"`);
+        assert.ok(!/ {2,}/.test(text), `${label}/${chapterId}/${part}: doubled space in "${text}"`);
+        assert.ok(!/[,.;:!?]{2,}/.test(text), `${label}/${chapterId}/${part}: doubled punctuation in "${text}"`);
+      }
+    }
+  }
+});
+
+test('chapterCopy also composes over every format-2 template already in the catalogue', () => {
+  const format2 = Object.values(TEMPLATES).filter((t) => t.format === 2);
+  // None ship in the catalogue yet - #259 adds diwali-story - so chapterVars/chapterCopy
+  // themselves are what carry this test's weight until then (the table test above); this one
+  // exists so the day a real format-2 template lands, it is swept automatically, not silently.
+  const family = readFamily(doc([M('ankit', 'Ankit', '1995')], []), { now: NOW });
+  const kin = kinOf(family, resolveFeatured(family, {}), {});
+  for (const tpl of format2) {
+    for (const chapterId of tpl.story.chapters) {
+      const rendered = chapterCopy(chapterId, { family, kin, tpl });
+      if (!rendered) continue;
+      for (const text of [rendered.title, rendered.line]) {
+        assert.ok(!/[{}]/.test(text), `${tpl.id}/${chapterId}: "${text}"`);
+        assert.ok(!/\b(?:undefined|null|NaN)\b/i.test(text), `${tpl.id}/${chapterId}: "${text}"`);
+      }
+    }
+  }
+});
+
 /* ------------------------------------------------------------------ property test: every fixture, both languages */
 
-const STORY_FIXTURES = Object.keys(BOOK_FIXTURES).filter((n) => n.startsWith('story-'));
+// #245's whole fixture set (`site/book/qa/book-fixtures.mjs`), not just the storybook's own
+// story-*.json ones - a composer has no reason to behave differently on `sample`, `large` or
+// `remarriage`, and restricting the sweep to story-* would miss it if it did.
+const ALL_FIXTURES = Object.keys(BOOK_FIXTURES);
 
-test('every composer degrades gracefully and shows no living person an age, across every story fixture', async () => {
-  assert.ok(STORY_FIXTURES.length > 0, 'no story-*.json fixtures found');
-  for (const name of STORY_FIXTURES) {
+test('every composer degrades gracefully and shows no living person an age, across every fixture in the suite', async () => {
+  assert.ok(ALL_FIXTURES.length > 0, 'no book fixtures found');
+  for (const name of ALL_FIXTURES) {
     const document = await loadFixture(name);
     for (const words of ['en', 'hi']) {
       const family = readFamily(document, { now: NOW, words, notes: true });

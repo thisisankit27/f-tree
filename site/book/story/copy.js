@@ -32,29 +32,53 @@
 import { PLACEHOLDER } from '../template.js';
 import { andList, countWords, ORDINALS } from '../blocks/words.js';
 import { byKey } from '../family.js';
+import { CHAPTERS, NO_NOTES } from './plan.js';
 
 /* ------------------------------------------------------------------ template placeholders */
+
+/**
+ * Drops a `(...)` group whole - parens included - when any `{token}` inside it has no value in
+ * `vars`: a template author writes an optional aside this way ("born {year}"), and the simplest
+ * rule that never needs a second copy grammar is that a labelled aside missing its one fact is no
+ * aside at all, not "(born )". A leading space goes with it, so "Ankit (born )." tidies to
+ * "Ankit.", not "Ankit .". A group with everything present is left untouched, for the ordinary
+ * fill below to fill in. Parens are assumed not to nest, which is all `copyText` ever validates.
+ */
+function dropEmptyParentheticals(str, vars) {
+  return str.replace(/\s*\(([^()]*)\)/g, (whole, inner) => {
+    const missing = [...inner.matchAll(PLACEHOLDER)].some((m) => vars[m[1]] === null || vars[m[1]] === undefined);
+    return missing ? '' : whole;
+  });
+}
 
 /**
  * Fills `str`'s `{placeholder}` tokens from `vars` (keyed by the same names `template.js`
  * validates a template's copy against: `featured`, `featured-first`, `family`, `n`, `year`).
  * A token with no value in `vars` is removed, never left as `{placeholder}` or printed as
  * "undefined" - and the punctuation either side of a removed token is tidied, so a dropped fact
- * never leaves a comma stranded in front of a full stop.
+ * never leaves a comma stranded in front of a full stop. The tidy-up loops until nothing more
+ * changes: a single pass over "{a}, {b}, {c}." with only `a` given would otherwise stop halfway,
+ * at "Ankit,." rather than "Ankit.", because collapsing punctuation pairwise leaves one behind
+ * whenever three or more stray marks are in a row.
  */
 export function fillPlaceholders(str, vars = {}) {
   if (typeof str !== 'string') return str;
-  const filled = str.replace(PLACEHOLDER, (_, name) => {
+  const withoutAsides = dropEmptyParentheticals(str, vars);
+  const filled = withoutAsides.replace(PLACEHOLDER, (_, name) => {
     const v = vars[name];
     return v === null || v === undefined ? '' : String(v);
   });
-  return filled
-    .replace(/\s+([,.;:!?])/g, '$1')   // "Ankit ," -> "Ankit,"
-    .replace(/,\s*,/g, ',')            // two facts, one of them dropped
-    .replace(/,\s*\./g, '.')           // a dropped fact was the sentence's last clause
-    .replace(/\(\s*\)/g, '')           // an empty parenthetical
-    .replace(/\s{2,}/g, ' ')
-    .trim();
+  let out = filled;
+  let prev;
+  do {
+    prev = out;
+    out = out
+      .replace(/\s+([,.;:!?])/g, '$1')             // "Ankit ," -> "Ankit,"
+      .replace(/([,.;:!?])\s*([,.;:!?])/g, '$2')   // two marks in a row: the later one wins
+      .replace(/\(\s*\)/g, '')                     // an empty parenthetical
+      .replace(/\s{2,}/g, ' ');
+  } while (out !== prev);
+  return out.trim();
 }
 
 /** `line.one` for exactly one, `line.other` otherwise - `template.js`'s own `{one, other}` shape. */
@@ -112,14 +136,19 @@ function throughPhrase(kin, featuredName, through) {
  * English otherwise - `words(id).word` already is that fallback), or, where the relation runs
  * through one marriage, the phrase above. `null` for the featured person themselves and for
  * anyone `kin.js` could not join to them at all - neither is captioned.
+ *
+ * `featuredName`, if a caller already has it (`stillToBeFoundCaption` does), is used as-is rather
+ * than resolved again - `nameOf` can recurse over `namedBy`, so a caller captioning several
+ * people off one `kin` should always have it in hand already. Left out, it is resolved here, so
+ * every other caller can still say just `kinCaption(kin, family, id)`.
  */
-export function kinCaption(kin, family, id) {
+export function kinCaption(kin, family, id, featuredName) {
   const w = kin.words(id);
   if (!w) return null;
   if (w.word) return w.word;
   if (w.through) {
-    const featuredName = nameOf(family, kin, kin.featured);
-    if (featuredName) return throughPhrase(kin, featuredName, w.through);
+    const name = featuredName ?? nameOf(family, kin, kin.featured);
+    if (name) return throughPhrase(kin, name, w.through);
   }
   return null;
 }
@@ -128,13 +157,14 @@ export function kinCaption(kin, family, id) {
 
 /**
  * The handwritten caption beside `id`'s portrait, or `null`. Notes are opt-in (`options.notes`,
- * off by default) and story-page-only: the register lists everyone by name alone
- * (storybook-plan.md, "Notes"), so `chapterId === 'register'` always returns `null` here rather
- * than trusting every future archetype to remember not to ask. `family.js`'s `readFamily` has
- * already clamped and stripped the note; this never re-reads `person.notes`.
+ * off by default) and story-page-only: `plan.js`'s `NO_NOTES` table says which chapters never
+ * show one (the register, which lists everyone by name alone - storybook-plan.md, "Notes") -
+ * that one table owns the rule, rather than this file comparing a chapter id of its own.
+ * `family.js`'s `readFamily` has already clamped and stripped the note; this never re-reads
+ * `person.notes`.
  */
 export function noteCaption(chapterId, family, id, options = {}) {
-  if (!options.notes || chapterId === 'register') return null;
+  if (!options.notes || NO_NOTES.has(chapterId)) return null;
   return family.byId.get(id)?.note ?? null;
 }
 
@@ -146,21 +176,38 @@ export function countInCircle(kin, circle, role = null) {
   return role ? ids.filter((id) => kin.people.get(id).role === role).length : ids.length;
 }
 
-/** "Ankit has 23 cousins.", or `null` when there is nothing to say - a zero-count fact is not a fact. */
+/**
+ * "Ankit has 23 cousins.", or `null` when there is nothing to say - a zero-count fact is not a
+ * fact. `noun` is either a plain string, regularly pluralised ("cousin" -> "cousins"), or an
+ * explicit `{ one, many }` pair for a noun that isn't ("child" -> "children"): a naive `${noun}s`
+ * would print "childs", so a caller with an irregular noun must say both forms itself.
+ */
 export function numberFact(family, kin, n, noun) {
   if (!n) return null;
   const featuredName = nameOf(family, kin, kin.featured);
   if (!featuredName) return null;
-  return `${featuredName} has ${countWords(n)} ${n === 1 ? noun : `${noun}s`}.`;
+  const word = typeof noun === 'string' ? { one: noun, many: `${noun}s` } : noun;
+  return `${featuredName} has ${countWords(n)} ${n === 1 ? word.one : word.many}.`;
 }
 
 /* ------------------------------------------------------------------ sentence composition */
+
+/** "21st", "12th", "103rd" - the suffix English gives a number past `ORDINALS`' own word list. */
+function ordinalSuffix(n) {
+  const last2 = n % 100;
+  if (last2 >= 11 && last2 <= 13) return 'th';
+  return { 1: 'st', 2: 'nd', 3: 'rd' }[n % 10] ?? 'th';
+}
 
 /**
  * The birth-order fragment of the opening sentence: "the eldest of three children", "the second
  * of three children", "the youngest of three children", or "the only child" for one. `null` when
  * the featured person's own birth year is unknown - a book cannot honestly call somebody "the
- * eldest" without knowing where they fall, so the fragment is dropped rather than guessed at.
+ * eldest" without knowing where they fall - or when *any* full sibling's is: an unsorted sibling
+ * would otherwise sort as the youngest by accident (`(a.by === null) - (b.by === null)` puts a
+ * missing year last), which can make a false "eldest" claim rather than an honestly missing one.
+ * The rule is not to guess: one unknown birth year among the people being ranked is enough to
+ * drop the claim, not just to misplace the one person it belongs to.
  *
  * `siblings` is `family.byId`-shaped records ({id, by}), already the exact set `kin.js` calls
  * `full` within the `siblings` circle - children of both the same parents as the featured person -
@@ -170,12 +217,14 @@ function birthOrderPhrase(featured, siblings) {
   if (featured.by === null) return null;
   const total = siblings.length + 1;
   if (total === 1) return 'the only child';
-  const known = [{ id: featured.id, by: featured.by }, ...siblings.map((s) => ({ id: s.id, by: s.by }))]
-    .sort((a, b) => (a.by === null) - (b.by === null) || (a.by ?? 0) - (b.by ?? 0) || byKey(a.id, b.id));
+  if (siblings.some((s) => s.by === null)) return null;
+  const known = [{ id: featured.id, by: featured.by }, ...siblings]
+    .sort((a, b) => a.by - b.by || byKey(a.id, b.id));
   const rank = known.findIndex((s) => s.id === featured.id);
   if (rank === 0) return `the eldest of ${countWords(total)} children`;
   if (rank === total - 1) return `the youngest of ${countWords(total)} children`;
-  return `the ${ORDINALS[rank] ?? `${rank + 1}th`} of ${countWords(total)} children`;
+  const place = rank + 1;
+  return `the ${ORDINALS[rank] ?? `${place}${ordinalSuffix(place)}`} of ${countWords(total)} children`;
 }
 
 /**
@@ -242,9 +291,69 @@ export function stillToBeFoundCaption(family, kin, id) {
   if (nameOf(family, kin, id)) return null;
   const featuredName = nameOf(family, kin, kin.featured);
   if (!featuredName) return null;
-  const word = kinCaption(kin, family, id);
+  const word = kinCaption(kin, family, id, featuredName);
   if (!word) return null;
   const side = kin.people.get(id)?.side;
   const placed = `${possessive(featuredName)} ${word}`;
   return side && side !== 'none' ? `${placed}, on the ${side} side` : placed;
+}
+
+/* ------------------------------------------------------------------ every chapter, table-driven */
+
+/**
+ * The `{n}` a chapter's own copy line counts, from the same circle `plan.js`'s `MEMBERS` draws
+ * the chapter's page from - never a second tally. A chapter with no single count to give (the
+ * opening, numbers - which asks several, by name, through `numberFact` - legacy, closing) has no
+ * entry here and gets no `{n}`.
+ */
+const CHAPTER_COUNT = {
+  roots: (family, kin) => kin.circles.ancestors.length,
+  courtyards: (family, kin) => kin.circles.grandparents.length,
+  parents: (family, kin) => kin.circles.parents.length,
+  siblings: (family, kin) => kin.circles.siblings.length,
+  spouses: (family, kin) => kin.circles.spouses.length,
+  children: (family, kin) => kin.circles.children.length,
+  lane: (family, kin) => kin.circles.branches.length + kin.circles.lane.length,
+  register: (family, kin) => kin.people.size,
+  'still-to-be-found': (family, kin) => [...kin.people.keys()].filter((id) => !nameOf(family, kin, id)).length,
+};
+
+/**
+ * The `vars` any chapter's `copy` line may draw on, filled with whatever `family` and `kin`
+ * actually know: `featured`/`featured-first` and `year` only when the featured person is
+ * nameable, `family` from the family's own title, `n` only for a chapter `CHAPTER_COUNT` knows
+ * how to count. A var this chapter has nothing to say is left out of the object entirely, so
+ * `fillPlaceholders` drops its token rather than printing a blank.
+ */
+export function chapterVars(chapterId, family, kin) {
+  const vars = {};
+  const featuredName = nameOf(family, kin, kin.featured);
+  if (featuredName) {
+    const own = family.byId.get(kin.featured)?.name;
+    vars.featured = featuredName;
+    vars['featured-first'] = own ? own.trim().split(/\s+/)[0] : featuredName;
+    const year = family.byId.get(kin.featured)?.by;
+    if (year !== null && year !== undefined) vars.year = year;
+  }
+  if (family.title) vars.family = family.title;
+  const n = CHAPTER_COUNT[chapterId]?.(family, kin);
+  if (n !== undefined) vars.n = n;
+  return vars;
+}
+
+/**
+ * `ctx.tpl.copy[chapterId]` filled from what `family` and `kin` know, for any chapter id
+ * `plan.js`'s `CHAPTERS` lists - trivial (`renderCopy` over `chapterVars` alone) for a chapter
+ * with no bespoke sentence, and still correct for the ones with one (`openingLine`, `rootsLine`,
+ * `stillToBeFoundCaption`, `numberFact`), which an archetype calls directly instead: this table
+ * only ever fills a template's own words, never substitutes for a composed sentence.
+ *
+ * `ctx` is the small bag of pure data this file needs (`{ family, kin, tpl }`), not compose.js's
+ * whole rendering context - an archetype already has `family` and the validated template (`tpl`)
+ * from there, plus the one `kin` the book computed once, and can pass the three straight through.
+ * `null` where the template names no copy for this chapter at all.
+ */
+export function chapterCopy(chapterId, ctx) {
+  if (!CHAPTERS.includes(chapterId)) throw new Error(`copy.js: chapterCopy does not know the chapter "${chapterId}"`);
+  return renderCopy(ctx.tpl.copy?.[chapterId], chapterVars(chapterId, ctx.family, ctx.kin));
 }
