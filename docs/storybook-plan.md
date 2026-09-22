@@ -3,15 +3,18 @@
 This is the plan behind umbrella **#239**, written for whoever builds it next, including an AI
 session. It was made on 2026-09-16, and Ankit approved the visual direction the same day.
 
-> **Status (2026-09-17).**
-> - The design gate (#240) is **passed**.
-> - Nothing of #241–#260 has been built yet. No composer, painter or shell code has changed.
-> - What exists is the design: this plan, [book-design-system.md](book-design-system.md), and the
->   approved style frames in [`site/book/art/style-frames/`](../site/book/art/style-frames/).
-> - Wave 1 starts from here. Three contradictions between this plan and the approved frames were
->   settled by Ankit on 2026-09-17 and are folded in below: the palette is 29 tokens, not 20;
->   `Book.kt` belongs to #246 alone; and `swatches.json` has been regenerated from the frames'
->   own palette, which it had drifted from.
+> **Status (2026-09-22): waves 1 and 2 have landed.**
+> - **Wave 1:** #241 (Book format 2 in JS), #242 (Kalam `book_hand`), #243 (template format 2) and
+>   #244 (composer options) are done.
+> - **Wave 2:** #246 (Android format 2), #247 (art compiler + `draw.js`), #248 (Android book
+>   screen), #249 (desktop book dialog) and #250 (`kin.js`) are done.
+> - **#245 is open**, but only for the storybook half: its invariants run over the story book
+>   once it exists. Everything else in it has landed.
+> - **Next is wave 3,** in this order:
+>   - #251 (`plan.js`), #252 (`copy.js`), #253/#254 (assets), #255 (procedural);
+>   - then #256–#258 (archetypes);
+>   - then #259 (the swap, **must merge by 2026-10-12**) and #260 (release checks).
+> - Read **"Handover after wave 2"** below before starting.
 
 ## The idea, in one breath
 
@@ -122,6 +125,68 @@ glowing between them. The central image is the cover's: *one lamp for each of us
   Retarget the child to `main` first.
 - **Data.** Never commit a real family's data or photographs. Use the synthetic fixtures and
   `tools/make_sample_tree.py`.
+
+## Handover after wave 2 (2026-09-22)
+
+What the next issues can build on, and the rulings made on the way. Each merged PR's review
+comment has the detail.
+
+**Rulings (Ankit, 2026-09-21):**
+- **Silhouette `use`** (a use with `fill`): the fill is one solid palette colour. It replaces every
+  fill and stroke inside the symbol, gradients included. Stroke geometry and inner opacities are
+  kept. The use's `op` is one group alpha: svg.js puts opacity on the wrapping `<g>`, and Android
+  uses `saveLayerAlpha`. This matches the design system's paper shadow, "the same shape, offset".
+- Merges no longer need Ankit's per-PR "merge". **Betas and tags still do.**
+
+**APIs now on `main`:**
+- **Format 2:** `format.js` exports `MAX_SYMBOL_DEPTH = 4` and `MAX_EXPANDED_ITEMS = 20000` (per
+  page). Both painters enforce them. `site/book/golden/format2-conformance.json` is the shared
+  fixture, and its checklist test keeps its coverage honest.
+- **Templates:** `template.js` exports `PAPERCUT_PALETTE_KEYS` (29), `REQUIRED_CHAPTERS`,
+  `HAND_FONT_KEY` and `ROLE_FONT_KEYS`. Kalam is only ever the hand role. `composeBook` still
+  refuses a format-2 template by name; #251 routes it to `storyBook(ctx)`.
+- **Featured person:** `ctx.featured` is resolved once (`story/featured.js`). Notes arrive clamped as
+  `person.note` only when `options.notes`. `pageBlocks` honours `options.coverOnly`.
+- **`story/kin.js`:** `kinOf(family, featuredId, {words})` partitions everyone into 12 circles, with
+  role, side, gen, branch, via and `namedBy`. `words(id)` gives `{en, hi, term, word, through}`.
+  `through` marks a relation through one marriage; #252 phrases it the way the desktop's
+  `sentenceFor` does. It isn't imported by `compose.js` yet: #251 wires it in, and then
+  `bookEngine()` stages the Hindi kinship files automatically.
+- **`art/draw.js`:** `place(id, {x, y, w|h, anchor, flip, shadow, tint})`, `zones`, `frame` and
+  `box`. It collects only the symbols a book uses.
+  - `tools/book_art.mjs` compiles `art/src/papercut/**.svg`, and `--check` runs in CI.
+  - Seeded so far: `diya`, `marigold`, `arch-jharokha` (lace as dotted strokes).
+  - `data-clip` and `<g data-asset>` exist for frame openings and nesting.
+- **QA (#245):**
+  - `composeWithReport` gives `shown`, `textBoxes`, `artZones`, `minSize` and `pages`. Pages record
+    through `ctx.show`, `ctx.zone`, `ctx.describePage` and a byte-neutral `kind` on lines.
+  - `drawable(tpl)`.
+  - The fixtures are `story-*.json` (from `tools/make_sample_tree.py --book-fixtures`).
+  - The invariant suite skips the storybook until it exists, and a flag test fails if a story
+    composer lands without being covered.
+  - `tools/book_contact_sheet.mjs` renders the pages for review by eye.
+- **Shells:** Android and desktop both pass `featured`, `notes`, `words` and `coverOnly`. Both decide
+  "features one person" from the template's `format === 2`.
+
+**Warnings for wave 3:**
+- **Art weight.** At the style frames' density, a 28-page book prints at about 18.6 MB, against the
+  10 MB budget. Keep to the per-kind budgets: a repeated shape is one symbol placed many times, or
+  a stroke, never copies. Keep paper shadows cheap too.
+- **The art term** in `estimateBytes` was measured in Chromium (margin ×1.95). #259 must
+  re-measure on Android's PdfDocument, and raise it if Android is bigger.
+- **Old small print.** Format-1 tree-page years print at 6.4 pt and are grandfathered at 6 pt.
+  Storybook pages get the full density floors.
+- **Open follow-ups, outside the storybook path:**
+  - #268: `layout.js` `byBirth` uses `localeCompare`. The fix may move the goldens, so it needs its
+    own PR.
+  - #271: the relation panel calls a former spouse "wife", and the spouse-status rule lives in two
+    places.
+- **Still to do by eye:** a `/run` of the real desktop dialog and a saved PDF, and a release build
+  exercised on the emulator. Both are scheduled with #260's release checks.
+
+**How the work was run:** one worktree and branch per issue. Sub-agents never ran Gradle, the
+emulator or Electron; one session ran those, one process at a time. `/code-review` and `/simplify`
+ran on every PR, and every regression test was checked to fail without its fix.
 
 ## Story sequence (adapts to the data)
 
