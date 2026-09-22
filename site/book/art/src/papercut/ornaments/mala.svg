@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -2 200 44" data-anchor="top-center">
+<desc>A marigold string on a shallow swag, a few mango leaves hung from it: between a couple's frames, over a door, at a chapter's end. Each flower is a dot on one of three dotted strokes along the same line. Original f-tree work, MIT.</desc>
+<g data-asset="mango-leaf" transform="translate(40 17) rotate(-18) scale(0.6)" fill="#5a8a3c"/>
+<g data-asset="mango-leaf" transform="translate(78 24.5) rotate(12) scale(0.6)" fill="#2f5a2a"/>
+<g data-asset="mango-leaf" transform="translate(122 24.5) rotate(-12) scale(0.6)" fill="#5a8a3c"/>
+<g data-asset="mango-leaf" transform="translate(160 17) rotate(18) scale(0.6)" fill="#2f5a2a"/>
+<path d="M4 4Q100 48 196 4" fill="none" stroke="#e8762b" stroke-width="6.4" stroke-linecap="round" stroke-dasharray="0.01 6.72"/>
+<path d="M4 4Q100 48 196 4" fill="none" stroke="#f2a71b" stroke-width="3.97" stroke-linecap="round" stroke-dasharray="0.01 6.72"/>
+<path d="M4 4Q100 48 196 4" fill="none" stroke="#f2b84b" stroke-width="1.54" stroke-linecap="round" stroke-dasharray="0.01 6.72"/>
+</svg>

@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" data-anchor="center">
+<desc>The drape's woven border: a gold edge and a dashed sindoor-red line. A cut shared by the front busts (motifs.mjs bust(), #240). Original f-tree work, MIT.</desc>
+<path d="M70.24 69.6C55.52 82.4 38.96 92 27.18 101" fill="none" stroke="#f2b84b" stroke-width="1.76"/>
+<path d="M72.82 72.8C58.1 84.8 41.9 93.6 31.6 101" fill="none" stroke="#c23b2e" stroke-width="0.8" stroke-dasharray="1.6 1.44"/>
+</svg>

@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="12 18 76 58" data-anchor="bottom-center">
+<desc>A lotus, open on the water: five cut petals over a leaf pad. From motifs.mjs lotus() (#240). Original f-tree work, MIT.</desc>
+<defs><path id="petal" d="M0 0C9.6 -7.8 6.72 -24.96 0 -31.2C-6.72 -24.96 -9.6 -7.8 0 0Z" fill="#d6336c"/><path id="pad" d="M14 58Q50 71.6 86 58Q50 62.8 14 58Z" fill="#5a8a3c"/></defs>
+<use href="#pad" fill="#2a1a33" opacity="0.22" x="1.2" y="1.6"/>
+<use href="#pad"/>
+<use href="#petal" transform="translate(50 58) rotate(-70) translate(0.9 1.2)" fill="#2a1a33" opacity="0.14"/>
+<use href="#petal" transform="translate(50 58) rotate(-70)"/>
+<use href="#petal" transform="translate(50 58) rotate(70) translate(0.9 1.2)" fill="#2a1a33" opacity="0.14"/>
+<use href="#petal" transform="translate(50 58) rotate(70)"/>
+<use href="#petal" transform="translate(50 58) rotate(-38) translate(0.9 1.2)" fill="#2a1a33" opacity="0.14"/>
+<use href="#petal" transform="translate(50 58) rotate(-38)" fill="#f2a71b"/>
+<use href="#petal" transform="translate(50 58) rotate(38) translate(0.9 1.2)" fill="#2a1a33" opacity="0.14"/>
+<use href="#petal" transform="translate(50 58) rotate(38)" fill="#f2a71b"/>
+<use href="#petal" transform="translate(50 58) rotate(0) scale(1 1.22) translate(0.9 1.2)" fill="#2a1a33" opacity="0.14"/>
+<use href="#petal" transform="translate(50 58) rotate(0) scale(1 1.22)"/>
+</svg>

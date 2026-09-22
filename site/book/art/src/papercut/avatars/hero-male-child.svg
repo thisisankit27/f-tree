@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" data-anchor="bottom-center">
+<desc>The hero with no photograph: a man, as a child, seen from behind at a window, looking out at the view. Built from the shared back-* cuts; converted from motifs.mjs backBust() (#240). Original f-tree work, MIT.</desc>
+<rect data-zone="busy" x="34.1" y="17.36" width="34.8" height="82.64"/>
+<g data-asset="back-shoulders" transform="matrix(0.74 0 0 0.8 13 20)" fill="#3b4a8c"/>
+<g data-asset="back-collar" transform="matrix(0.74 0 0 0.8 13 20)"/>
+<g data-asset="back-head" transform="translate(0.8 1.2) matrix(0.94 0 0 0.94 2.09 13.28)" fill="#2a1a33" opacity="0.18"/>
+<g data-asset="back-head" transform="matrix(0.94 0 0 0.94 2.09 13.28)"/>
+<g data-asset="back-hair-short" transform="translate(0.6 1.3) matrix(0.94 0 0 0.94 2.09 13.28)" fill="#2a1a33" opacity="0.25"/>
+<g data-asset="back-hair-short" transform="matrix(0.94 0 0 0.94 2.09 13.28)"/>
+<g data-asset="back-hair-clumps" transform="matrix(0.94 0 0 0.94 2.09 13.28)"/>
+</svg>

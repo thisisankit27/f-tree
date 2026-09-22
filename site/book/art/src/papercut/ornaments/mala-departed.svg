@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-10 -10 120 130" data-anchor="50 50">
+<desc>The mala on a departed person's frame: marigolds hung beneath it, their ends tied at its sides. Its anchor is the frame's centre and its units the round frames': it hangs on the frame, never on the person and never towards anybody else. Original f-tree work, MIT.</desc>
+<path d="M-7.5 58C-8.5 122 108.5 122 107.5 58" fill="none" stroke="#e8762b" stroke-width="7" stroke-linecap="round" stroke-dasharray="0.01 7.35"/>
+<path d="M-7.5 58C-8.5 122 108.5 122 107.5 58" fill="none" stroke="#f2a71b" stroke-width="4.34" stroke-linecap="round" stroke-dasharray="0.01 7.35"/>
+<path d="M-7.5 58C-8.5 122 108.5 122 107.5 58" fill="none" stroke="#f2b84b" stroke-width="1.68" stroke-linecap="round" stroke-dasharray="0.01 7.35"/>
+<circle cx="-7.5" cy="56" r="2.6" fill="#f2b84b"/>
+<circle cx="107.5" cy="56" r="2.6" fill="#f2b84b"/>
+</svg>

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 44 46" data-anchor="bottom-center">
+<desc>A lit diya without its glow, for folios and rows of lamps that would spend a page's glows. From motifs.mjs drawDiya() (#240). Original f-tree work, MIT.</desc>
+<g data-asset="diya-bowl" transform="translate(1.2 2)" fill="#2a1a33" opacity="0.22"/>
+<g data-asset="diya-bowl"/>
+<path d="M3.2 34Q20 40.4 38.4 32.4Q20 38 3.2 34Z" fill="#e8762b"/>
+<path d="M13.6 37.2Q20 38.8 26.4 37.2" fill="none" stroke="#ffe7a6" stroke-width="2.24" stroke-linecap="round" stroke-dasharray="0.01 6.3"/>
+<path d="M2.4 30.8Q20 34 40 28" fill="none" stroke="#ffe7a6" stroke-width="1" opacity="0.5"/>
+<g data-asset="diya-flame"/>
+</svg>

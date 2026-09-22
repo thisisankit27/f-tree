@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" data-anchor="bottom-center">
+<desc>The hero with no photograph: a woman, in old age, seen from behind at a window, looking out at the view. Built from the shared back-* cuts; converted from motifs.mjs backBust() (#240). Original f-tree work, MIT.</desc>
+<rect data-zone="busy" x="34.1" y="17.36" width="34.8" height="82.64"/>
+<g data-asset="back-shoulders" fill="#0f7b7a"/>
+<g data-asset="back-collar"/>
+<g data-asset="back-pallu" transform="translate(1 1.4)" fill="#2a1a33" opacity="0.22"/>
+<g data-asset="back-pallu" fill="#f2a71b"/>
+<g data-asset="back-pallu-border"/>
+<g data-asset="back-head" transform="translate(0.8 1.2)" fill="#2a1a33" opacity="0.18"/>
+<g data-asset="back-head"/>
+<g data-asset="back-hair-bun" transform="translate(0.6 1.3)" fill="#2a1a33" opacity="0.25"/>
+<g data-asset="back-hair-bun" fill="#d9d2ca"/>
+<g data-asset="back-specs"/>
+</svg>

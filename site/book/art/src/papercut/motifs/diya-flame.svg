@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 44 46" data-anchor="bottom-center">
+<desc>A diya's flame, with its bright core. From motifs.mjs drawDiya() (#240). Original f-tree work, MIT.</desc>
+<defs><linearGradient id="f" gradientUnits="userSpaceOnUse" x1="40" y1="27.2" x2="40" y2="2.4"><stop offset="0" stop-color="#e8762b"/><stop offset="0.35" stop-color="#f2b84b"/><stop offset="1" stop-color="#ffe7a6"/></linearGradient></defs>
+<path d="M40 27.2C46 23.48 45.12 12.8 40.6 2.4C35.52 12.32 34 23.48 40 27.2Z" fill="url(#f)"/>
+<path d="M40 25.96C42.72 22.24 42.12 16.04 40.32 11.84C38.2 16.04 37.32 22.24 40 25.96Z" fill="#fff8ec"/>
+</svg>

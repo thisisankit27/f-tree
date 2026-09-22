@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 22" data-anchor="center">
+<desc>A divider: a small lotus between two dotted rules that fade as they run out, for a chapter's end or a quiet break. Original f-tree work, MIT.</desc>
+<path d="M58 12L6 12" fill="none" stroke="#f2b84b" stroke-width="2" stroke-linecap="round" stroke-dasharray="0.01 5.2"/>
+<path d="M102 12L154 12" fill="none" stroke="#f2b84b" stroke-width="2" stroke-linecap="round" stroke-dasharray="0.01 5.2"/>
+<path d="M50 12L14 12" fill="none" stroke="#e8762b" stroke-width="1" stroke-linecap="round" stroke-dasharray="0.01 5.2"/>
+<path d="M110 12L146 12" fill="none" stroke="#e8762b" stroke-width="1" stroke-linecap="round" stroke-dasharray="0.01 5.2"/>
+<polygon points="64,12 67,9 70,12 67,15" fill="#e8762b"/>
+<polygon points="90,12 93,9 96,12 93,15" fill="#e8762b"/>
+<g data-asset="lotus" transform="translate(67 -1.76) scale(0.26)"/>
+</svg>

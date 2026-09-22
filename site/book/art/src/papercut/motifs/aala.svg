@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="14 6 72 84" data-anchor="bottom-center">
+<desc>An aala: the niche in a wall where a lamp is kept for someone whose name is lost. Its rim is dashed in brass, the app's own mark for a name not known, and the lamp in it is still lit. From motifs.mjs aala() (#240). Original f-tree work, MIT.</desc>
+<defs><path id="outer" d="M24.4 82L24.4 49.34C24.4 30.3 34.13 19.82 50 17.6C65.87 19.82 75.6 30.3 75.6 49.34L75.6 82Z" fill="#b5562a"/><path id="sill" d="M20.4 82L79.6 82L76.4 86L23.6 86Z" fill="#b5562a"/>
+<linearGradient id="g" gradientUnits="userSpaceOnUse" x1="0" y1="24" x2="0" y2="82"><stop offset="0" stop-color="#b5562a"/><stop offset="0.55" stop-color="#e8762b"/><stop offset="1" stop-color="#f2b84b"/></linearGradient></defs>
+<rect data-zone="busy" x="20.4" y="17.6" width="59.2" height="68.4"/>
+<use href="#outer" fill="#2a1a33" opacity="0.09" x="3.06" y="4.14"/>
+<use href="#outer" fill="#2a1a33" opacity="0.08" x="2.04" y="2.76"/>
+<use href="#outer" fill="#2a1a33" opacity="0.11" x="1.02" y="1.38"/>
+<use href="#outer"/>
+<path d="M30 82L30 48.8Q26.15 38.98 33.47 34.14Q34.31 25.36 43.16 25.82Q50 18.18 56.84 25.82Q65.69 25.36 66.53 34.14Q73.85 38.98 70 48.8L70 82Z" fill="url(#g)"/>
+<circle cx="50" cy="65.76" r="38" fill="#f2b84b" opacity="0.05"/>
+<circle cx="50" cy="65.76" r="32.68" fill="#f2b84b" opacity="0.06"/>
+<circle cx="50" cy="65.76" r="27.36" fill="#f2b84b" opacity="0.07"/>
+<circle cx="50" cy="65.76" r="22.04" fill="#f2b84b" opacity="0.08"/>
+<circle cx="50" cy="65.76" r="16.72" fill="#f2b84b" opacity="0.09"/>
+<circle cx="50" cy="65.76" r="11.4" fill="#f2b84b" opacity="0.1"/>
+<path d="M27.2 49.07C27.2 32.11 35.86 22.78 50 20.8C64.14 22.78 72.8 32.11 72.8 49.07L72.8 82" fill="none" stroke="#b9822a" stroke-width="0.9" stroke-dasharray="2 1.4"/>
+<use href="#sill" fill="#2a1a33" opacity="0.25" x="1" y="1.4"/>
+<use href="#sill"/>
+<g data-asset="diya-unknown" transform="matrix(0.42 0 0 0.42 36.8 67.8)"/>
+</svg>

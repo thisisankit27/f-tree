@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" data-anchor="center">
+<desc>A block print on the cloth: small card dots in rows, each row one dotted stroke. A cut shared by the front busts (motifs.mjs bust(), #240). Original f-tree work, MIT.</desc>
+<path d="M36.4 79.2L43.2 79.2M56.8 79.2L63.6 79.2M32.96 86L39.76 86M60.16 86L66.96 86M29.6 92.8L43.2 92.8M56.8 92.8L70.4 92.8" fill="none" stroke="#fff8ec" stroke-width="1.76" stroke-linecap="round" stroke-dasharray="0.01 6.8" opacity="0.45"/>
+</svg>

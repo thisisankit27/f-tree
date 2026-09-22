@@ -199,7 +199,7 @@ test('the seeded art places, shadows and frames into a book that validates and p
   ];
   const book = bookOf(items, art, defs);
   assert.deepEqual(validateBook(book), []);
-  assert.deepEqual(Object.keys(book.symbols), ['pc-arch-jharokha', 'pc-diya', 'pc-marigold']);
+  assert.deepEqual(Object.keys(book.symbols), ['pc-arch-jharokha', 'pc-diya', 'pc-diya-bowl', 'pc-diya-flame', 'pc-diya-glow', 'pc-diya-small', 'pc-marigold'], 'the diya brings the cuts it shares with the other lamps');
   assert.equal(book.format, 2);
   assert.match(paint(book), /<svg/);
   const { symbols } = LIBRARY;

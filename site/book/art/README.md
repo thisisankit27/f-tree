@@ -72,6 +72,12 @@ art/
    A row of the same small dot along a curve (a lace, a string of beads seen far off) is
    cheapest as one stroked path with round caps and a dash like `stroke-dasharray="0.01 8"`:
    every dash is a dot, and the whole row is a few hundred bytes (the jharokha's lace does this).
+   **Silhouettes.** A `fill` on a `<use>` or a `<g data-asset>` is a silhouette (format 2's
+   `use.fill`): every fill and stroke of the shape takes that one swatch, and its geometry, stroke
+   widths and inner opacities stay. It is how a paper shadow is drawn (the same shape, offset, in
+   ink at about a fifth: `<use href="#hair" fill="#2a1a33" opacity="0.22" x="0.5" y="1"/>`), and how
+   one cut is tinted to many colours (the busts' cloth and drape). Author the shape without a fill of
+   its own, or an editor's preview will show its own colour instead.
 4. **Compile and look:**
    ```
    node tools/book_art.mjs                     # writes art/papercut/*.js, prints each size
@@ -128,6 +134,31 @@ book.symbols = art.symbols();                  // exactly what was used, or unde
 - `frame` fits the opening into the box in proportion and centres it (`fit: 'stretch'` fills it),
   draws `inner` clipped to the opening, then the frame over the clip edge, with the soft shadow.
 - Symbols are `pc-<id>`; gradients `pc-<id>-g<n>`, filed through `ctx.gradient`.
+
+## The asset library (#253)
+
+- **People** (`avatars/`). Pages never pick one by hand: `story/avatars.js` chooses from the record.
+  - `avatar-<female|male|person>-<child|youth|adult|elder>-<a|b>`: faceless front busts for the
+    round frames, all in one frame (viewBox `0 0 100 100`, the opening's circle), each with a `face`
+    zone. They are built from shared `bust-*` cuts, so a book pays for a head once.
+  - `hero-<gender>-<child|adult|elder>`: the hero with no photograph, seen from behind at the
+    arch window (`back-*` cuts). A hero is never a front bust.
+- **Frames** (`frames/`): `arch-jharokha` (heroes), `medallion` (story, 36-90 pt), `medallion-petals`
+  (groups: a ring of petals, never a string of flowers), `medallion-carved` (a photograph's mount),
+  `cameo` (the register, 22 pt). The round frames share their units: the opening is the circle of
+  radius 50 about (50, 50), and each strokes it with a solid line over the clip edge.
+- **Name not known**: `lamp-unknown` (cameo and medallion size, in the round frames' units) and
+  `aala` (scene size). They are the only drawings that use `brass`.
+- **The departed**: `mala-departed`, in the round frames' units with its anchor on the frame's
+  centre. Place it at the frame's centre with `s` = the frame's box width / 100. It hangs beneath
+  the frame and never reaches past it.
+- **Lamps**: `diya`, `diya-small` (no glow, for folios and rows), `diya-unknown`, `diya-floating`,
+  `kandil`, sharing `diya-bowl`, `diya-flame` and `diya-glow`.
+- **Flora and ornaments**: `marigold`, `marigold-bead`, `mango-leaf`, `lotus`, `peepal`, `mala`,
+  `toran` and `band-sanjhi` (tiles, laid end to end), `corner-paisley`, `divider-lotus`.
+
+`node tools/book_art_specimen.mjs <out>` renders all of it, placed as pages will place it, beside
+the approved system frame (Playwright, as `tools/book_print.mjs` explains).
 
 ## Working on art
 

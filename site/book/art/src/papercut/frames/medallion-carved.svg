@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-16 -16 132 132" data-anchor="center">
+<desc>A photograph's mount: a cream mat inside a carved wooden ring, and a gold line over the clip edge. The photograph itself is never tinted. From motifs.mjs medallion({ photo }) (#240). Original f-tree work, MIT.</desc>
+<circle data-clip="opening" cx="50" cy="50" r="50"/>
+<rect data-zone="face" x="28" y="20" width="44" height="46"/>
+<path d="M114.5 50A64.5 64.5 0 1 1 -14.5 50A64.5 64.5 0 1 1 114.5 50ZM105.5 50A55.5 55.5 0 1 1 -5.5 50A55.5 55.5 0 1 1 105.5 50Z" fill="#b5562a" fill-rule="evenodd"/>
+<path d="M110 50A60 60 0 1 1 -10 50A60 60 0 1 1 110 50Z" fill="none" stroke="#e8762b" stroke-width="3" stroke-linecap="round" stroke-dasharray="0.01 6.28" opacity="0.85"/>
+<path d="M114.5 50A64.5 64.5 0 1 1 -14.5 50A64.5 64.5 0 1 1 114.5 50Z" fill="none" stroke="#2a1a33" stroke-width="0.6" opacity="0.25"/>
+<path d="M105.5 50A55.5 55.5 0 1 1 -5.5 50A55.5 55.5 0 1 1 105.5 50ZM100 50A50 50 0 1 1 0 50A50 50 0 1 1 100 50Z" fill="#fff8ec" fill-rule="evenodd"/>
+<circle cx="50" cy="50" r="50" fill="none" stroke="#f2b84b" stroke-width="1.8"/>
+</svg>

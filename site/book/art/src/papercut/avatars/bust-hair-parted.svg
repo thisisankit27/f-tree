@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" data-anchor="center">
+<desc>Hair parted in the middle and drawn back, with a line of light along the parting. A cut shared by the front busts (motifs.mjs bust(), #240). Original f-tree work, MIT.</desc>
+<path d="M35.74 49.6C34.82 28 65.18 28 64.26 49.6C60.56 40 51.32 37.28 50 36C48.68 37.28 39.44 40 35.74 49.6Z" fill="#2a1a33"/>
+<path d="M50 36C43.4 32 38.12 37.6 36.8 45.6" fill="none" stroke="#fff8ec" stroke-width="0.64" opacity="0.3"/>
+</svg>
