@@ -117,6 +117,7 @@ const val BookFeaturedRowTag = "book-featured-row"
 const val BookFeaturedResetTag = "book-featured-reset"
 const val BookFeaturedSearchTag = "book-featured-search"
 const val BookFeaturedListTag = "book-featured-list"
+const val BookFeaturedCancelTag = "book-featured-cancel"
 const val BookNotesTag = "book-notes"
 
 /** A4's proportions, which every preview page is drawn at. */
@@ -493,6 +494,7 @@ private fun Options(state: BookUiState, viewModel: BookViewModel) {
                 modifier = Modifier.fillMaxWidth().height(480.dp),
                 searchTag = BookFeaturedSearchTag,
                 listTag = BookFeaturedListTag,
+                cancelTag = BookFeaturedCancelTag,
             )
         }
     }

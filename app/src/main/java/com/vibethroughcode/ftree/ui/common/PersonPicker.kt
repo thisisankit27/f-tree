@@ -65,6 +65,7 @@ fun PersonPicker(
     cancelDescription: String = stringResource(R.string.relation_close),
     searchTag: String = "person-picker-search",
     listTag: String = "person-picker-list",
+    cancelTag: String = "person-picker-cancel",
 ) {
     val focus = remember { FocusRequester() }
     LaunchedEffect(Unit) { focus.requestFocus() }
@@ -81,7 +82,7 @@ fun PersonPicker(
                 singleLine = true,
                 modifier = Modifier.weight(1f).focusRequester(focus).testTag(searchTag),
             )
-            IconButton(onClick = onCancel) {
+            IconButton(onClick = onCancel, modifier = Modifier.testTag(cancelTag)) {
                 Icon(Icons.Default.Close, contentDescription = cancelDescription)
             }
         }

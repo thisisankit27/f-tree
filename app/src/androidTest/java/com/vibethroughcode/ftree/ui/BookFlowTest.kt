@@ -18,13 +18,13 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
-import androidx.test.espresso.Espresso
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.vibethroughcode.ftree.FTreeApplication
 import com.vibethroughcode.ftree.MainActivity
 import com.vibethroughcode.ftree.data.Person
 import com.vibethroughcode.ftree.data.RelativeKind
+import com.vibethroughcode.ftree.ui.book.BookFeaturedCancelTag
 import com.vibethroughcode.ftree.ui.book.BookFeaturedListTag
 import com.vibethroughcode.ftree.ui.book.BookFeaturedResetTag
 import com.vibethroughcode.ftree.ui.book.BookFeaturedRowTag
@@ -150,6 +150,11 @@ class BookFlowTest {
      * The shared `PersonPicker` (#248), reached from "Whose story": picking somebody replaces the
      * row's own wording with their name and offers a way back, and reset returns to the composer's
      * own choice rather than leaving nobody picked.
+     *
+     * The row merges its own semantics (one TalkBack announcement, not "avatar" then "name" then
+     * "opens a picker" as three) so its tag and its text sit on the *same* semantics node once
+     * something is chosen, not on a text node somewhere underneath it - unlike a picker's own list
+     * rows, which stay separate nodes under `BookFeaturedListTag`.
      */
     @Test
     fun whoseStoryCanBePickedAndReset() {
@@ -164,7 +169,7 @@ class BookFlowTest {
         rule.waitUntil(5_000) { rule.onAllNodes(row).fetchSemanticsNodes().isNotEmpty() }
         rule.onNode(row).performClick()
 
-        val chosen = hasText("Aarav Sharma") and hasAnyAncestor(hasTestTag(BookFeaturedRowTag))
+        val chosen = hasTestTag(BookFeaturedRowTag) and hasText("Aarav Sharma")
         rule.waitUntil(5_000) { rule.onAllNodes(chosen).fetchSemanticsNodes().isNotEmpty() }
         rule.onNodeWithTag(BookFeaturedResetTag).assertExists()
 
@@ -174,9 +179,13 @@ class BookFlowTest {
     }
 
     /**
-     * Backing out of the picker without choosing anybody leaves the row exactly as it was - the
-     * repo's lesson about sheets: dismiss with the back gesture, then wait for the sheet's own
-     * content to be gone before asserting on what is left underneath it.
+     * Cancelling the picker without choosing anybody leaves the row exactly as it was.
+     *
+     * Dismissed here through the picker's own close button rather than the back gesture:
+     * `ModalBottomSheet` opens in its own window, and on the emulator Espresso's `pressBack()` can
+     * race that window's entrance animation for focus (`RootViewWithoutFocusException`) even after
+     * the sheet's content is in the semantics tree. The close button reaches the same
+     * `onCancel` this screen wires to the back gesture in production, without that race.
      */
     @Test
     fun cancellingWhoseStoryLeavesTheChoiceAlone() {
@@ -187,15 +196,16 @@ class BookFlowTest {
         rule.onNodeWithTag(BookFeaturedRowTag).performScrollTo().performClick()
         rule.waitUntil(5_000) { rule.onAllNodesWithTag(BookFeaturedSearchTag).fetchSemanticsNodes().isNotEmpty() }
 
-        Espresso.pressBack()
+        rule.onNodeWithTag(BookFeaturedCancelTag).performClick()
         rule.waitUntil(5_000) { rule.onAllNodesWithTag(BookFeaturedSearchTag).fetchSemanticsNodes().isEmpty() }
         rule.onAllNodesWithTag(BookFeaturedResetTag).assertCountEquals(0)
     }
 
     /**
-     * Heirloom draws the whole family as one constellation, nobody at its centre, so "Whose story"
-     * says why it can't do anything there yet - and the hint goes away the moment another template
-     * that does feature somebody is chosen (#248).
+     * Neither template the release ships tells one person's story yet - `featuresOnePerson` reads
+     * that off the template's own `format` (2, the storybook's, once one ships), not a hand-written
+     * list - so on Heirloom, "Whose story" and "Include notes" explain themselves with a hint
+     * rather than hiding, exactly as the issue's acceptance criteria ask.
      */
     @Test
     fun heirloomExplainsWhyWhoseStoryDoesNothingThereYet() {
@@ -207,10 +217,7 @@ class BookFlowTest {
         rule.waitUntil(5_000) {
             rule.onAllNodesWithText("Heirloom doesn't feature one person yet.").fetchSemanticsNodes().isNotEmpty()
         }
-
-        rule.onNodeWithText("Diwali").performClick()
-        rule.waitUntil(5_000) {
-            rule.onAllNodesWithText("Heirloom doesn't feature one person yet.").fetchSemanticsNodes().isEmpty()
-        }
+        rule.onNodeWithTag(BookFeaturedRowTag).assertExists()
+        rule.onNodeWithTag(BookNotesTag).assertExists()
     }
 }

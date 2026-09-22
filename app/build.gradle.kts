@@ -224,9 +224,6 @@ dependencies {
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     androidTestImplementation(libs.androidx.room.testing)
     androidTestImplementation(libs.kotlinx.coroutines.test)
-    // Espresso.pressBack(), for dismissing a ModalBottomSheet in a Compose UI test (BookFlowTest,
-    // #248) - ui-test-junit4 carries espresso-core transitively but not on the compile classpath.
-    androidTestImplementation(libs.androidx.espresso.core)
 }
 
 /**
