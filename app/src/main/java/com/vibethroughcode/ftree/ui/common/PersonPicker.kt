@@ -29,6 +29,21 @@ import com.vibethroughcode.ftree.R
 import com.vibethroughcode.ftree.data.Person
 
 /**
+ * The order and the filter every [PersonPicker] caller applies before handing it a list: unnamed
+ * people last rather than first (a picker that opens on a column of "Unknown" is no use to
+ * anybody), named ones by a case-insensitive fold of their name, then narrowed to [query]. Kept in
+ * one place - `RelationViewModel` and `BookViewModel` both call this rather than each keeping its
+ * own copy - so a fix to how a search matches (a #113-style sort fix, say) reaches every picker
+ * that uses it.
+ */
+fun matchingPeople(people: Collection<Person>, query: String): List<Person> {
+    val ordered = people.sortedWith(
+        compareBy<Person> { it.name.isNullOrBlank() }.thenBy(String.CASE_INSENSITIVE_ORDER) { it.name.orEmpty() }
+    )
+    return if (query.isBlank()) ordered else ordered.filter { it.name?.contains(query.trim(), ignoreCase = true) == true }
+}
+
+/**
  * Searching a list of people for one of them.
  *
  * Shared by the relation sheet (searching everyone the tree knows) and the book screen's "Whose

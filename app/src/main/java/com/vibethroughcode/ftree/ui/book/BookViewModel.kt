@@ -23,6 +23,7 @@ import com.vibethroughcode.ftree.entitlement.Entitlements
 import com.vibethroughcode.ftree.entitlement.Policy
 import com.vibethroughcode.ftree.entitlement.UsageLedger
 import com.vibethroughcode.ftree.transfer.TreeExporter
+import com.vibethroughcode.ftree.ui.common.matchingPeople
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -205,6 +206,13 @@ class BookViewModel(
     private var suggestionKey: Pair<Boolean, String>? = null
 
     init {
+        // Independent of the people/document load below: a reader with the screen open on a
+        // tablet's second pane while they change Settings › Family words in the first should not
+        // have to close and reopen the book to see it (unlike everything else here, which is a
+        // one-time snapshot of the tree as it stood when the screen opened).
+        viewModelScope.launch {
+            kinship.language.collect { language -> change { it.copy(words = wordsFor(language)) } }
+        }
         viewModelScope.launch {
             val people = repository.allPeople()
             if (people.isEmpty()) {
@@ -239,7 +247,19 @@ class BookViewModel(
     fun setTemplate(id: String) = change { it.copy(templateId = id) }
     fun setTitle(title: String) = change { it.copy(title = title) }
     fun resetTitle() = change { it.copy(title = null) }
-    fun setBranch(branch: Boolean) = change { it.copy(branch = branch) }
+    /**
+     * Narrowing the scope can put the chosen "Whose story" person outside it - picked while
+     * everyone was in scope, say, and the reader then switches to a branch that does not include
+     * them. The composer would fall back silently (`resolveFeatured` only trusts an id still in
+     * `family.byId`), which would draw the book around somebody the row no longer names, so this
+     * resets the choice back to the composer's own pick rather than let the two disagree.
+     */
+    fun setBranch(branch: Boolean) {
+        change { it.copy(branch = branch) }
+        val featured = options.value.featured
+        if (featured != null && featured !in scopedIds(branch)) setFeatured(null)
+    }
+
     fun setPhotos(on: Boolean) = change { it.copy(photos = on) }
     fun setLivingDates(on: Boolean) = change { it.copy(livingDates = on) }
     fun setFeatured(personId: String?) {
@@ -251,18 +271,18 @@ class BookViewModel(
     fun noticeShown() = _state.update { it.copy(notice = null) }
     fun retry() = viewModelScope.launch { compose(options.value) }
 
+    private fun scopedIds(branch: Boolean): Set<String> =
+        if (branch) branchIds.orEmpty() else people.mapTo(mutableSetOf()) { it.id }
+
     /**
-     * Who "Whose story" may offer: everyone in the book's current scope, ordered the way the
-     * relation picker orders its own list, narrowed to [query]. Read from the snapshot fetched
-     * when the screen opened - the same people the composed book itself is drawn from - so typing
-     * in the picker never touches the database.
+     * Who "Whose story" may offer: everyone in the book's current scope, ordered and narrowed to
+     * [query] the same way the relation picker orders and narrows its own list ([matchingPeople]).
+     * Read from the snapshot fetched when the screen opened - the same people the composed book
+     * itself is drawn from - so typing in the picker never touches the database.
      */
     fun candidatesFor(query: String): List<Person> {
         val scoped = if (options.value.branch) people.filter { it.id in branchIds.orEmpty() } else people
-        val ordered = scoped.sortedWith(
-            compareBy<Person> { it.name.isNullOrBlank() }.thenBy(String.CASE_INSENSITIVE_ORDER) { it.name.orEmpty() }
-        )
-        return if (query.isBlank()) ordered else ordered.filter { it.name?.contains(query.trim(), ignoreCase = true) == true }
+        return matchingPeople(scoped, query)
     }
 
     private fun change(transform: (BookOptions) -> BookOptions) {
