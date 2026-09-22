@@ -514,7 +514,7 @@ const INHERITED = PAINT.filter((k) => !['opacity', 'display', 'visibility'].incl
 /** An inherited paint (as partFor keys it) with its fill and stroke colours blanked: what a silhouette keeps. */
 const outline = (paint) => {
   const p = JSON.parse(paint);
-  for (const k of ['fill', 'stroke']) if (p[k] !== 'none') p[k] = '*';
+  for (const k of ['fill', 'stroke']) p[k] = p[k] === 'none' || p[k] === 'transparent' ? 'none' : '*';
   delete p.defaultFill;
   return JSON.stringify(p);
 };

@@ -230,6 +230,9 @@ test('a fill on a <use> or a <g data-asset> is a silhouette: one part, the shado
   const bare = compile(svg('<defs><path id="cloth" d="M0 0L4 0 4 4Z"/></defs><use href="#cloth" fill="#3b4a8c"/><use href="#cloth" fill="#0f7b7a" x="5"/>'));
   assert.deepEqual(bare.symbols['fx--cloth'].items, [{ t: 'path', d: 'M0 0L4 0 4 4Z', fill: 'indigo' }]);
   assert.deepEqual(bare.symbols.fx.items.map((u) => [u.ref, u.fill]), [['fx--cloth', 'indigo'], ['fx--cloth', 'peacock']]);
+  // a part compiled with no paint at all is no outline for a silhouette to reuse
+  const clear = compile(svg('<defs><path id="cloth" d="M0 0L4 0 4 4Z"/></defs><g fill="transparent" stroke="#2a1a33"><use href="#cloth"/></g><g stroke="#2a1a33"><use href="#cloth" fill="#3b4a8c"/></g>'));
+  assert.deepEqual(clear.symbols.fx.items.map((u) => u.ref), ['fx--cloth', 'fx--cloth-2']);
   refuses(svg('<defs><path id="p" d="M0 0L1 1Z"/></defs><use href="#p" fill="none"/>'), /fill="none" on a <use> is a silhouette colour/);
   refuses(svg('<g data-asset="diya" fill="#123456"/>'), /the silhouette fill #123456 is not a swatch/);
 });
