@@ -42,7 +42,8 @@
  *       - child: F has no spouse, child or descendant, so those chapters are skipped;
  *       - tiny (at most `TINY` people in scope): every family chapter shares one household page and
  *         there is no numbers page, which leaves 5-7 pages;
- *       - empty (nobody to feature): a cover, a "waiting for its family" page and the closing.
+ *       - empty (nobody to feature): a cover, a "waiting for its family" page and the closing,
+ *         with the register before the closing when the tree has people but none with a name.
  *
  * ## What it returns: `planStory(kin, template, family, options)`
  *
@@ -191,14 +192,18 @@ export function planStory(kin, template, family, options = {}) {
     unlinked: F !== null && everyone.every((id) => id === F || entry(id).circle === 'elsewhere'),
   };
 
-  // The book with nobody to feature: a cover, a page waiting for its family, the closing.
+  // The book with nobody to feature: a cover, a page waiting for its family, the closing - and,
+  // when the tree has people but none with a name to feature (resolveFeatured's last resort),
+  // the register between them, because everyone in scope still appears somewhere.
   if (shape.empty) {
+    const register = everyone.length ? registerPages(everyone, entry) : [];
     const pages = finish([
       page('cover', 'cover', []),
       page('opening', 'waiting', []),
+      ...register.map((pg, i) => page('register', 'register', pg.people, { groups: pg.groups, continued: i > 0, density: 'register' })),
       page('closing', 'closing', []),
     ].filter((p) => listed.includes(p.chapter)));
-    return Object.freeze({ featured: null, shape: Object.freeze(shape), pages, pagesOf: new Map(), registerOnly: Object.freeze([]) });
+    return Object.freeze({ featured: null, shape: Object.freeze(shape), pages, pagesOf: new Map(), registerOnly: Object.freeze(everyone) });
   }
 
   // Chapter order: the template's, except that an eldest F's story flows downward.
@@ -286,7 +291,7 @@ export function planStory(kin, template, family, options = {}) {
       const archetype = archetypeOf(c.kind, pg.people.length);
       plans.push(page(c.chapter, archetype, pg.people, {
         chapters, groups: pg.groups, continued: i > 0,
-        density: densityOf(archetype, c.kind),
+        density: DENSITY_OF[archetype] ?? null,
       }));
     });
   }
@@ -322,13 +327,7 @@ function archetypeOf(kind, n) {
   }
 }
 
-function densityOf(archetype, kind) {
-  if (archetype === 'portrait-hero') return 'hero';
-  if (archetype === 'lane') return 'lane';
-  if (archetype === 'register') return 'register';
-  if (archetype === 'banyan' || archetype === 'courtyards' || archetype === 'still-to-be-found') return 'gathering';
-  return kind === 'household' || archetype === 'gathering' ? 'family' : null;
-}
+const DENSITY_OF = { 'portrait-hero': 'hero', gathering: 'family', banyan: 'gathering', courtyards: 'gathering', 'still-to-be-found': 'gathering', lane: 'lane', register: 'register' };
 
 function page(chapter, archetype, people, extra = {}) {
   return { chapter, chapters: [chapter], copyKey: chapter, archetype, variant: null, density: null, people: [...people], groups: [], continued: false, folds: [], ...extra };
@@ -340,7 +339,6 @@ function finish(plans) {
   return Object.freeze(plans.map((p, i) => {
     p.variant = VARIANTS[p.archetype].find((v) => !(prev && prev.archetype === p.archetype && prev.variant === v));
     p.pageNo = i + 1;
-    p.copyKey = p.chapters[0];
     prev = p;
     p.groups = Object.freeze(p.groups.map((g) => Object.freeze({ key: g.key, people: Object.freeze([...g.people]) })));
     for (const k of ['chapters', 'people', 'folds']) p[k] = Object.freeze(p[k]);
@@ -372,13 +370,14 @@ function registerPages(everyone, entry) {
   let rows = 0;
   for (const s of sections) {
     for (const id of s.people) {
-      const opens = !cur || cur.groups[cur.groups.length - 1].key !== s.key;
+      let opens = !cur || cur.groups[cur.groups.length - 1].key !== s.key;
       if (!cur || rows + (opens ? 2 : 1) > DENSITY.register) {
         cur = { people: [], groups: [] };
         pages.push(cur);
         rows = 0;
+        opens = true;
       }
-      if (!cur.groups.length || cur.groups[cur.groups.length - 1].key !== s.key) {
+      if (opens) {
         cur.groups.push({ key: s.key, people: [] });
         rows++;
       }

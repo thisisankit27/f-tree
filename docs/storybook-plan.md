@@ -355,7 +355,8 @@ Built in #247. The contributor workflow and the `draw.js` API are in
     The register is never cut.
   - **Shapes:** eldest F (nobody above them) folds roots and courtyards into the opening
     (`folds`), and spouses and children come before siblings. Child F has no spouse or children
-    pages. A tiny family (at most 5 people) has no numbers page, which gives 5–7 pages. `story-large`
+    pages. A tiny family (at most 5 people) has no numbers page, which gives 5–7 pages. A tree with
+    people but nobody named to feature is a cover, a waiting page, the register and the closing. `story-large`
     (200 people) plans 25 pages.
   - **`compose.js`** sends a format-2 template to `storyBook(ctx)`, which runs `kinOf` and the
     planner, then refuses by name to draw: the archetypes are #256–#258. `DRAWABLE_FORMATS` stays

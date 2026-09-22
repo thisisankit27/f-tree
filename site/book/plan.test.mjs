@@ -147,7 +147,7 @@ function violations(p, family) {
   if (storyPages(p).length > MAX_STORY_PAGES) out.push(`${storyPages(p).length} story pages`);
   // The register lists everyone in scope exactly once (the empty book has no register at all).
   const register = p.pages.filter((pg) => pg.archetype === 'register').flatMap((pg) => pg.people);
-  if (p.featured !== null && JSON.stringify([...register].sort()) !== JSON.stringify([...scope].sort())) out.push('the register is not everyone in scope, once each');
+  if (scope.length && JSON.stringify([...register].sort()) !== JSON.stringify([...scope].sort())) out.push('the register is not everyone in scope, once each');
   for (const id of p.registerOnly) if (p.pagesOf.has(id)) out.push(`${id} is register-only but on a story page`);
   for (const [id, pages] of p.pagesOf) for (const n of pages) if (!p.pages[n - 1].people.includes(id)) out.push(`${id} is not on page ${n}`);
   return out;
@@ -318,6 +318,15 @@ test('an empty tree is a cover, a page waiting for its family, and the closing',
   const { plan: p } = plan(await loadFixture('story-empty'));
   assert.ok(p.shape.empty);
   assert.deepEqual(p.pages.map((pg) => `${pg.pageNo} ${pg.archetype}`), ['1 cover', '2 waiting', '3 closing']);
+});
+
+test('a tree with people but nobody named to feature still lists everyone, in the register', () => {
+  const doc = tree([{ id: 'u1' }, { id: 'u2', gender: 'FEMALE' }, { id: 'u3' }, { id: 'u4' }], [parents('u1', 'u2', 'u3', 'u4')]);
+  const { family, plan: p } = plan(doc);
+  assert.equal(p.featured, null);
+  assert.deepEqual(p.pages.map((pg) => pg.archetype), ['cover', 'waiting', 'register', 'closing']);
+  assert.deepEqual(violations(p, family), []);
+  assert.deepEqual([...p.registerOnly].sort(), ['u1', 'u2', 'u3', 'u4']);
 });
 
 /* ------------------------------------------------------------------ the composer */
