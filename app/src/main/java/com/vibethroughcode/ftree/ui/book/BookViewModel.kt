@@ -35,6 +35,8 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.intOrNull
+import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.buildJsonObject
@@ -232,7 +234,7 @@ class BookViewModel(
                 it.copy(
                     branchOf = branchOf,
                     hasPhotos = people.any { p -> p.photoId != null },
-                    templates = list.map { t -> TemplateChoice(t.id, t.name, t.featured, null, featuresOnePerson = t.id !in TEMPLATES_WITHOUT_FEATURED) },
+                    templates = list.map { t -> TemplateChoice(t.id, t.name, t.featured, null, featuresOnePerson = featuresOnePerson(t.json)) },
                 )
             }
             list.firstOrNull()?.let { first -> change { it.copy(templateId = first.id) } }
@@ -424,8 +426,13 @@ class BookViewModel(
     companion object {
         const val FEATURE = "book.export"
 
-        /** Template ids that do not tell one person's story yet - see [TemplateChoice.featuresOnePerson]. */
-        val TEMPLATES_WITHOUT_FEATURED = setOf("heirloom")
+        /**
+         * A storybook (template format 2) tells one person's story; format-1 templates (Heirloom,
+         * today's Diwali) don't yet. Decided from the template itself, the way the desktop's
+         * `featuresPerson` does, so a new template needs no list kept by hand on either shell.
+         */
+        fun featuresOnePerson(template: JsonObject): Boolean =
+            runCatching { template["format"]?.jsonPrimitive?.intOrNull == 2 }.getOrDefault(false)
 
         /**
          * About how large the PDF will be. Android's PdfDocument keeps photographs losslessly, so

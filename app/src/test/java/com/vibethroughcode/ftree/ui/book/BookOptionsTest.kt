@@ -108,4 +108,14 @@ class BookOptionsTest {
         val json = composerOptionsJson(BookOptions(), today, scopePersonId = null)
         for ((key, value) in json) assertTrue("$key was JSON null", value != JsonNull)
     }
+
+    @Test
+    fun onlyAStorybookTemplateFeaturesOnePerson() {
+        val heirloom = java.io.File(generateSequence(java.io.File("").absoluteFile) { it.parentFile }
+            .first { java.io.File(it, "settings.gradle.kts").exists() }, "site/book/templates/heirloom.json").readText()
+        val parse = { s: String -> kotlinx.serialization.json.Json.parseToJsonElement(s).jsonObject }
+        assertEquals(false, BookViewModel.featuresOnePerson(parse(heirloom)))
+        assertEquals(true, BookViewModel.featuresOnePerson(parse("""{"format":2,"id":"diwali-story"}""")))
+        assertEquals(false, BookViewModel.featuresOnePerson(parse("""{"format":"two"}""")))
+    }
 }
