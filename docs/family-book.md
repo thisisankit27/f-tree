@@ -451,11 +451,8 @@ window:
 7. **Photographs**, with the estimate beside it: *About 3.4 MB*.
 8. **Full dates for living people**, off by default. Its helper line: *When off, living people show
    only the year they were born.*
-8. **Include notes**, off by default. Its helper line says what a note is and why it stays out
-   unless asked for: the family's own words, written for someone in particular, and this book may
-   be forwarded to people who were never chosen to read them (`family.js`'s `clampNote`).
-9. **Family words.** Not a control on this screen -- the app's own *Family words* setting
-   (English/हिन्दी) is read once and passed through as `options.words` on every book, the same
+9. **Family words.** Not a control on this screen: the app's own *Family words* setting
+   (English/हिन्दी) is passed through as `options.words` on every book, the same
    setting the relation finder already reads for its own Hindi kinship terms.
 
 Photographs, Full dates and Include notes are each a switch on Android and a checkbox on the
