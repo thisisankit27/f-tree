@@ -19,6 +19,19 @@ betas leading up to a stable release are folded into that release's entry here.
   printed with that line of text missing. The error says which face, which ones the app has, and to
   update f-tree.
 
+**Whose story a family book tells, and its own words in it (#248).**
+
+- **"Whose story", on Android.** The book screen now asks who to tell the story around, prefilled
+  with the composer's own choice ("Chosen for you: …") until you pick somebody yourself, from
+  everyone in the book's current scope. Reset returns to that default.
+- **Include notes — off by default.** A note is the family's own words, and a book like this can be
+  forwarded to people nobody chose, so it stays out of the book unless you turn it on.
+- **Speaks your Family-words setting.** Whichever language you chose for kinship terms in Settings
+  now reaches the book too.
+- **Heirloom says why it can't yet.** Heirloom draws the whole family as one constellation with
+  nobody at its centre, so both new controls stay visible there with a note explaining why they
+  do not change anything on that template yet.
+
 **Whose birthday is coming up, and a note on the morning if you want one (#230, #154).**
 
 - **Coming up, on Android (0.10.0-beta.3) and desktop (0.8.0-beta.3).** The top of People lists the

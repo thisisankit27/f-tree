@@ -113,6 +113,7 @@ object FTreeViewModels {
                 entitlements = app.container.entitlementSource,
                 ledger = app.container.usageLedger,
                 contentResolver = app.contentResolver,
+                kinship = app.container.kinshipPreferences,
                 scopePersonId = route.scopePersonId,
             )
         }

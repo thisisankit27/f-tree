@@ -6,6 +6,8 @@ import android.content.IntentFilter
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
+import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
@@ -15,13 +17,20 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performTextInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.vibethroughcode.ftree.FTreeApplication
 import com.vibethroughcode.ftree.MainActivity
 import com.vibethroughcode.ftree.data.Person
 import com.vibethroughcode.ftree.data.RelativeKind
+import com.vibethroughcode.ftree.ui.book.BookFeaturedCancelTag
+import com.vibethroughcode.ftree.ui.book.BookFeaturedListTag
+import com.vibethroughcode.ftree.ui.book.BookFeaturedResetTag
+import com.vibethroughcode.ftree.ui.book.BookFeaturedRowTag
+import com.vibethroughcode.ftree.ui.book.BookFeaturedSearchTag
 import com.vibethroughcode.ftree.ui.book.BookLivingDatesTag
+import com.vibethroughcode.ftree.ui.book.BookNotesTag
 import com.vibethroughcode.ftree.ui.book.BookPageLabelTag
 import com.vibethroughcode.ftree.ui.book.BookPreviewTag
 import com.vibethroughcode.ftree.ui.book.BookScreenTag
@@ -126,5 +135,89 @@ class BookFlowTest {
         waitForBook()
         rule.onNodeWithTag(BookLivingDatesTag).performScrollTo().assertIsOff().performClick()
         rule.onNodeWithTag(BookLivingDatesTag).assertIsOn()
+    }
+
+    @Test
+    fun includingNotesIsOffUntilTheReaderTurnsItOn() {
+        rule.waitUntil(10_000) { rule.onAllNodesWithTag(TreeBookTag).fetchSemanticsNodes().isNotEmpty() }
+        rule.onNodeWithTag(TreeBookTag).performClick()
+        waitForBook()
+        rule.onNodeWithTag(BookNotesTag).performScrollTo().assertIsOff().performClick()
+        rule.onNodeWithTag(BookNotesTag).assertIsOn()
+    }
+
+    /**
+     * The shared `PersonPicker` (#248), reached from "Whose story": picking somebody replaces the
+     * row's own wording with their name and offers a way back, and reset returns to the composer's
+     * own choice rather than leaving nobody picked.
+     *
+     * The row merges its own semantics (one TalkBack announcement, not "avatar" then "name" then
+     * "opens a picker" as three) so its tag and its text sit on the *same* semantics node once
+     * something is chosen, not on a text node somewhere underneath it - unlike a picker's own list
+     * rows, which stay separate nodes under `BookFeaturedListTag`.
+     */
+    @Test
+    fun whoseStoryCanBePickedAndReset() {
+        rule.waitUntil(10_000) { rule.onAllNodesWithTag(TreeBookTag).fetchSemanticsNodes().isNotEmpty() }
+        rule.onNodeWithTag(TreeBookTag).performClick()
+        waitForBook()
+
+        rule.onNodeWithTag(BookFeaturedRowTag).performScrollTo().performClick()
+        rule.waitUntil(5_000) { rule.onAllNodesWithTag(BookFeaturedSearchTag).fetchSemanticsNodes().isNotEmpty() }
+        rule.onNodeWithTag(BookFeaturedSearchTag).performTextInput("Aarav")
+        val row = hasText("Aarav Sharma") and hasAnyAncestor(hasTestTag(BookFeaturedListTag))
+        rule.waitUntil(5_000) { rule.onAllNodes(row).fetchSemanticsNodes().isNotEmpty() }
+        rule.onNode(row).performClick()
+
+        val chosen = hasTestTag(BookFeaturedRowTag) and hasText("Aarav Sharma")
+        rule.waitUntil(5_000) { rule.onAllNodes(chosen).fetchSemanticsNodes().isNotEmpty() }
+        rule.onNodeWithTag(BookFeaturedResetTag).assertExists()
+
+        rule.onNodeWithTag(BookFeaturedResetTag).performClick()
+        rule.waitUntil(5_000) { rule.onAllNodes(chosen).fetchSemanticsNodes().isEmpty() }
+        rule.onAllNodesWithTag(BookFeaturedResetTag).assertCountEquals(0)
+    }
+
+    /**
+     * Cancelling the picker without choosing anybody leaves the row exactly as it was.
+     *
+     * Dismissed here through the picker's own close button rather than the back gesture:
+     * `ModalBottomSheet` opens in its own window, and on the emulator Espresso's `pressBack()` can
+     * race that window's entrance animation for focus (`RootViewWithoutFocusException`) even after
+     * the sheet's content is in the semantics tree. The close button reaches the same
+     * `onCancel` this screen wires to the back gesture in production, without that race.
+     */
+    @Test
+    fun cancellingWhoseStoryLeavesTheChoiceAlone() {
+        rule.waitUntil(10_000) { rule.onAllNodesWithTag(TreeBookTag).fetchSemanticsNodes().isNotEmpty() }
+        rule.onNodeWithTag(TreeBookTag).performClick()
+        waitForBook()
+
+        rule.onNodeWithTag(BookFeaturedRowTag).performScrollTo().performClick()
+        rule.waitUntil(5_000) { rule.onAllNodesWithTag(BookFeaturedSearchTag).fetchSemanticsNodes().isNotEmpty() }
+
+        rule.onNodeWithTag(BookFeaturedCancelTag).performClick()
+        rule.waitUntil(5_000) { rule.onAllNodesWithTag(BookFeaturedSearchTag).fetchSemanticsNodes().isEmpty() }
+        rule.onAllNodesWithTag(BookFeaturedResetTag).assertCountEquals(0)
+    }
+
+    /**
+     * Neither template the release ships tells one person's story yet - `featuresOnePerson` reads
+     * that off the template's own `format` (2, the storybook's, once one ships), not a hand-written
+     * list - so on Heirloom, "Whose story" and "Include notes" explain themselves with a hint
+     * rather than hiding, exactly as the issue's acceptance criteria ask.
+     */
+    @Test
+    fun heirloomExplainsWhyWhoseStoryDoesNothingThereYet() {
+        rule.waitUntil(10_000) { rule.onAllNodesWithTag(TreeBookTag).fetchSemanticsNodes().isNotEmpty() }
+        rule.onNodeWithTag(TreeBookTag).performClick()
+        waitForBook()
+
+        rule.onNodeWithText("Heirloom").performClick()
+        rule.waitUntil(5_000) {
+            rule.onAllNodesWithText("Heirloom doesn't feature one person yet.").fetchSemanticsNodes().isNotEmpty()
+        }
+        rule.onNodeWithTag(BookFeaturedRowTag).assertExists()
+        rule.onNodeWithTag(BookNotesTag).assertExists()
     }
 }

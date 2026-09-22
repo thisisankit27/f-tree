@@ -48,6 +48,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -61,6 +62,7 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -79,6 +81,7 @@ import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
@@ -91,9 +94,13 @@ import com.vibethroughcode.ftree.BuildConfig
 import com.vibethroughcode.ftree.R
 import com.vibethroughcode.ftree.book.BookFailure
 import com.vibethroughcode.ftree.book.sendBookIntent
+import com.vibethroughcode.ftree.data.Person
 import com.vibethroughcode.ftree.entitlement.Decision
 import com.vibethroughcode.ftree.ui.FTreeViewModels
+import com.vibethroughcode.ftree.ui.common.PersonAvatar
+import com.vibethroughcode.ftree.ui.common.PersonPicker
 import com.vibethroughcode.ftree.ui.common.SectionRule
+import com.vibethroughcode.ftree.ui.common.displayName
 import com.vibethroughcode.ftree.ui.theme.FTreeText
 import kotlinx.coroutines.launch
 
@@ -106,6 +113,12 @@ const val BookTitleFieldTag = "book-title"
 const val BookPhotosTag = "book-photos"
 const val BookLivingDatesTag = "book-living-dates"
 const val BookPageLabelTag = "book-page-label"
+const val BookFeaturedRowTag = "book-featured-row"
+const val BookFeaturedResetTag = "book-featured-reset"
+const val BookFeaturedSearchTag = "book-featured-search"
+const val BookFeaturedListTag = "book-featured-list"
+const val BookFeaturedCancelTag = "book-featured-cancel"
+const val BookNotesTag = "book-notes"
 
 /** A4's proportions, which every preview page is drawn at. */
 private const val PAGE_ASPECT = 595f / 842f
@@ -364,6 +377,7 @@ private fun failureDetails(failure: BookFailure): String =
     "f-tree ${BuildConfig.VERSION_NAME}, Android ${Build.VERSION.RELEASE} (API ${Build.VERSION.SDK_INT}), " +
         "WebView ${WebView.getCurrentWebViewPackage()?.versionName ?: "none"}\n${failure.message}"
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun Options(state: BookUiState, viewModel: BookViewModel) {
     val options = state.options
@@ -447,6 +461,44 @@ private fun Options(state: BookUiState, viewModel: BookViewModel) {
         }
     }
 
+    val featuresOnePerson = state.templates.firstOrNull { it.id == options.templateId }?.featuresOnePerson ?: true
+    SectionRule(stringResource(R.string.book_featured_title))
+    if (!featuresOnePerson) {
+        Text(
+            text = stringResource(R.string.book_featured_heirloom_hint),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(bottom = 8.dp),
+        )
+    }
+    var pickingFeatured by remember { mutableStateOf(false) }
+    var featuredQuery by remember { mutableStateOf("") }
+    FeaturedRow(
+        person = state.featuredPerson,
+        suggested = state.suggestedFeatured,
+        onOpen = { featuredQuery = ""; pickingFeatured = true },
+        onReset = viewModel::resetFeatured,
+    )
+    if (pickingFeatured) {
+        val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+        ModalBottomSheet(onDismissRequest = { pickingFeatured = false }, sheetState = sheetState) {
+            PersonPicker(
+                people = viewModel.candidatesFor(featuredQuery),
+                query = featuredQuery,
+                onQueryChange = { featuredQuery = it },
+                onPick = { id ->
+                    viewModel.setFeatured(id)
+                    pickingFeatured = false
+                },
+                onCancel = { pickingFeatured = false },
+                modifier = Modifier.fillMaxWidth().height(480.dp),
+                searchTag = BookFeaturedSearchTag,
+                listTag = BookFeaturedListTag,
+                cancelTag = BookFeaturedCancelTag,
+            )
+        }
+    }
+
     SectionRule(stringResource(R.string.book_details))
     val context = LocalContext.current
     SwitchRow(
@@ -467,6 +519,63 @@ private fun Options(state: BookUiState, viewModel: BookViewModel) {
         onChange = viewModel::setLivingDates,
         tag = BookLivingDatesTag,
     )
+    SwitchRow(
+        label = stringResource(R.string.book_notes),
+        detail = stringResource(R.string.book_notes_help),
+        checked = options.notes,
+        onChange = viewModel::setNotes,
+        tag = BookNotesTag,
+    )
+}
+
+/**
+ * "Whose story": opens the shared [PersonPicker] to choose who the book is told around. Shows the
+ * composer's own default ("Chosen for you: {name}") until the reader picks somebody, and a
+ * separate Reset once they have - matching the title field's own reset pattern above.
+ */
+@Composable
+private fun FeaturedRow(person: Person?, suggested: Person?, onOpen: () -> Unit, onReset: () -> Unit) {
+    val label = when {
+        person != null -> person.displayName()
+        suggested != null -> stringResource(R.string.book_featured_suggested, suggested.displayName())
+        else -> stringResource(R.string.book_featured_choose)
+    }
+    val hint = stringResource(R.string.book_featured_row_hint)
+    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+        Surface(
+            onClick = onOpen,
+            shape = RoundedCornerShape(8.dp),
+            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f),
+            modifier = Modifier
+                .weight(1f)
+                .testTag(BookFeaturedRowTag)
+                .semantics(mergeDescendants = true) {
+                    contentDescription = "$label. $hint"
+                    role = Role.Button
+                },
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Box(Modifier.size(36.dp), contentAlignment = Alignment.Center) {
+                    person?.let { PersonAvatar(it, diameter = 36.dp, decorative = true) }
+                }
+                Spacer(Modifier.width(12.dp))
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.bodyLarge,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+        }
+        if (person != null) {
+            TextButton(onClick = onReset, modifier = Modifier.testTag(BookFeaturedResetTag)) {
+                Text(stringResource(R.string.book_featured_reset))
+            }
+        }
+    }
 }
 
 @Composable

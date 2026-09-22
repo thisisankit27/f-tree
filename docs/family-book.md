@@ -331,7 +331,12 @@ branch keys.
 ## Options and the allowance
 
 `options`: `now` (required), `scope` (`{kind:'everyone'}` or `{kind:'branch', personId}`, the same
-cut as sharing a branch), `title`, `photos`, `livingDates`.
+cut as sharing a branch), `title`, `photos`, `livingDates`, `words` (`'en'` or `'hi'`, the reader's
+Family-words setting), `featured` (a person id, or left out to let `resolveFeatured` choose),
+`notes` (off by default) and `coverOnly`. The last four are read by the storybook's story pages
+(#256-258) and `resolveFeatured`/`family.js`'s `note` field today; no format-1 block reads them yet,
+so sending them changes nothing about what Heirloom or the current Diwali draws. Android sends all
+four as of #248; the desktop equivalent is #249.
 
 `allowance` is what the policy switch (#156, [premium.md](premium.md)) granted. Today it is always
 empty, which means everything. `maxGenerations` keeps that many generations from the eldest down;
@@ -361,12 +366,27 @@ window:
    works. *Reset* appears once it has been changed.
 4. **Who's in it.** *Everyone* or *{Name}'s branch*. The second is offered only when the screen was
    opened from a person.
-5. **Photographs**, with the estimate beside it: *About 3.4 MB*.
-6. **Full dates for living people**, off by default. Its helper line: *When off, living people show
+5. **Whose story.** A picker over the book's current scope, prefilled with the composer's own
+   choice - *Chosen for you: {name}* - until the reader picks somebody, with a *Reset* back to
+   that default once they have. On a template that does not tell one person's story (Heirloom),
+   the row stays rather than hiding, with a line saying so: *Heirloom doesn't feature one person
+   yet.* The control is generic on every template even though only the storybook (not yet shipped)
+   reads it.
+6. **Include notes**, off by default. Its helper line says why: a note is the family's own words,
+   and a book like this can be forwarded to people nobody chose.
+7. **Photographs**, with the estimate beside it: *About 3.4 MB*.
+8. **Full dates for living people**, off by default. Its helper line: *When off, living people show
    only the year they were born.*
 
 Both on/off options are a switch on Android and a checkbox on the desktop. That is deliberate, not
 a drift to fix: each is its platform's own idiom for a setting that applies at once.
+
+**Whose story, the picker and the Family-words setting (#248, Android; #249, desktop).** The picker
+sharing code with the relation sheet's own ("who are we related to") search - one implementation,
+so a fix to how picking somebody works reaches both. It offers only people in the book's current
+scope: everyone, or the branch, matching *Who's in it* above. The reader's Family-words setting
+(Settings › Family words) reaches the book the same way it already reaches the relation sheet and a
+person's page - there is no separate control for it here.
 
 **Actions.**
 

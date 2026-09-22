@@ -9,6 +9,7 @@ import com.vibethroughcode.ftree.graph.FamilySnapshot
 import com.vibethroughcode.ftree.graph.Kinship
 import com.vibethroughcode.ftree.graph.Relation
 import com.vibethroughcode.ftree.graph.StepKind
+import com.vibethroughcode.ftree.ui.common.matchingPeople
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -99,14 +100,7 @@ class RelationViewModel(
     }
 
     private val candidates = combine(snapshot, query) { graph, text ->
-        // Unnamed people sort last rather than first: they are placeholders, and a picker that
-        // opens on a column of "Unknown" is no use to anybody.
-        val ordered = graph.people.values.sortedWith(
-            compareBy<Person> { it.name.isNullOrBlank() }
-                .thenBy(String.CASE_INSENSITIVE_ORDER) { it.name.orEmpty() }
-        )
-        if (text.isBlank()) ordered
-        else ordered.filter { it.name?.contains(text.trim(), ignoreCase = true) == true }
+        matchingPeople(graph.people.values, text)
     }
 
     val uiState: StateFlow<RelationUiState> =
