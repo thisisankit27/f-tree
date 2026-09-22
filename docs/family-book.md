@@ -79,14 +79,17 @@ still stands.
 **Refuse, don't approximate.** A painter refuses a `format` it does not know, before it reads
 anything else in the book. It also refuses a book that names a font key it does not carry, rather
 than drawing the page without those lines: a missing typeface used to mean a silently skipped line
-(`BookPainter.kt:92`), which is how a name could disappear from a family's book with nobody told.
+in `BookPainter.kt`, which is how a name could disappear from a family's book with nobody told.
 So `readBook` checks the book's `format` first, then every role in `book.fonts` against the faces
 the release embeds, and every `text` item's role against `book.fonts`. A book that fails is
 refused with a message naming the key, and the reader is told the book cannot be made. Half a
-sentence is never printed. (Android's half of that is #246; `Book.fonts` is an open map, so a new
-face never bumps the format and this check is the only thing standing between a new face and a
-quietly incomplete page.) `validateBook` lists everything a painter may rely on. The composer's
-tests run it on every book they make.
+sentence is never printed. (`Book.fonts` is an open map, so a new face never bumps the format and
+this check is the only thing standing between a new face and a quietly incomplete page.)
+`validateBook` lists everything a painter may rely on. The composer's tests run it on every book
+they make. Android's `readBook` runs its Kotlin twin (`BookValidation.kt`, #246) on every book the
+WebView hands back, with the font-key check added against `BookFonts.FILES`, the faces the
+release actually embeds; `BookFormat2Test` hands the same books to both and requires the same
+answer.
 
 ## The Book, format 2
 

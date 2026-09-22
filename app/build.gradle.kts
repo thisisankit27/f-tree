@@ -145,6 +145,14 @@ android {
     packaging {
         resources.excludes += "/META-INF/{AL2.0,LGPL2.1}"
     }
+
+    // `BookFormat2PdfTest` paints the format-2 conformance book on a device, read from the one copy
+    // in git. Test APK only: the app itself never ships a golden.
+    sourceSets {
+        getByName("androidTest") {
+            assets.srcDir(rootProject.file("site/book/golden"))
+        }
+    }
 }
 
 // Emit the Room schema so migrations can be written against a checked-in history.

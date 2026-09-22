@@ -26,7 +26,6 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import java.io.File
-import kotlin.math.abs
 
 /**
  * The family book on a real device: the real WebView lays it out, the real painter writes the PDF,
@@ -84,13 +83,6 @@ class BookPdfTest {
         }.toString()
     }
 
-    private fun portrait(): Bitmap = Bitmap.createBitmap(200, 200, Bitmap.Config.ARGB_8888).apply {
-        val c = Canvas(this)
-        c.drawColor(Color.rgb(90, 120, 160))
-        c.drawCircle(100f, 80f, 40f, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.rgb(230, 200, 170) })
-        setHasAlpha(false)
-    }
-
     @Test
     fun makesAnA4PdfThatLooksLikeItsPreview() = runBlocking {
         val started = System.nanoTime()
@@ -125,7 +117,7 @@ class BookPdfTest {
                             fromPainter.eraseColor(Color.WHITE)
                             BookPainter(printer.fonts) { photos[it] }.paint(Canvas(fromPainter), book, i)
                             val diff = meanDifference(fromPdf, fromPainter)
-                            save(fromPdf, "book-page-$i.png")
+                            save(app, fromPdf, "book-page-$i.png")
                             assertTrue("page ${i + 1} differs from its preview by $diff", diff < 6.0)
                         }
                     }
@@ -177,25 +169,5 @@ class BookPdfTest {
         override fun hasGesture() = false
         override fun getMethod() = "GET"
         override fun getRequestHeaders(): Map<String, String> = emptyMap()
-    }
-
-    /** Mean absolute difference per channel, 0-255. Anti-aliasing alone stays well under 6. */
-    private fun meanDifference(a: Bitmap, b: Bitmap): Double {
-        var total = 0L
-        var n = 0L
-        val step = 3
-        for (y in 0 until a.height step step) for (x in 0 until a.width step step) {
-            val p = a.getPixel(x, y)
-            val q = b.getPixel(x, y)
-            total += abs(Color.red(p) - Color.red(q)) + abs(Color.green(p) - Color.green(q)) + abs(Color.blue(p) - Color.blue(q))
-            n += 3
-        }
-        return total.toDouble() / n
-    }
-
-    /** Kept for a human to look at: `adb pull` the files from the app's external files dir. */
-    private fun save(bitmap: Bitmap, name: String) {
-        val dir = app.getExternalFilesDir(null) ?: return
-        File(dir, name).outputStream().use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }
     }
 }

@@ -17,6 +17,7 @@ import kotlinx.serialization.json.JsonEncoder
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.float
+import kotlinx.serialization.json.intOrNull
 import kotlinx.serialization.json.jsonPrimitive
 
 /**
@@ -39,12 +40,33 @@ data class Book(
     val defs: Map<String, Gradient> = emptyMap(),
     val photos: List<PhotoRequest> = emptyList(),
     val pages: List<Page>,
+    /**
+     * Format 2's art, authored once and drawn many times by [Item.Use]. Absent in the JSON when a
+     * book has none - never `{}`, which [readBook] refuses (docs/family-book.md, "Never write empty
+     * symbols").
+     */
+    val symbols: Map<String, Symbol> = emptyMap(),
 ) {
     companion object {
-        /** The newest format this painter draws. `site/book/format.js`'s FORMAT. */
+        /** The vocabulary every painter has always had. `site/book/format.js`'s FORMAT. */
         const val FORMAT = 1
+
+        /** The newest format this painter draws. `site/book/format.js`'s FORMAT_MAX. */
+        const val FORMAT_MAX = 2
+
+        /**
+         * How many symbols deep one `use` on a page may reach, and the most items one page may draw
+         * once every `use` is expanded. `format.js` exports both and `svg.js` reads the same ones;
+         * `BookFormatTest` reads them from `format.js` as text so the three cannot drift.
+         */
+        const val MAX_SYMBOL_DEPTH = 4
+        const val MAX_EXPANDED_ITEMS = 20000
     }
 }
+
+/** Art drawn by [Item.Use]: shapes only - rect, circle, path, group and use, never text or a photograph. */
+@Serializable
+data class Symbol(val items: List<Item>)
 
 @Serializable
 data class PageSize(val w: Int, val h: Int)
@@ -117,6 +139,26 @@ sealed interface Item {
         val items: List<Item>,
         /** Affine `[a b c d e f]`, SVG's `matrix()` order. */
         val tf: List<Float>? = null,
+        /**
+         * Format 2: path data, filled nonzero, in the group's own coordinates - inside [tf], so a
+         * painter saves, concatenates [tf], clips, then draws.
+         */
+        val clip: String? = null,
+        /** One layer: the group is drawn at full strength, then composited once at this alpha. */
+        val op: Float? = null,
+    ) : Item
+
+    /**
+     * Format 2: draws the symbol [ref] names in [Book.symbols], where it stands. [fill] is
+     * silhouette mode - every fill and stroke the symbol draws takes this one colour, all the way
+     * down, and nothing else about it changes. [op] is one layer, as a group's is.
+     */
+    @Serializable
+    @SerialName("use")
+    data class Use(
+        val ref: String,
+        val tf: List<Float>? = null,
+        val fill: Colour? = null,
         val op: Float? = null,
     ) : Item
 }
@@ -214,13 +256,32 @@ val BookJson = Json {
     encodeDefaults = false
 }
 
-/** Reads a book, refusing one from a newer composer before looking at anything else in it. */
-fun readBook(text: String): Book {
-    val book = BookJson.decodeFromString(Book.serializer(), text)
-    if (book.format != Book.FORMAT) throw SerializationException("book format ${book.format}; this app draws format ${Book.FORMAT}")
-    for ((id, g) in book.defs) {
-        if (g.type != "linear" && g.type != "radial") throw SerializationException("gradient $id: type ${g.type}")
-        if (g.units != null && (g.units != "item" || g.type != "radial")) throw SerializationException("gradient $id: units ${g.units}")
+/**
+ * Reads a book, refusing one from a newer composer before looking at anything else in it, and then
+ * holding it to everything [validateBook] checks - so a painter handed the result may assume every
+ * ref resolves, every path parses and every font it names is one this app carries.
+ *
+ * @param fontKeys the font files this app embeds; a book naming any other is refused rather than
+ *   drawn with a line of text missing.
+ */
+fun readBook(text: String, fontKeys: Set<String> = BookFonts.FILES.keys): Book {
+    val root = BookJson.parseToJsonElement(text) as? JsonObject ?: throw SerializationException("a book is a JSON object")
+    val declared = root["format"]
+    val format = (declared as? JsonPrimitive)?.takeIf { !it.isString }?.intOrNull
+    if (format != Book.FORMAT && format != Book.FORMAT_MAX) {
+        throw SerializationException(
+            "book format $declared; this app draws formats ${Book.FORMAT} and ${Book.FORMAT_MAX}. " +
+                "Update f-tree to make this book.",
+        )
     }
+    // Read before decoding: `null` and `{}` would otherwise both arrive as "no symbols", and a
+    // book that declares symbols it does not carry is a composer bug, not an empty map.
+    root["symbols"]?.let { symbols ->
+        if (symbols !is JsonObject) throw SerializationException("book: symbols is not a map")
+        if (symbols.isEmpty()) throw SerializationException("book: symbols is empty")
+    }
+    val book = BookJson.decodeFromJsonElement(Book.serializer(), root)
+    val problems = validateBook(book, fontKeys)
+    if (problems.isNotEmpty()) throw SerializationException("this app cannot draw the book: ${problems.joinToString("; ")}")
     return book
 }

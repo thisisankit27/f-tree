@@ -10,6 +10,15 @@ betas leading up to a stable release are folded into that release's entry here.
 
 ## [Unreleased]
 
+**The family book on Android draws book format 2, and never drops a line of text in silence (#246).**
+
+- **Clipped arches, reusable art and paper shadows** — the drawing vocabulary the coming storybook
+  templates need — are now drawn on Android exactly as the desktop draws them. Nothing an existing
+  book prints changes: Heirloom and Diwali are still format-1 books.
+- **A book naming a typeface this app does not carry is refused, with the name,** instead of being
+  printed with that line of text missing. The error says which face, which ones the app has, and to
+  update f-tree.
+
 **Whose birthday is coming up, and a note on the morning if you want one (#230, #154).**
 
 - **Coming up, on Android (0.10.0-beta.3) and desktop (0.8.0-beta.3).** The top of People lists the

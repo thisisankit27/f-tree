@@ -19,14 +19,11 @@ import org.junit.Test
  */
 class BookCatalogTest {
 
-    private val root: File = generateSequence(File(System.getProperty("user.dir")).absoluteFile) { it.parentFile }
-        .first { File(it, "settings.gradle.kts").exists() }
-
-    private val shipped = File(root, "site/book/templates/catalog.json").readText()
+    private val shipped = File(repoRoot, "site/book/templates/catalog.json").readText()
 
     @Test
     fun `every case in catalog-cases json lists the same way in Kotlin as in JavaScript`() {
-        val table = Json.parseToJsonElement(File(root, "site/book/catalog-cases.json").readText()).jsonObject
+        val table = Json.parseToJsonElement(File(repoRoot, "site/book/catalog-cases.json").readText()).jsonObject
         assertEquals(1, table.getValue("format").jsonPrimitive.int)
         for (case in table.getValue("cases").jsonArray.map { it.jsonObject }) {
             val name = case.getValue("name").jsonPrimitive.content
@@ -46,7 +43,7 @@ class BookCatalogTest {
 
     @Test
     fun `the template format it gates on is the one the staged composer reads`() {
-        val js = File(root, "site/book/template.js").readText()
+        val js = File(repoRoot, "site/book/template.js").readText()
         val format = Regex("export const TEMPLATE_FORMAT = (\\d+);").find(js)?.groupValues?.get(1)?.toInt()
         assertEquals(format, BookCatalog.TEMPLATE_FORMAT)
     }
