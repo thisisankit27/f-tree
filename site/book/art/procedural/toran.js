@@ -13,10 +13,10 @@
  * Budget: each leaf and flower is placed with its paper shadow (a second `use` of the same
  * symbol), and neither symbol carries a gradient, so the cost is bytes and translucent layers
  * only. Measured (art-procedural.test.mjs) at a full page width, densely overlapped as the
- * approved frame draws it (round 2: about 116 leaves and 58 flowers at the default 0.7 gap):
- * roughly 330 KB of estimated PDF bytes by compose.js's artTerm - more than double round 1's
- * sparser spacing. A page that hangs more than one toran should budget for this per toran, the
- * same way it would for any other art.
+ * approved frame draws it, at the cover frame's own leaf size (round 3: about 58 leaves and 30
+ * flowers at size=26, gap=0.7): roughly 168 KB of estimated PDF bytes by compose.js's artTerm -
+ * round 2's smaller, more numerous leaves (size=13) cost about double this. A page that hangs
+ * more than one toran should budget for this per toran, the same way it would for any other art.
  *
  * Composer-path code: deterministic only through seed.js's seeded().
  */
@@ -29,7 +29,8 @@ import { seeded } from '../seed.js';
  *   art   `artFor(ctx)` (art/draw.js) for the book this toran joins.
  *   P     the template's resolved palette (`ctx.P`), for the cord's own colour.
  *   seed  the one source of variety between two torans - never the page number.
- *   size  a leaf's width in page points (13 by default); the marigolds are drawn a little smaller.
+ *   size  a leaf's width in page points - 26 by default, the approved cover frame's own scale;
+ *         the marigolds are drawn a little smaller.
  *   gap   spacing between leaves, as a multiple of `size` - 0.7 by default so leaves overlap
  *         densely, as the approved frame draws them: a wider door gets more leaves, never bigger
  *         ones.
@@ -39,7 +40,7 @@ import { seeded } from '../seed.js';
  * Returns one group item (the cord, every leaf and every other slot's marigold, each with its
  * paper shadow), or `null` for a span too short to hang even one leaf.
  */
-export function toran(art, P, x1, x2, y, seed, { size = 13, gap = 0.7, sag = 0.03 } = {}) {
+export function toran(art, P, x1, x2, y, seed, { size = 26, gap = 0.7, sag = 0.03 } = {}) {
   const span = x2 - x1;
   if (Math.abs(span) < size * 0.5) return null;
   const rand = seeded(seed);
@@ -57,9 +58,9 @@ export function toran(art, P, x1, x2, y, seed, { size = 13, gap = 0.7, sag = 0.0
   }
   const items = [path(String(cord), { stroke: P.clay, sw: 1.2 })];
 
-  // shrink the shadow offset for a leaf smaller than draw.js's own w:13 example, per its doc.
-  const shrink = size / 13;
-  const shadow = { dx: 1.7 * shrink, dy: 2.3 * shrink, op: 0.22 };
+  // scale the shadow offset to this leaf's size against draw.js's own w:13 example, per its doc.
+  const scale = size / 13;
+  const shadow = { dx: 1.7 * scale, dy: 2.3 * scale, op: 0.22 };
 
   for (let i = 0; i <= n; i++) {
     // n is always >= 1 here (the Math.max above), so i / n never divides by zero.

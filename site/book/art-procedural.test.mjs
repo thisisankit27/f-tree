@@ -222,12 +222,12 @@ test('the toran\'s sag scales with the span, not the flower size (round 1: 0.35w
   assert.ok(Math.abs(dipOf(toran(art, P, 0, 500, 0, 'x')) - 500 * 0.03) < 1);
 });
 
-test('a full page-width toran (round 2: densely overlapped leaves) stays within its measured budget', () => {
+test('a full page-width toran (round 3: cover-scale leaves) stays within its measured budget', () => {
   const { art, defs } = kit();
   const t = toran(art, P, 40, PAGE.w - 40, 40, 'header');
   const book = bookOf([t], defs, art);
   const spent = cost(book);
-  assert.ok(spent < 380_000, `a page-width toran grew from ~330 KB to ${Math.round(spent)} - update the budget comment if this is intended`);
+  assert.ok(spent < 200_000, `a page-width toran grew from ~168 KB to ${Math.round(spent)} - update the budget comment if this is intended`);
 });
 
 // -------------------------------------------------------------------------------------------
