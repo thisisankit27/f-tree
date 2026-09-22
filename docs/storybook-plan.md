@@ -232,6 +232,21 @@ art/README.md contributor conventions
 - **`--check`** runs in `pages.yml` and `desktop.yml` next to `font_metrics --check`.
 - **Desktop packaging:** `extraResources` must exclude `art/src/**`.
 
+Built in #247. The contributor workflow and the `draw.js` API are in
+[site/book/art/README.md](../site/book/art/README.md). What it settled beyond the list above:
+- **A frame marks its opening** with one `data-clip` shape. `ctx.art.frame()` clips its contents
+  to it and draws the frame over the clip edge.
+- **A drawing places another** with `<g data-asset="id">` around a pasted preview copy. It
+  compiles to a `use`, so a scene's marigolds cost their bytes once.
+- **Budgets count what crosses the bridge:** a drawing's items, parts and gradients, not its
+  placement metadata. Motifs and ornaments get 4 KB, like a frame.
+- **Seed drawings:** `diya`, `marigold` and `arch-jharokha`, converted from the style-frame
+  kit, with the kit's curves fitted as cubics. The jharokha's lace, 89 punched holes along the
+  arch, would be 15 KB as hole subpaths and about 6 KB as 89 `use`s of one hole, against a 4 KB
+  frame budget. It is drawn instead as two dotted strokes along the lace line, round caps on
+  near-zero dashes, big and small dots alternating: a few hundred bytes, drawn the same way by
+  both painters. A row of the same small mark along a curve is cheapest drawn this way.
+
 **Story planner** (`site/book/story/`, pure, deterministic)
 - **`featured.js resolveFeatured`** tries, in order:
   1. `options.featured`, if it survives scope and allowance;

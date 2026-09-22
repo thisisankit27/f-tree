@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 100 100">
+  <defs>
+    <linearGradient id="stops"><stop offset="0" stop-color="#e8762b"/><stop offset="35%" stop-color="#f2b84b" stop-opacity="0.5"/><stop offset="1" stop-color="#ffe7a6"/></linearGradient>
+    <linearGradient id="up" xlink:href="#stops" gradientUnits="userSpaceOnUse" x1="0" y1="20" x2="0" y2="0"/>
+    <radialGradient id="glow" cx="0.5" cy="0.4" r="0.5"><stop offset="0" stop-color="#f2b84b"/><stop offset="1" stop-color="#f2b84b" stop-opacity="0"/></radialGradient>
+    <linearGradient id="box" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e8762b"/><stop offset="1" stop-color="#ffe7a6"/></linearGradient>
+  </defs>
+  <g transform="translate(10 10)"><path id="flame" d="M0 20L5 0L10 20Z" fill="url(#up)"/></g>
+  <circle id="lit" cx="50" cy="50" r="10" fill="url(#glow)"/>
+  <rect id="tall" x="60" y="0" width="10" height="40" fill="url(#box)"/>
+  <path id="again" d="M10 30L15 10L20 30Z" fill="url(#up)" transform="translate(10 10)"/>
+</svg>

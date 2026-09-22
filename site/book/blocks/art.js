@@ -7,18 +7,7 @@
  */
 
 import { circle, path, group, PathData, r2 } from '../format.js';
-
-/** A small, fast, seeded generator (mulberry32), so the art is the same on every engine. */
-export function seeded(seed) {
-  let a = 7;
-  for (const ch of String(seed)) a = Math.imul(a ^ ch.codePointAt(0), 2654435761) >>> 0;
-  return () => {
-    a = (a + 0x6d2b79f5) | 0;
-    let t = Math.imul(a ^ (a >>> 15), 1 | a);
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
+import { seeded } from '../art/seed.js';
 
 export function starfield(seed, count, box, colour) {
   const rand = seeded(seed);

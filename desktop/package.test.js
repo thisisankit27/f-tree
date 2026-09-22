@@ -228,3 +228,19 @@ test('the window\'s page and every module it imports are packaged', { skip: noPa
   assert.deepStrictEqual(missing, []);
   assert.ok(seen.size > 1, `only reached ${seen.size} module(s) from ${entry}`);
 });
+
+/*
+ * The storybook's art (#247): the compiled modules the composer imports ship with the page; the
+ * authored SVG they were compiled from does not. book-packaging.test.js asks the same of the
+ * patterns without a build; this asks the build itself.
+ */
+test('the packaged book carries the compiled art and not its sources', { skip: noPackage }, () => {
+  const book = path.join(RESOURCES, 'page', 'site', 'book');
+  assert.ok(fs.existsSync(book), 'page/site/book is not packaged');
+  const kinds = ['scenes', 'avatars', 'frames', 'motifs', 'ornaments'];
+  const missing = kinds.filter((k) => !fs.existsSync(path.join(book, 'art', 'papercut', `${k}.js`)));
+  assert.deepStrictEqual(missing, [], 'compiled art modules are missing from the package');
+  for (const f of ['draw.js', 'index.js', 'seed.js']) assert.ok(fs.existsSync(path.join(book, 'art', f)), `art/${f} is not packaged`);
+  assert.ok(!fs.existsSync(path.join(book, 'art', 'src')), 'art/src (authored SVG) is packaged');
+  assert.ok(!fs.existsSync(path.join(book, 'art', 'style-frames')), 'art/style-frames is packaged');
+});

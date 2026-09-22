@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 100 100">
+  <!-- a repeated leaf is one part, used three times; another drawing is placed by id -->
+  <defs><path id="Leaf" d="M0 0Q5 5 0 10Q-5 5 0 0Z" fill="#5a8a3c"/></defs>
+  <use xlink:href="#Leaf" x="10" y="10"/>
+  <use href="#Leaf" transform="rotate(90 50 50)" opacity="0.5"/>
+  <use href="#Leaf" x="30"/>
+  <g data-asset="marigold" transform="translate(60 60) scale(0.5)">
+    <circle cx="0" cy="0" r="10" fill="#abcdef"/>
+  </g>
+  <g opacity="0.5"><rect x="0" y="0" width="5" height="5" fill="#fff8ec"/></g>
+  <g opacity="0.5"><rect x="0" y="0" width="5" height="5" fill="#fff8ec"/><rect x="5" y="0" width="5" height="5" fill="#fff8ec"/></g>
+  <clipPath id="window"><rect x="0" y="0" width="50" height="50"/></clipPath>
+  <g clip-path="url(#window)" transform="translate(10 0)"><circle cx="25" cy="25" r="40" fill="#f3ddb8"/></g>
+</svg>
