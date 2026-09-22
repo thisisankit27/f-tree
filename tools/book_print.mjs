@@ -18,10 +18,11 @@
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import { fitText } from '../site/book/svg.js';
+import { FONT_KEYS } from '../site/book/template.js';
 
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 export const FONT_DIR = path.join(repo, 'app/src/main/res/font');
-export const FONT_KEYS = ['book_display', 'book_text', 'book_strong', 'book_hand'];
 
 export async function loadPlaywright() {
   const spec = process.env.FTREE_PLAYWRIGHT;
@@ -36,9 +37,10 @@ export async function loadPlaywright() {
   }
 }
 
-/** The four book faces as @font-face rules, family names the font keys svg.js paints with. */
-export const fontFaces = () => FONT_KEYS.map((key) => `@font-face{font-family:"${key}";`
-  + `src:url(data:font/ttf;base64,${readFileSync(path.join(FONT_DIR, `${key}.ttf`)).toString('base64')}) format("truetype");font-display:block}`).join('');
+/** The book faces as @font-face rules, family names the font keys svg.js paints with. Read once. */
+let faces;
+export const fontFaces = () => (faces ??= FONT_KEYS.map((key) => `@font-face{font-family:"${key}";`
+  + `src:url(data:font/ttf;base64,${readFileSync(path.join(FONT_DIR, `${key}.ttf`)).toString('base64')}) format("truetype");font-display:block}`).join(''));
 
 /** The desktop's print document, around already-painted SVG pages. */
 export function printHtml(svgs) {
@@ -65,15 +67,15 @@ export async function openPages(browser, svgs, { scale = 1 } = {}) {
 
 /**
  * Waits for the faces and runs svg.js's own `fitText` over the page, as the preview and the print
- * window do. `fitText` is read out of svg.js rather than copied, so this can never drift from it.
+ * window do. The function itself is sent into the page, so this can never drift from it.
  */
+const FIT_TEXT = fitText.toString();
 export async function settle(page) {
-  const fitText = readFileSync(path.join(repo, 'site/book/svg.js'), 'utf8').match(/export function fitText[\s\S]*$/)[0].replace('export ', '');
   await page.evaluate(async ({ keys, fit }) => {
     await document.fonts.ready;
     await Promise.all(keys.map((k) => document.fonts.load(`16px "${k}"`, 'शर्मा')));
-    new Function(`${fit}; return fitText(document.body);`)();
-  }, { keys: FONT_KEYS, fit: fitText });
+    new Function(`return (${fit})(document.body);`)();
+  }, { keys: FONT_KEYS, fit: FIT_TEXT });
 }
 
 /** The PDF Chromium prints for these pages: the desktop's `printToPDF`, as Playwright spells it. */

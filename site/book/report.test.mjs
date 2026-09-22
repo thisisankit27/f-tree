@@ -51,7 +51,10 @@ test('text boxes are where the text prints, at the size it prints', async () => 
   assert.ok(closing.y < 196 && closing.y + closing.h > 196);
   assert.equal(closing.size, 42);
   assert.equal(report.minSize, Math.min(...report.textBoxes.map((b) => b.size)));
-  assert.ok(report.textBoxes.every((b) => b.kind === null), 'no format-1 block says what kind a line is');
+  // Format-1 blocks name only the lines the checks must treat differently: the generation
+  // numeral's watermark and the numbers page's recorded life.
+  assert.ok(report.textBoxes.every((b) => b.kind === null || b.kind === 'ornament' || b.kind === 'lifespan'), 'an unexpected kind');
+  assert.ok(report.textBoxes.some((b) => b.kind === 'ornament'), 'the generation numeral is marked ornament');
   assert.deepEqual(report.artZones, [], 'format-1 art records no zones');
   assert.equal(report.pages.length, book.pages.length);
   assert.ok(report.pages.every((p, i) => p.page === i + 1 && p.archetype === null && p.label === book.pages[i].label));

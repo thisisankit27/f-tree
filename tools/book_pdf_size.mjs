@@ -29,11 +29,11 @@ import { execFileSync } from 'node:child_process';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { validateBook, formatOf } from '../site/book/format.js';
+import { validateBook, formatOf, r2, PAGE, rect, circle, path as pathItem, text as textItem, group, use } from '../site/book/format.js';
 import { paintPage } from '../site/book/svg.js';
 import { measure } from '../site/book/text.js';
 import { METRICS } from '../site/book/metrics/index.js';
-import { artStats, estimateBytes } from '../site/book/compose.js';
+import { artStats, artTerm, estimateBytes, PAGE_BYTES } from '../site/book/compose.js';
 import { loadPlaywright, printPdf } from './book_print.mjs';
 import { cutShape, ellipsePts } from '../site/book/art/style-frames/kit.mjs';
 
@@ -66,7 +66,6 @@ function parseSvg(src) {
 
 const unesc = (s) => s.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&amp;/g, '&');
 const num = (v) => Number(v);
-const r2 = (n) => Math.round(n * 100) / 100;
 /** The kit's ids may hold a dot (`cv-leaf-1-0.16`); a Book id may not. */
 const bookId = (id) => id.replace(/[^A-Za-z0-9_-]/g, '_');
 
@@ -85,48 +84,36 @@ function convert(svg, id) {
   const symbols = {};
   const ref = (v) => /^url\(#(.+)\)$/.exec(v)?.[1];
   const colour = (v) => (v === undefined || v === 'none' ? undefined : ref(v) ? { ref: ref(v) } : v.toLowerCase());
-  const paint = (a, o) => {
-    const fill = colour(a.fill);
-    if (fill !== undefined) o.fill = fill;
-    if (a.stroke && a.stroke !== 'none') { o.stroke = a.stroke.toLowerCase(); o.sw = r2(num(a['stroke-width'] ?? 1)); }
+  // The SVG's paint attributes as the format.js builders take them, so the Book is composer-shaped.
+  const style = (a) => {
+    const o = { fill: colour(a.fill) };
+    if (a.stroke && a.stroke !== 'none') { o.stroke = a.stroke.toLowerCase(); o.sw = num(a['stroke-width'] ?? 1); }
     if (a['stroke-dasharray']) o.dash = a['stroke-dasharray'].split(/[\s,]+/).map(Number);
     if (a['stroke-linecap']) o.cap = a['stroke-linecap'];
     if (a['stroke-linejoin']) o.join = a['stroke-linejoin'];
     if (a['fill-rule'] === 'evenodd') o.rule = 'evenodd';
-    if (a.opacity !== undefined && num(a.opacity) < 1) o.op = r2(num(a.opacity));
+    if (a.opacity !== undefined) o.op = num(a.opacity);
     return o;
   };
-  const withTf = (a, item) => (a.transform ? { t: 'group', tf: tfOf(a.transform), items: [item] } : item);
+  const withTf = (a, it) => (a.transform ? group([it], { tf: tfOf(a.transform) }) : it);
 
   function item(n, inSymbol) {
     const a = n.attrs;
     switch (n.name) {
-      case 'path': return withTf(a, paint(a, { t: 'path', d: a.d }));
-      case 'circle': return withTf(a, paint(a, { t: 'circle', cx: num(a.cx), cy: num(a.cy), r: num(a.r) }));
-      case 'rect': return withTf(a, paint(a, { t: 'rect', x: num(a.x), y: num(a.y), w: num(a.width), h: num(a.height), ...(a.rx ? { r: num(a.rx) } : {}) }));
-      case 'g': {
-        const g = { t: 'group', items: n.kids.map((k) => item(k, inSymbol)).filter(Boolean) };
-        if (a.transform) g.tf = tfOf(a.transform);
-        if (a['clip-path']) g.clip = clips[ref(a['clip-path'])];
-        if (a.opacity !== undefined && num(a.opacity) < 1) g.op = r2(num(a.opacity));
-        return g;
-      }
-      case 'use': {
-        const u = { t: 'use', ref: bookId(a.href.slice(1)) };
-        if (a.transform) u.tf = tfOf(a.transform);
-        if (a.opacity !== undefined && num(a.opacity) < 1) u.op = r2(num(a.opacity));
-        return u;
-      }
+      case 'path': return withTf(a, pathItem(a.d, style(a)));
+      case 'circle': return withTf(a, circle(num(a.cx), num(a.cy), num(a.r), style(a)));
+      case 'rect': return withTf(a, rect(num(a.x), num(a.y), num(a.width), num(a.height), { ...style(a), r: a.rx ? num(a.rx) : undefined }));
+      case 'g': return group(n.kids.map((k) => item(k, inSymbol)).filter(Boolean),
+        { tf: tfOf(a.transform), clip: a['clip-path'] ? clips[ref(a['clip-path'])] : undefined, op: a.opacity === undefined ? undefined : num(a.opacity) });
+      case 'use': return use(bookId(a.href.slice(1)), { tf: tfOf(a.transform), op: a.opacity === undefined ? undefined : num(a.opacity) });
       case 'text': {
         if (inSymbol) throw new Error(`${id}: text inside a symbol`);
         const s = unesc(n.kids.map((k) => k.text ?? '').join(''));
         const font = a['font-family'].replace(/^book_/, '');
         const size = num(a['font-size']);
-        const o = { t: 'text', x: num(a.x), y: num(a.y), s, font, size, fill: a.fill.toLowerCase() };
-        if (a['text-anchor'] === 'middle' || a['text-anchor'] === 'end') o.align = a['text-anchor'];
-        o.w = r2(measure(s, METRICS[`book_${font}`], size));
-        if (a.opacity !== undefined && num(a.opacity) < 1) o.op = r2(num(a.opacity));
-        return o;
+        const align = a['text-anchor'] === 'middle' || a['text-anchor'] === 'end' ? a['text-anchor'] : 'start';
+        return textItem(num(a.x), num(a.y), s, font, size, a.fill.toLowerCase(),
+          { align, w: measure(s, METRICS[`book_${font}`], size), op: a.opacity === undefined ? undefined : num(a.opacity) });
       }
       case 'image': return null;   // stand-in photographs only; frames are rendered without them
       default: throw new Error(`${id}: <${n.name}> has no Book equivalent`);
@@ -148,7 +135,7 @@ function convert(svg, id) {
 
 /** One Book from pages drawn by the kit: every page's defs and symbols merged (their ids are page-prefixed). */
 function bookOf(name, framePages) {
-  const book = { format: 2, template: 'measure', title: name, fileName: `${name}.pdf`, size: { w: 595, h: 842 },
+  const book = { format: 2, template: 'measure', title: name, fileName: `${name}.pdf`, size: { ...PAGE },
     fonts: { display: 'book_display', text: 'book_text', strong: 'book_strong', hand: 'book_hand' }, defs: {}, symbols: {}, photos: [], pages: [] };
   for (const [label, f] of framePages) {
     Object.assign(book.defs, f.defs);
@@ -280,18 +267,17 @@ try {
   // measured / predicted, and a quarter again on top. Estimating high is the point (#245).
   const KEYS = ['bytes', 'translucent', 'layers', 'gradients', 'clips'];
   const fitted = fit(rows, KEYS);
-  const predict = (r, c) => KEYS.reduce((t, k) => t + c[k] * r[k], 0);
-  // A page whose art prints smaller than PAGE_ALLOWANCE is already paid for by estimateBytes'
+  const predict = artTerm;
+  // A page whose art prints smaller than PAGE_BYTES is already paid for by estimateBytes'
   // per-page constant, so the margin is set on the pages where the art term is what matters.
-  const PAGE_ALLOWANCE = 18_000;
-  const ratios = rows.filter((r) => r.artPdf >= PAGE_ALLOWANCE).map((r) => r.artPdf / predict(r, fitted));
+  const ratios = rows.filter((r) => r.artPdf >= PAGE_BYTES).map((r) => r.artPdf / predict(r, fitted));
   const scale = quantile(ratios, 0.95) * 1.25;
   const chosen = Object.fromEntries(KEYS.map((k) => [k, fitted[k] * scale]));
   for (const r of rows) {
     r.predicted = Math.round(predict(r, chosen));
     // Covered: what the estimate allows this page's art (the term plus the per-page constant) over
     // what it actually cost.
-    r.cover = (r.predicted + PAGE_ALLOWANCE) / r.artPdf;
+    r.cover = (r.predicted + PAGE_BYTES) / r.artPdf;
   }
 
   const story = bookOf('storybook-density', STORY.map((f, i) => [`${f} ${i + 1}`, frames[f]]));

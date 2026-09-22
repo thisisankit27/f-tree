@@ -19,7 +19,7 @@
 
 import { FORMAT, FORMAT_MAX, MAX_SYMBOL_DEPTH } from './format.js';
 
-const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+export const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
 /**
  * @param book      a Book

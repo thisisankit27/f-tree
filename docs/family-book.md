@@ -217,13 +217,13 @@ is that number, and the budget test holds every book under 10 MB with it. It err
 
   | count | what it is | bytes each |
   |---|---|---|
-  | `bytes` | Book JSON of every shape, words and photographs left out | 0.75 |
-  | `translucent` | shapes with an opacity (a paper shadow is one) | 1,000 |
-  | `gradients` | shapes painted with a gradient: a shading, and a soft mask if it fades | 5,600 |
-  | `clips` | clipped groups | 1,500 |
+  | `bytes` | every path's data, plus 40 for each shape, group and use (words and photographs left out) | 0.75 |
+  | `translucent` | shapes with an opacity (a paper shadow is one) | 1,050 |
+  | `gradients` | shapes painted with a gradient: a shading, and a soft mask if it fades | 5,800 |
+  | `clips` | clipped groups | 1,600 |
   | `layers` | groups and uses with an opacity | 0 (measured free: the cost is in what they hold) |
 
-**How it was measured,** 2026-09-21, with `tools/book_pdf_size.mjs` in Chromium 151:
+**How it was measured,** 2026-09-22, with `tools/book_pdf_size.mjs` in Chromium 151:
 
 1. The samples:
    - the six approved style frames and the design-system sheet, converted item for item from the
@@ -235,36 +235,37 @@ is that number, and the budget test holds every book under 10 MB with it. It err
    difference is what its art cost.
 3. The five counts were fitted to that cost by non-negative least squares on relative error.
 4. The fit was scaled by its own 95th-percentile under-estimate (among pages with at least 18 KB
-   of art; the per-page constant already pays for less) and by a quarter again: 1.93 in all. The
+   of art; the per-page constant already pays for less) and by a quarter again: 1.95 in all. The
    result was rounded up.
 
-On every page measured, the term plus the per-page constant allows between 1.37 and 15 times
+On every page measured, the term plus the per-page constant allows between 1.40 and 15 times
 what the art cost. The numbers are in `site/book/qa/pdf-size.json`, and `estimate.test.mjs`
 fails if a constant drops below them.
 
-| page | PDF | art in the PDF | art JSON | translucent | gradients | clips | term | allowed / cost |
+| page | PDF | art in the PDF | art `bytes` | translucent | gradients | clips | term | allowed / cost |
 |---|---|---|---|---|---|---|---|---|
-| frame: cover | 857 KB | 845 KB | 725 KB | 1003 | 45 | 0 | 1769 KB | 2.11 |
-| frame: opening | 565 KB | 548 KB | 509 KB | 634 | 21 | 5 | 1123 KB | 2.08 |
-| frame: courtyards | 664 KB | 645 KB | 429 KB | 735 | 22 | 2 | 1163 KB | 1.83 |
-| frame: lane | 821 KB | 803 KB | 455 KB | 809 | 35 | 0 | 1323 KB | 1.67 |
-| frame: register | 696 KB | 676 KB | 272 KB | 873 | 41 | 23 | 1315 KB | 1.97 |
-| frame: remembrance | 424 KB | 406 KB | 528 KB | 352 | 17 | 2 | 835 KB | 2.10 |
-| frame: system | 404 KB | 384 KB | 386 KB | 384 | 13 | 12 | 753 KB | 2.01 |
-| conformance 1 | 8 KB | 1 KB | 1 KB | 0 | 0 | 1 | 2 KB | 15.48 |
-| conformance 2 | 17 KB | 7 KB | 3 KB | 1 | 2 | 1 | 15 KB | 4.72 |
-| conformance 3 | 52 KB | 45 KB | 3 KB | 0 | 7 | 2 | 44 KB | 1.37 |
-| conformance 4 | 16 KB | 9 KB | 1 KB | 0 | 0 | 0 | 1 KB | 2.03 |
-| paths | 291 KB | 291 KB | 601 KB | 0 | 0 | 0 | 451 KB | 1.61 |
-| dimmed paths | 449 KB | 449 KB | 606 KB | 400 | 0 | 0 | 845 KB | 1.92 |
-| paper shadows | 449 KB | 448 KB | 614 KB | 400 | 0 | 0 | 851 KB | 1.94 |
-| fading glows | 209 KB | 209 KB | 5 KB | 0 | 80 | 0 | 441 KB | 2.20 |
-| dimmed uses, clips | 105 KB | 105 KB | 254 KB | 0 | 0 | 40 | 249 KB | 2.55 |
+| frame: cover | 857 KB | 845 KB | 711 KB | 1003 | 45 | 0 | 1817 KB | 2.17 |
+| frame: opening | 565 KB | 548 KB | 501 KB | 634 | 21 | 5 | 1153 KB | 2.13 |
+| frame: courtyards | 664 KB | 645 KB | 418 KB | 735 | 22 | 2 | 1195 KB | 1.88 |
+| frame: lane | 821 KB | 803 KB | 434 KB | 809 | 35 | 0 | 1354 KB | 1.71 |
+| frame: register | 696 KB | 676 KB | 251 KB | 873 | 41 | 23 | 1351 KB | 2.03 |
+| frame: remembrance | 424 KB | 406 KB | 523 KB | 352 | 17 | 2 | 853 KB | 2.14 |
+| frame: system | 404 KB | 384 KB | 378 KB | 384 | 13 | 12 | 770 KB | 2.05 |
+| conformance 1 | 8 KB | 1 KB | 1 KB | 0 | 0 | 1 | 2 KB | 15.49 |
+| conformance 2 | 17 KB | 7 KB | 2 KB | 1 | 2 | 1 | 16 KB | 4.77 |
+| conformance 3 | 52 KB | 45 KB | 2 KB | 0 | 7 | 2 | 45 KB | 1.40 |
+| conformance 4 | 16 KB | 9 KB | 1 KB | 0 | 0 | 0 | 1 KB | 2.02 |
+| paths | 291 KB | 291 KB | 602 KB | 0 | 0 | 0 | 452 KB | 1.62 |
+| dimmed paths | 449 KB | 449 KB | 602 KB | 400 | 0 | 0 | 862 KB | 1.96 |
+| paper shadows | 449 KB | 448 KB | 618 KB | 400 | 0 | 0 | 874 KB | 1.99 |
+| fading glows | 209 KB | 209 KB | 3 KB | 0 | 80 | 0 | 455 KB | 2.27 |
+| dimmed uses, clips | 105 KB | 105 KB | 257 KB | 0 | 0 | 40 | 256 KB | 2.61 |
 
 **What this means for the storybook.**
 - **The style frames are far too heavy to ship as they are drawn.** A frame's art prints at 380 to
   850 KB. A 28-page book at that density, which the tool also prints, came to **18.6 MB** of PDF
-  and 8 MB of Book JSON, against 10 MB and 1.5 MB. Its estimate is 35.8 MB.
+  and 8 MB of Book JSON, against 10 MB and 1.5 MB. Its estimate is 36.7 MB. **The storybook's
+  pages must be far lighter than the frames as drawn** (#253–#258).
 - **The budget for art.** To stay under 10 MB, a 28-page storybook's art term has to stay under
   about 9 MB: roughly 330 KB of term a page, or about 170 KB of real art. The byte budgets in
   `art/README.md` (a scene ≤ 40 KB, an avatar ≤ 2.5 KB, drawn as symbols) are what get it there.
@@ -496,8 +497,13 @@ progress is announced, and every control is reachable by keyboard and screen rea
     skipped, with the reason.
   - A flag test fails if a story composer lands with no template to run it over, or if its pages
     don't report their zones, archetypes and kinds.
-  - Format-1 books are held to what they promise: a 6 pt floor (the tree page prints years at
-    6.4 pt), and no variety or density caps, which are storybook rules.
+  - Format-1 books are held to what they promise. The tree page prints the years under each
+    name at 6.4 pt, under the storybook's 7 pt floor, and Heirloom's output is frozen, so format 1
+    is grandfathered at a 6 pt floor. Variety and the density caps are storybook rules and don't
+    apply to it.
+  - Lines the checks treat differently say so with `kind`: Heirloom's generation numeral is
+    `'ornament'` (left out of the collision checks), and the numbers page's longest life is
+    `'lifespan'` (the one "N years" a book may print).
 - **The contact sheet,** for the by-eye review. It is not run in CI, and it needs Playwright
   (`npx playwright --version`) and its Chromium:
   ```

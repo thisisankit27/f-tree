@@ -9,7 +9,7 @@
 
 import { formatOf, PAGE, text, circle, image, rect } from './format.js';
 import { measure, breakLines, fitSize } from './text.js';
-import { readFamily, familyFacts } from './family.js';
+import { readFamily, familyFacts, byKey } from './family.js';
 import { validateTemplate } from './template.js';
 import { METRICS } from './metrics/index.js';
 import { resolveFeatured } from './story/featured.js';
@@ -69,16 +69,22 @@ export function composeBook(doc, options, template, allowance = {}) {
  *     itself with `ctx.describePage(...)`; a format-1 page has nulls there.
  */
 export function composeWithReport(doc, options, template, allowance = {}) {
-  const rec = { shown: new Map(), zones: [], kinds: new WeakMap(), pages: new Map() };
+  const rec = recorder();
   const book = compose(doc, options, template, allowance, rec);
   return { book, report: finishReport(book, rec) };
 }
 
+/**
+ * The template formats this composer can draw. A format-2 (storybook) template validates but has
+ * no `pages` to walk until the story planner (#251) draws it; the QA harness asks `drawable`
+ * rather than matching the error, so it picks the storybook up the day this list grows.
+ */
+export const DRAWABLE_FORMATS = Object.freeze([1]);
+export const drawable = (template) => DRAWABLE_FORMATS.includes(validateTemplate(template).format);
+
 function compose(doc, options, template, allowance, rec) {
   const tpl = validateTemplate(template);
-  // A format-2 (storybook) template validates here but has no `pages` to walk. Say so, rather
-  // than fail on the loop below, until the story planner (#251) draws it.
-  if (tpl.format !== 1) throw new Error(`composeBook: "${tpl.id}" is a format-${tpl.format} storybook template, which this composer cannot draw yet`);
+  if (!DRAWABLE_FORMATS.includes(tpl.format)) throw new Error(`composeBook: "${tpl.id}" is a format-${tpl.format} storybook template, which this composer cannot draw yet`);
   const now = /^(\d{4})-(\d{2})/.exec(options?.now ?? '');
   if (!now) throw new Error('composeBook: options.now must be an ISO date - the composer never reads the clock');
 
@@ -147,10 +153,13 @@ function budgetPhotos(asked, budget) {
  * `lossless` for Android's PdfDocument, JPEG otherwise. Fonts and vector pages are a near-constant;
  * photographs are the part that grows.
  */
+export const BASE_BYTES = 420_000;
+export const PAGE_BYTES = 18_000;
+
 export function estimateBytes(book, { lossless }) {
-  const base = 420_000 + book.pages.length * 18_000;
+  const base = BASE_BYTES + book.pages.length * PAGE_BYTES;
   const perPixel = lossless ? LOSSLESS_BYTES_PER_PIXEL : 0.22;
-  const art = book.format >= 2 ? vectorArtBytes(artStats(book)) : 0;
+  const art = book.format >= 2 ? Math.ceil(artTerm(artStats(book))) : 0;
   return Math.round(base + art + book.photos.reduce((sum, p) => sum + p.px * p.px * perPixel, 0));
 }
 
@@ -159,8 +168,8 @@ export function estimateBytes(book, { lossless }) {
  * tools/book_pdf_size.mjs prints the approved style frames, the format-2 conformance book and some
  * calibration pages through Chromium as the desktop does, with and without their drawings, and
  * fits the difference to these five counts. The fit is then scaled by its own 95th-percentile
- * under-estimate and a quarter again (x 1.93 in all), and rounded up, so the estimate errs toward
- * "too big": on every page measured it allows at least 1.37 times what the art really cost. The
+ * under-estimate and a quarter again (x 1.95 in all), and rounded up, so the estimate errs toward
+ * "too big": on every page measured it allows at least 1.40 times what the art really cost. The
  * measurements are in qa/pdf-size.json and docs/family-book.md, and estimate.test.mjs fails if a
  * constant here drops below what they need. A layer measured as free: its cost is in what it holds.
  *
@@ -168,13 +177,15 @@ export function estimateBytes(book, { lossless }) {
  * Android's PdfDocument cannot draw format 2 until #246: #246 and #259 must measure it there too
  * and raise these if Android writes more.
  */
-export const ART_PDF = Object.freeze({ bytes: 0.75, translucent: 1000, layers: 0, gradients: 5600, clips: 1500 });
-const vectorArtBytes = (a) => Math.ceil(Object.keys(ART_PDF).reduce((sum, k) => sum + a[k] * ART_PDF[k], 0));
+export const ART_PDF = Object.freeze({ bytes: 0.75, translucent: 1050, layers: 0, gradients: 5800, clips: 1600 });
+/** What `artStats` counts, priced by a set of coefficients: `ART_PDF` unless measuring new ones. */
+export const artTerm = (stats, coef = ART_PDF) => Object.keys(coef).reduce((sum, k) => sum + stats[k] * coef[k], 0);
 
 /**
  * What a book's art is made of, counted the way a painter writes it into a PDF: every `use`
  * expanded, because a symbol drawn forty times is forty copies of its paths there.
- *   - `bytes`: the Book JSON of everything drawn except words and photographs;
+ *   - `bytes`: every path's data, plus ITEM_BYTES for each shape, group and use drawn (words and
+ *     photographs left out) - what a content stream mostly is;
  *   - `translucent`: shapes with an opacity - a paper shadow is one - each its own graphics state;
  *   - `layers`: groups and uses with an opacity, each composited once as a transparency group;
  *   - `gradients`: items painted with a gradient, each a shading (and, with translucent stops, a
@@ -182,10 +193,11 @@ const vectorArtBytes = (a) => Math.ceil(Object.keys(ART_PDF).reduce((sum, k) => 
  *   - `clips`: clipped groups.
  * Each symbol is counted once and multiplied by its uses, so this is linear in the book's size.
  */
+const ITEM_BYTES = 40;   // an item's own paint, position and transform, roughly
+
 export function artStats(book) {
   const symbols = book.symbols ?? {};
   const memo = new Map();
-  const USE = 24;   // a use's or group's own bytes: a transform and a reference, roughly
   const zero = () => ({ bytes: 0, translucent: 0, layers: 0, gradients: 0, clips: 0 });
   const add = (a, b) => { for (const k of Object.keys(a)) a[k] += b[k]; };
   const symbolStats = (ref) => {
@@ -201,11 +213,11 @@ export function artStats(book) {
       if (it.t === 'text' || it.t === 'image') continue;
       if (it.t === 'group' || it.t === 'use') {
         add(n, it.t === 'group' ? stats(it.items) : symbolStats(it.ref));
-        n.bytes += USE + (it.clip ? it.clip.length : 0);
+        n.bytes += ITEM_BYTES + (it.clip ? it.clip.length : 0);
         if (it.clip !== undefined) n.clips++;
         if (it.op !== undefined) n.layers++;
       } else {
-        n.bytes += JSON.stringify(it).length;
+        n.bytes += ITEM_BYTES + (it.d ? it.d.length : 0);
         if (typeof it.fill === 'object' || typeof it.stroke === 'object') n.gradients++;
         if (it.op !== undefined) n.translucent++;
       }
@@ -271,8 +283,8 @@ function context(family, options, tpl, allowance, now, rec) {
      * about, and which of the design system's density rows limits it - 'hero' (1-2 people),
      * 'family' (8), 'gathering' (12), 'lane' (4 houses of 8) or 'register' (48 rows).
      */
-    describePage({ archetype = null, variant = null, people = [], density = null } = {}) {
-      if (rec) rec.pages.set(ctx.pageNo, { archetype, variant, people: [...people], density });
+    describePage(info = {}) {
+      if (rec) rec.pages.set(ctx.pageNo, { ...PAGE_INFO, ...info, people: [...(info.people ?? [])] });
     },
 
     measure: (s, role, size) => measure(s, metricsOf(role), size),
@@ -359,8 +371,14 @@ const mul = (a, b) => [
  * its page list. Nobody recorded anything while it was drawn, so `shown` and `artZones` are empty.
  */
 export function reportFromBook(book) {
-  return finishReport(book, { shown: new Map(), zones: [], kinds: new WeakMap(), pages: new Map() });
+  return finishReport(book, recorder());
 }
+
+/** Where `ctx` puts what a report needs while the book is drawn. */
+const recorder = () => ({ shown: new Map(), zones: [], kinds: new WeakMap(), pages: new Map() });
+
+/** What `ctx.describePage` records, and what a page that never called it reports. */
+const PAGE_INFO = Object.freeze({ archetype: null, variant: null, people: [], density: null });
 
 function finishReport(book, rec) {
   const textBoxes = [];
@@ -388,10 +406,10 @@ function finishReport(book, rec) {
   };
   book.pages.forEach((p, i) => walk(p.items, [1, 0, 0, 1, 0, 0], i + 1));
   return {
-    shown: Object.fromEntries([...rec.shown].sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))),
+    shown: Object.fromEntries([...rec.shown].sort(([a], [b]) => byKey(a, b))),
     textBoxes,
     artZones: rec.zones,
     minSize,
-    pages: book.pages.map((p, i) => ({ page: i + 1, label: p.label, archetype: null, variant: null, people: [], density: null, ...rec.pages.get(i + 1) })),
+    pages: book.pages.map((p, i) => ({ page: i + 1, label: p.label, ...(rec.pages.get(i + 1) ?? PAGE_INFO) })),
   };
 }

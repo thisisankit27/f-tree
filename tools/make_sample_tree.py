@@ -396,7 +396,7 @@ def story_large(budget=200):
     """
     t = BookTree()
     counts = [3, 4, 2, 5, 3, 1, 4, 2, 3, 0, 2, 3]
-    state = {"serial": 0, "count": 0}
+    state = {"count": 0}
 
     def next_count():
         c = counts[state["count"] % len(counts)]
@@ -404,8 +404,7 @@ def story_large(budget=200):
         return c
 
     def new_person(gen, gender, surname, key=None, unnamed=False):
-        i = state["serial"]
-        state["serial"] += 1
+        i = len(t.people)   # everyone in this tree is made here, so this counts them
         pool = MEN if gender == "MALE" else WOMEN
         born = 1886 + gen * 26 + (i * 5) % 9
         death = None
@@ -419,7 +418,7 @@ def story_large(budget=200):
         return name.split()[-1] if name else "Sharma"
 
     def marry_out(person, gender, gen, with_parents):
-        other = SURNAMES[(state["serial"] * 5) % len(SURNAMES)]
+        other = SURNAMES[(len(t.people) * 5) % len(SURNAMES)]
         spouse = new_person(gen, "FEMALE" if gender == "MALE" else "MALE",
                             surname_of(person) if gender == "MALE" else other)
         t.couple(person, spouse, "MARRIED" if gen >= 2 else "WIDOWED")
@@ -488,10 +487,10 @@ def story_large(budget=200):
         for j in range(next_count()):
             if len(t.people) >= budget:
                 break
-            gender = "MALE" if (state["serial"] + j) % 2 == 0 else "FEMALE"
-            kid = new_person(gen, gender, family, unnamed=(state["serial"] % 41 == 17))
+            gender = "MALE" if (len(t.people) + j) % 2 == 0 else "FEMALE"
+            kid = new_person(gen, gender, family, unnamed=(len(t.people) % 41 == 17))
             t.child([a, b], kid)
-            if gen < 5 and len(t.people) < budget - 1 and state["serial"] % 3 != 1:
+            if gen < 5 and len(t.people) < budget - 1 and len(t.people) % 3 != 1:
                 queue.append((kid, marry_out(kid, gender, gen, with_parents=False), gen + 1))
     return t
 
@@ -821,14 +820,15 @@ def check_book_fixtures(out):
 
 
 if __name__ == "__main__":
-    require_pillow()
-
     # The storybook's fixtures: JSON documents for site/book/fixtures, and CI's check that the
-    # committed ones are still exactly what this script makes.
+    # committed ones are still exactly what this script makes. They hold no photographs, so they
+    # need no Pillow; the archives below do, and still refuse to run without it.
     if len(sys.argv) > 1 and sys.argv[1] in ("--book-fixtures", "--check-book-fixtures"):
         target = Path(sys.argv[2] if len(sys.argv) > 2 else "site/book/fixtures")
         (write_book_fixtures if sys.argv[1] == "--book-fixtures" else check_book_fixtures)(target)
         sys.exit(0)
+
+    require_pillow()
 
     out = Path(sys.argv[1] if len(sys.argv) > 1 else ".")
     out.mkdir(parents=True, exist_ok=True)

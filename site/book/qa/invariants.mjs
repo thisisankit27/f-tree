@@ -32,13 +32,18 @@ export const MAX_PAGE_JSON = 150_000;
 export const MAX_PDF = 10_000_000;
 
 /*
- * A line at this opacity or fainter is ornament, not reading text: Heirloom's 120 pt generation
- * numeral sits behind the heading at 0.2 on purpose, as a watermark. A page may also say so with
- * `kind: 'ornament'`. Ornament is still held to the size floors; it is left out of the collision
- * checks, which are about words someone has to read.
+ * A line the page marked `kind: 'ornament'` is decoration, not reading text - Heirloom's 120 pt
+ * generation numeral, a watermark behind the heading. It is still held to the size floors, and
+ * left out of the collision checks, which are about words someone has to read.
  */
-export const ORNAMENT_OPACITY = 0.35;
-const reading = (b) => b.kind !== 'ornament' && b.op > ORNAMENT_OPACITY;
+const reading = (b) => b.kind !== 'ornament';
+
+/** Text boxes grouped by page. */
+const byPage = (boxes) => {
+  const pages = new Map();
+  for (const b of boxes) pages.set(b.page, [...(pages.get(b.page) ?? []), b]);
+  return pages;
+};
 
 const overlap = (a, b, slack = 0.5) =>
   Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x) > slack && Math.min(a.y + a.h, b.y + b.h) - Math.max(a.y, b.y) > slack;
@@ -68,12 +73,10 @@ export function sizes({ book, report }) {
 /** No reading text over other reading text, on the same page. */
 export function noTextOverlap({ report }) {
   const out = [];
-  const byPage = new Map();
-  for (const b of report.textBoxes.filter(reading)) {
-    const list = byPage.get(b.page) ?? [];
-    for (const o of list) if (overlap(o, b)) out.push(`page ${b.page}: ${quote(o.s)} and ${quote(b.s)} overlap`);
-    list.push(b);
-    byPage.set(b.page, list);
+  for (const [page, list] of byPage(report.textBoxes.filter(reading))) {
+    list.forEach((b, i) => {
+      for (const o of list.slice(0, i)) if (overlap(o, b)) out.push(`page ${page}: ${quote(o.s)} and ${quote(b.s)} overlap`);
+    });
   }
   return out;
 }
@@ -81,10 +84,9 @@ export function noTextOverlap({ report }) {
 /** No reading text in a zone the art marked busy (or over a face). */
 export function noTextInBusyArt({ report }) {
   const out = [];
+  const pages = byPage(report.textBoxes.filter(reading));
   for (const z of report.artZones.filter((z) => z.kind === 'busy' || z.kind === 'face')) {
-    for (const b of report.textBoxes) {
-      if (b.page === z.page && reading(b) && overlap(b, z)) out.push(`page ${b.page}: ${quote(b.s)} sits in a ${z.kind} zone`);
-    }
+    for (const b of pages.get(z.page) ?? []) if (overlap(b, z)) out.push(`page ${b.page}: ${quote(b.s)} sits in a ${z.kind} zone`);
   }
   return out;
 }
@@ -137,11 +139,12 @@ export function pageCount({ book, scope }) {
 /** JSON the painter is handed: the book and each page within their budgets. */
 export function jsonBudget({ book }) {
   const out = [];
-  const total = JSON.stringify(book).length;
+  const pages = book.pages.map((p) => JSON.stringify(p).length);
+  // The book is its pages plus everything else, which is small: stringify that part alone.
+  const total = pages.reduce((a, b) => a + b, 0) + JSON.stringify({ ...book, pages: [] }).length + book.pages.length;
   if (total > MAX_BOOK_JSON) out.push(`the book is ${total} bytes of JSON, over ${MAX_BOOK_JSON}`);
-  book.pages.forEach((p, i) => {
-    const n = JSON.stringify(p).length;
-    if (n > MAX_PAGE_JSON) out.push(`page ${i + 1} (${p.label}) is ${n} bytes of JSON, over ${MAX_PAGE_JSON}`);
+  pages.forEach((n, i) => {
+    if (n > MAX_PAGE_JSON) out.push(`page ${i + 1} (${book.pages[i].label}) is ${n} bytes of JSON, over ${MAX_PAGE_JSON}`);
   });
   return out;
 }
@@ -154,28 +157,24 @@ export function pdfBudget({ book }) {
 
 /*
  * No living person's age. A living person with a birth year is N or N-1 in the book's year; any
- * page text that pairs either number with years, yrs, year-old, साल or वर्ष, or that says "age N" or
+ * reading line that pairs either number with years, yrs, year-old, साल or वर्ष, or says "age N" or
  * "aged N", is flagged. The one "N years" a book may print is a departed person's recorded life,
- * so a number that is some departed person's span is let through - which means a living age that
- * happens to equal one is missed, the price of not false-failing the numbers page.
+ * and the page marks that line `kind: 'lifespan'`; only those lines are exempt.
+ * `family` is readFamily's result: scope already applied, `by`, `deceased` already read.
  */
-export function noLivingAge({ doc, book, report, year }) {
-  const people = doc.people ?? [];
-  const born = (p) => Number(/^(\d{4})/.exec(p.birthDate ?? '')?.[1] ?? NaN);
-  const died = (p) => Number(/^(\d{4})/.exec(p.deathDate ?? '')?.[1] ?? NaN);
-  const spans = new Set(people.filter((p) => p.deceased || p.deathDate).map((p) => died(p) - born(p)).filter(Number.isFinite));
-  const living = people.filter((p) => !p.deceased && !p.deathDate && Number.isFinite(born(p)));
+export function noLivingAge({ family, book, report, year }) {
+  const ages = new Map();   // age -> the living people it would be
+  for (const p of family.people) {
+    if (p.deceased || p.by === null) continue;
+    for (const n of [year - p.by, year - p.by - 1]) if (n >= 0) ages.set(n, [...(ages.get(n) ?? []), p.name ?? p.id]);
+  }
+  if (!ages.size) return [];
+  const n = `(${[...ages.keys()].join('|')})`;
+  const age = new RegExp(`\\b${n}\\s*-?\\s*(?:years?|yrs?|year-old)\\b|\\baged?\\s+${n}\\b|\\b${n}\\s*(?:साल|वर्ष)`, 'i');
   const out = [];
-  const pages = new Map();
-  for (const b of report.textBoxes) pages.set(b.page, `${pages.get(b.page) ?? ''} ${b.s}`);
-  for (const p of living) {
-    for (const n of [year - born(p), year - born(p) - 1]) {
-      if (n < 0 || spans.has(n)) continue;
-      const age = new RegExp(`(?:\\b${n}\\s*-?\\s*(?:years?|yrs?|year-old)\\b)|(?:\\baged?\\s+${n}\\b)|(?:\\b${n}\\s*(?:साल|वर्ष))`, 'i');
-      for (const [page, words] of pages) {
-        if (age.test(words)) out.push(`page ${page} (${book.pages[page - 1].label}) may give ${p.name ?? p.id} (born ${born(p)}) an age: ${age.exec(words)[0]}`);
-      }
-    }
+  for (const [page, list] of byPage(report.textBoxes.filter((b) => b.kind !== 'lifespan'))) {
+    const m = age.exec(list.map((b) => b.s).join(' | '));
+    if (m) out.push(`page ${page} (${book.pages[page - 1].label}) may give ${ages.get(Number(m[1] ?? m[2] ?? m[3])).join(' or ')} an age: ${m[0]}`);
   }
   return out;
 }

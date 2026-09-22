@@ -12,7 +12,8 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { composeBook, composeWithReport } from './compose.js';
+import { composeBook, composeWithReport, drawable, DRAWABLE_FORMATS } from './compose.js';
+import { readFamily, byKey } from './family.js';
 import { BOOK_FIXTURES, STORYBOOK_MANIFEST, TEMPLATES, NOW, loadFixture } from './qa/book-fixtures.mjs';
 import {
   INVARIANTS, everyoneShown, sizes, noTextOverlap, noTextInBusyArt, consecutivePagesVary, peoplePerPage,
@@ -31,31 +32,17 @@ const YEAR = Number(NOW.slice(0, 4));
  * A fixture whose manifest names its own F (the unlinked F, for one) adds that as a fourth.
  */
 function featuredChoices(name, doc) {
-  const people = (doc.people ?? []).filter((p) => p.name);
-  const year = (p) => Number(/^(\d{4})/.exec(p.birthDate ?? '')?.[1] ?? NaN);
-  const rels = doc.relationships ?? [];
-  const hasChildren = new Set(rels.filter((r) => r.type === 'PARENT').map((r) => r.from));
-  const hasParents = new Set(rels.filter((r) => r.type === 'PARENT').map((r) => r.to));
-  const byId = (a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
-  const dated = people.filter((p) => Number.isFinite(year(p)));
-  const eldest = [...dated].sort((a, b) => year(a) - year(b) || byId(a, b))[0] ?? people[0];
-  const leaves = people.filter((p) => !hasChildren.has(p.id));
-  const leaf = [...leaves].sort((a, b) => (hasParents.has(b.id) - hasParents.has(a.id)) || ((year(b) || 0) - (year(a) || 0)) || byId(a, b))[0];
+  const family = readFamily(doc, { now: NOW });
+  const named = family.people.filter((p) => p.name);
+  const byId = (a, b) => byKey(a.id, b.id);
+  const eldest = [...named].sort((a, b) => ((a.by ?? Infinity) - (b.by ?? Infinity)) || byId(a, b))[0];
+  const leaves = named.filter((p) => !family.childrenOf(p.id).length);
+  const hasParents = (p) => (family.parentsOf(p.id).length ? 1 : 0);
+  const leaf = [...leaves].sort((a, b) => (hasParents(b) - hasParents(a)) || ((b.by ?? 0) - (a.by ?? 0)) || byId(a, b))[0];
   const choices = { 'most connected': undefined, eldest: eldest?.id, leaf: leaf?.id };
   const declared = STORYBOOK_MANIFEST[name]?.ids?.featured;
   if (declared && !Object.values(choices).includes(declared)) choices.declared = declared;
   return choices;
-}
-
-/** A template the composer can draw today. A format-2 one is refused until the story planner lands. */
-function drawable(tpl) {
-  try {
-    composeBook({ format: 'f-tree', version: 1 }, { now: NOW }, tpl);
-    return true;
-  } catch (error) {
-    if (/cannot draw yet/.test(error.message)) return false;
-    throw error;
-  }
 }
 
 const DRAWABLE = Object.entries(TEMPLATES).filter(([, t]) => drawable(t));
@@ -81,7 +68,8 @@ for (const name of Object.keys(BOOK_FIXTURES)) {
         await t.test(`${tid}, featuring the ${choice}${featured ? ` (${featured})` : ''}`, () => {
           const options = { now: NOW, ...(featured ? { featured } : {}) };
           const { book, report } = composeWithReport(doc, options, tpl);
-          const failures = check({ doc, options, book, report, scope, year: YEAR });
+          const family = readFamily(doc, options);
+          const failures = check({ doc, family, options, book, report, scope, year: YEAR });
           assert.deepEqual(failures.slice(0, 15), [], `${failures.length} violations`);
           seen.set(choice, JSON.stringify(book));
         });
@@ -128,8 +116,7 @@ test('storybook: every invariant runs over it, the story-only ones included', { 
 });
 
 test('storybook: a story composer cannot land without the suite covering it', async () => {
-  const composeSrc = readFileSync(path.join(here, 'compose.js'), 'utf8');
-  const composerExists = !/cannot draw yet/.test(composeSrc);
+  const composerExists = DRAWABLE_FORMATS.includes(2);
   if (composerExists) {
     assert.ok(STORY.length > 0, 'compose.js draws format 2 now, but no format-2 template exists for the invariant suite to run it over - add templates/diwali-story.json');
   }
@@ -153,10 +140,14 @@ test('storybook: a story composer cannot land without the suite covering it', as
 // ---------------------------------------------------------------------------------------------
 // Meta: each invariant, on a book broken for the purpose. A check that never fails checks nothing.
 
+let baseBook;
 const base = async () => {
-  const doc = await loadFixture('story-leaf');
-  const { book, report } = composeWithReport(doc, { now: NOW }, TEMPLATES.heirloom);
-  return { doc, book, report, scope: new Set(doc.people.map((p) => p.id)), year: YEAR };
+  if (!baseBook) {
+    const doc = await loadFixture('story-leaf');
+    const { book, report } = composeWithReport(doc, { now: NOW }, TEMPLATES.heirloom);
+    baseBook = { doc, family: readFamily(doc, { now: NOW }), book, report, scope: new Set(doc.people.map((p) => p.id)), year: YEAR };
+  }
+  return baseBook;
 };
 const clone = (x) => structuredClone(x);
 const box = (page, s, x, y, extra = {}) => ({ page, x, y, w: 80, h: 10, size: 11, font: 'text', kind: null, op: 1, s, ...extra });
@@ -189,10 +180,10 @@ test('meta: sizes fail under the floor, by kind, and on an unclassified storyboo
   assert.ok(v.some((x) => /"unsaid" has no kind/.test(x)));
 });
 
-test('meta: text over text fails, and a faint watermark does not', async () => {
+test('meta: text over text fails, and a line marked ornament does not', async () => {
   const c = await base();
   assert.deepEqual(noTextOverlap(c), []);
-  const report = { textBoxes: [box(2, 'one', 10, 10), box(2, 'two', 50, 15), box(2, 'VII', 0, 0, { op: 0.2, w: 200, h: 100 }), box(3, 'other page', 10, 10)] };
+  const report = { textBoxes: [box(2, 'one', 10, 10), box(2, 'two', 50, 15), box(2, 'VII', 0, 0, { kind: 'ornament', w: 200, h: 100 }), box(3, 'other page', 10, 10)] };
   assert.deepEqual(noTextOverlap({ report }), ['page 2: "one" and "two" overlap']);
 });
 
@@ -251,8 +242,11 @@ test('meta: a PDF estimated at 10 MB or more fails', async () => {
 test('meta: a living person\'s age fails, a departed person\'s life does not', async () => {
   const doc = JSON.parse(readFileSync(path.join(here, 'fixtures/remarriage.json'), 'utf8'));
   const { book, report } = composeWithReport(doc, { now: NOW }, TEMPLATES.heirloom);
-  const c = { doc, book, report, year: YEAR };
-  assert.deepEqual(noLivingAge(c), [], 'Harish\'s "61 years" is a departed life');
+  const c = { family: readFamily(doc, { now: NOW }), book, report, year: YEAR };
+  assert.deepEqual(noLivingAge(c), [], 'Harish\'s "61 years" is a departed life, marked lifespan');
+  const unmarked = { ...report, textBoxes: report.textBoxes.map((b) => ({ ...b, kind: null })) };
+  const rekhaAt61 = { ...c, family: { people: [...c.family.people, { id: 'x', name: 'X', by: YEAR - 61, deceased: false }] } };
+  assert.equal(noLivingAge({ ...rekhaAt61, report: unmarked }).length, 1, 'an unmarked "61 years" is a living 61-year-old\'s age');
   for (const s of ['Rekha, 68 years', 'Rekha is aged 68', 'रेखा 67 साल की']) {
     const r = { ...report, textBoxes: [...report.textBoxes, box(1, s, 0, 0)] };
     assert.equal(noLivingAge({ ...c, report: r }).length, 1, s);

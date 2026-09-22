@@ -65,7 +65,7 @@ export function generationPages(ctx) {
     // A chapter that ends high on its page closes with a tailpiece, as a printed book's would, so
     // the space beneath reads as a pause rather than as something missing.
     if (closing && BOTTOM - y > 150) tailpiece(ctx, items, y + 22);
-    if (numeral) items.unshift(ctx.line(W - 40, 118, numeral, 'display', 120, P.gold, { align: 'end', op: 0.2 }));
+    if (numeral) items.unshift(ctx.line(W - 40, 118, numeral, 'display', 120, P.gold, { align: 'end', op: 0.2, kind: 'ornament' }));
     items.push(...ctx.footer(P.inkSoft));
     pages.push(ctx.page(pages.length ? 'Generations, continued' : 'Generations', items, P.paper));
     ctx.pageNo += 1;

@@ -56,10 +56,10 @@ export function numbersPage(ctx) {
 
   const figures = factsFor(facts);
   const col = (W - 88 - 32) / 2;
-  figures.forEach(({ big, small, accent }, i) => {
+  figures.forEach(({ big, small, accent, kind }, i) => {
     const x = 44 + (i % 2) * (col + 32), y = panel + 76 + Math.floor(i / 2) * 104;
     const size = ctx.fit(big, 'display', 40, col, 22);
-    items.push(ctx.line(x, y, big, 'display', size, accent ? P.goldSoft : P.ink));
+    items.push(ctx.line(x, y, big, 'display', size, accent ? P.goldSoft : P.ink, { kind }));
     items.push(...ctx.lines(x, y + 24, small, 'text', 11.5, P.inkSoft, { width: col - 10, maxLines: 3, lead: 15 }).items);
   });
   items.push(...ctx.footer(P.inkSoft));
@@ -71,7 +71,8 @@ export function factsFor(facts) {
   const out = [];
   out.push({ big: String(facts.people), small: facts.generations > 1 ? `people in ${countWords(facts.generations)} generations` : facts.people === 1 ? 'person in this book' : 'people in this book' });
   if (facts.earliest) out.push({ big: String(facts.earliest), small: 'the earliest year anyone recorded' });
-  if (facts.longest) out.push({ big: `${facts.longest.years} years`, small: `the longest life on record, ${facts.longest.name}'s` });
+  // `lifespan`: a departed person's recorded life, the one "N years" a book may print (#245 checks).
+  if (facts.longest) out.push({ big: `${facts.longest.years} years`, small: `the longest life on record, ${facts.longest.name}'s`, kind: 'lifespan' });
   if (facts.largest) {
     const who = facts.largest.raisedBy.length ? `, raised by ${andList(facts.largest.raisedBy)}` : '';
     out.push({ big: String(facts.largest.children), small: `children in the largest family${who}` });

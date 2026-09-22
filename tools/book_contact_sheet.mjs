@@ -18,12 +18,11 @@
  * show the ring the painter keeps for a photograph it cannot load. Playwright: see tools/book_print.mjs.
  */
 
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { mkdirSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
-import { composeBook } from '../site/book/compose.js';
-import { paintPage } from '../site/book/svg.js';
-import { openArchive } from '../site/playground/archive.js';
-import { BOOK_FIXTURES, TEMPLATES, NOW, loadFixture } from '../site/book/qa/book-fixtures.mjs';
+import { composeBook, drawable } from '../site/book/compose.js';
+import { paintPage, esc } from '../site/book/svg.js';
+import { BOOK_FIXTURES, TEMPLATES, NOW, loadFixture, openFixtureArchive } from '../site/book/qa/book-fixtures.mjs';
 import { loadPlaywright, fontFaces, settle } from './book_print.mjs';
 
 const THUMB = 180;      // px wide, a page on the sheet
@@ -43,14 +42,10 @@ if (unknown.length) {
   process.exit(2);
 }
 
-const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;');
-
 /** The sample archive's photographs as data: URLs, by person id. Everyone else has none. */
 async function photosOf(name, doc) {
-  const src = BOOK_FIXTURES[name].archive;
-  if (!src) return () => null;
-  const buf = readFileSync(src);
-  const archive = await openArchive(buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength));
+  const archive = await openFixtureArchive(name);
+  if (!archive) return () => null;
   const urls = new Map();
   for (const p of doc.people ?? []) {
     if (!p.photo) continue;
@@ -62,19 +57,10 @@ async function photosOf(name, doc) {
   return (id) => urls.get(id) ?? null;
 }
 
-/** A fixture's rows: one book per template, or the reason the composer gave for not drawing it. */
-function books(doc) {
-  const rows = [];
-  for (const [tid, tpl] of Object.entries(TEMPLATES)) {
-    try {
-      rows.push({ label: tid, tid, book: composeBook(doc, { now: NOW }, tpl) });
-    } catch (error) {
-      if (/cannot draw yet/.test(error.message)) { rows.push({ label: `${tid}: ${error.message}`, tid, book: null }); continue; }
-      throw error;
-    }
-  }
-  return rows;
-}
+/** A fixture's rows: one book per template, or a note that the composer cannot draw it yet. */
+const books = (doc) => Object.entries(TEMPLATES).map(([tid, tpl]) => (drawable(tpl)
+  ? { label: tid, tid, book: composeBook(doc, { now: NOW }, tpl) }
+  : { label: `${tid}: format ${tpl.format}, which the composer cannot draw yet`, tid, book: null }));
 
 function sheetHtml(name, rows, photo) {
   const row = ({ label, book }, r) => {

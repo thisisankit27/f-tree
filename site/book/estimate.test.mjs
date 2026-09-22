@@ -12,14 +12,13 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { composeBook, estimateBytes, artStats, ART_PDF } from './compose.js';
+import { composeBook, estimateBytes, artStats, artTerm, ART_PDF, BASE_BYTES, PAGE_BYTES } from './compose.js';
 import { BOOK_FIXTURES, TEMPLATES, NOW, loadFixture } from './qa/book-fixtures.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const MEASURED = JSON.parse(readFileSync(path.join(here, 'qa/pdf-size.json'), 'utf8'));
 const CONFORMANCE = JSON.parse(readFileSync(path.join(here, 'golden/format2-conformance.json'), 'utf8'));
-const PAGE_ALLOWANCE = 18_000;   // estimateBytes' per-page constant
-const term = (r) => Object.keys(ART_PDF).reduce((sum, k) => sum + r[k] * ART_PDF[k], 0);
+const term = (r) => artTerm(r);
 
 test('a format-1 book is estimated exactly as before the art term', async () => {
   // The formula as it stood before #245, written out: a change here is a change to what every
@@ -38,7 +37,7 @@ test('a format-1 book is estimated exactly as before the art term', async () => 
 });
 
 test('a format-2 book is estimated with its art', () => {
-  const base = 420_000 + CONFORMANCE.pages.length * 18_000 + CONFORMANCE.photos.reduce((sum, p) => sum + p.px * p.px * 0.22, 0);
+  const base = BASE_BYTES + CONFORMANCE.pages.length * PAGE_BYTES + CONFORMANCE.photos.reduce((sum, p) => sum + p.px * p.px * 0.22, 0);
   const stats = artStats(CONFORMANCE);
   assert.ok(stats.bytes > 0 && stats.gradients > 0 && stats.clips > 0 && stats.layers > 0, JSON.stringify(stats));
   const est = estimateBytes(CONFORMANCE, { lossless: false });
@@ -62,21 +61,18 @@ test('every use counts as the symbol it draws, so more lamps estimate bigger', (
 
 test('the art term covers every page that was measured', () => {
   assert.ok(MEASURED.rows.length >= 10, 'the recorded measurements are missing');
+  // Every page, with a margin: a quarter again on top of what its art cost.
   for (const r of MEASURED.rows) {
-    const allowed = term(r) + PAGE_ALLOWANCE;
-    assert.ok(allowed >= r.art, `${r.name}: the estimate allows ${Math.round(allowed)} bytes for art that printed at ${r.art}`);
-  }
-  // And with a margin: a quarter again on every page (the constants give at least 1.37x today).
-  for (const r of MEASURED.rows) {
-    assert.ok(term(r) + PAGE_ALLOWANCE >= r.art * 1.25, `${r.name}: less than 1.25x of the measured art`);
+    const allowed = term(r) + PAGE_BYTES;
+    assert.ok(allowed >= r.art * 1.25, `${r.name}: the estimate allows ${Math.round(allowed)} bytes for art that printed at ${r.art}, under 1.25x`);
   }
   // The storybook-density book: 28 pages at the style frames' own density.
   const s = MEASURED.storybook;
-  assert.ok(term(s) + s.pages * PAGE_ALLOWANCE >= s.pdf, 'the whole storybook-density book');
+  assert.ok(term(s) + s.pages * PAGE_BYTES >= s.pdf, 'the whole storybook-density book');
 });
 
 test('meta: a constant lowered below the measurements fails the coverage test', () => {
   const low = { ...ART_PDF, bytes: ART_PDF.bytes / 3, translucent: 0, gradients: 0 };
-  const lowTerm = (r) => Object.keys(low).reduce((sum, k) => sum + r[k] * low[k], 0);
-  assert.ok(MEASURED.rows.some((r) => lowTerm(r) + PAGE_ALLOWANCE < r.art), 'the coverage check would not notice a lowered constant');
+  const lowTerm = (r) => artTerm(r, low);
+  assert.ok(MEASURED.rows.some((r) => lowTerm(r) + PAGE_BYTES < r.art), 'the coverage check would not notice a lowered constant');
 });

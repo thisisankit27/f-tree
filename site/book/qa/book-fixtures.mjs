@@ -35,13 +35,19 @@ export const STORYBOOK_MANIFEST = Object.fromEntries(
     .map(([file, about]) => [file.replace(/\.json$/, ''), about]),
 );
 
-export async function loadFixture(name) {
+/** The fixture's .ftree archive, for the one fixture that is an archive; null for the rest. */
+export async function openFixtureArchive(name) {
   const f = BOOK_FIXTURES[name];
   if (!f) throw new Error(`no book fixture "${name}"`);
-  if (f.json) return JSON.parse(readFileSync(f.json, 'utf8'));
+  if (!f.archive) return null;
   const buf = readFileSync(f.archive);
-  const archive = await openArchive(buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength));
-  return parseDocument(await archive.readText('tree.json'));
+  return openArchive(buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength));
+}
+
+export async function loadFixture(name) {
+  const archive = await openFixtureArchive(name);
+  if (archive) return parseDocument(await archive.readText('tree.json'));
+  return JSON.parse(readFileSync(BOOK_FIXTURES[name].json, 'utf8'));
 }
 
 /** Template id -> template document, for every template file the release carries. */
