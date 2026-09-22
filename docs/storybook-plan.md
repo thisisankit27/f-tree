@@ -7,11 +7,12 @@ session. It was made on 2026-09-16, and Ankit approved the visual direction the 
 > - **Wave 1:** #241 (Book format 2 in JS), #242 (Kalam `book_hand`), #243 (template format 2) and
 >   #244 (composer options) are done.
 > - **Wave 2, first half:** #246 (Android format 2), #247 (art compiler + `draw.js`), #248
->   (Android book screen), #249 (desktop book dialog) and #250 (`kin.js`) are done.
+>   (Android book screen), #249 (desktop book dialog), #250 (`kin.js`), #251 (`plan.js`) and #252
+>   (`copy.js`) are done.
 > - **#245 is open**, but only for the storybook half: its invariants run over the story book
 >   once it exists. Everything else in it has landed.
 > - **Next is the rest of wave 2,** then wave 3 (#239):
->   - wave 2: #251 (`plan.js`), #252 (`copy.js`), #253/#254 (assets), #255 (procedural);
+>   - wave 2: #253/#254 (assets), #255 (procedural);
 >   - wave 3: #256–#258 (archetypes), then #259 (the swap, **must merge by 2026-10-12**) and
 >     #260 (release checks).
 > - Read **"Handover after wave 2"** below before starting.
@@ -361,9 +362,37 @@ Built in #247. The contributor workflow and the `draw.js` API are in
   - **`compose.js`** sends a format-2 template to `storyBook(ctx)`, which runs `kinOf` and the
     planner, then refuses by name to draw: the archetypes are #256–#258. `DRAWABLE_FORMATS` stays
     `[1]` until they land.
-- **Supporting modules:** `copy.js` (sentences with fallbacks for missing names, years and
-  genders), `avatars.js` (gender × life stage × variant by stable hash; any unknown gender value
-  counts as unspecified), `pages/*.js` (the archetypes).
+- **Supporting modules:** `copy.js` (built in #252, below), `avatars.js` (gender × life stage ×
+  variant by stable hash; any unknown gender value counts as unspecified), `pages/*.js` (the
+  archetypes).
+
+  **`copy.js`** (`site/book/story/copy.js`, tested by `copy.test.mjs`), pure functions keyed by
+  chapter id and person, for the archetypes (#256-#258) to call:
+  - **`renderCopy(entry, vars)`** fills a template's `copy[chapter]` (`{title, line:{one,other}}`)
+    from `vars`, choosing the plural by `vars.n`. It reuses `template.js`'s own `PLACEHOLDER`
+    regex (exported for this, alongside `PLACEHOLDERS`) rather than a second parser, and a missing
+    `vars` entry is dropped - never a stray `{placeholder}` or "undefined" - with the punctuation
+    either side tidied so a dropped fact never strands a comma before a full stop.
+  - **`nameOf(family, kin, id)`** is the one name a page ever prints: the record's own, or - belief
+    3 - `kin.js`'s `namedBy` turned into a phrase ("Shyam Lal's wife"), never "Unknown".
+  - **`kinCaption(kin, family, id)`** is `words(id).word` (already Hindi-then-English, the app's
+    own fallback) plus the one case it cannot hand back as a single word: `through`, phrased the
+    way the desktop's `sentenceFor` phrases it ("married to Ankit's cousin", "the grandmother of
+    Ankit's wife"), never a possessive chain. Deliberately *not* subtype-blind the way the desktop
+    panel is: an ex-spouse's own record shows through (`kin.words`'s "former wife"), which is more
+    accurate for a family book than the panel's simplification, so the two texts can differ here.
+  - **`noteCaption(chapterId, family, id, options)`** returns the already-clamped note only when
+    `options.notes` and `chapterId !== 'register'` - centralised so no future archetype has to
+    remember the register never gets one.
+  - **`countInCircle`/`numberFact`** read a circle's own count (optionally filtered by `role`),
+    never a second tally - "Ankit has 23 cousins" and the copy layer's `{n}` agree by construction.
+  - **`openingLine`, `rootsLine`, `stillToBeFoundCaption`** are composed sentences, not
+    placeholder fills, because they need a birth-order claim, a generation count or a side that a
+    5-token template line cannot express. Each clause is independently optional: no birth year
+    drops the ordinal claim ("Ankit is a child of Rajesh and Sunita", never "the eldest" without a
+    year to back it), no recorded parent drops the whole clause, and nothing here ever reaches for
+    a pronoun, so a missing gender never needs handling - `model.js`'s own labels are already
+    gender-neutral where the record doesn't say.
 - **Completeness:** `composeWithReport()` returns `{book, report:{shown, textBoxes, artZones,
   minSize}}`. Tests assert that `shown` covers everyone in scope. A template cannot leave out the
   register.

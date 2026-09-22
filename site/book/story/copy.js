@@ -191,9 +191,8 @@ export function openingLine(family, kin) {
   const featuredName = nameOf(family, kin, kin.featured);
   if (!featured || !featuredName) return null;
 
-  const parentIds = kin.circles.parents ?? [];
-  const parentNames = parentIds.map((id) => nameOf(family, kin, id)).filter(Boolean);
-  const siblings = (kin.circles.siblings ?? [])
+  const parentNames = kin.circles.parents.map((id) => nameOf(family, kin, id)).filter(Boolean);
+  const siblings = kin.circles.siblings
     .filter((id) => kin.people.get(id).role === 'full')
     .map((id) => ({ id, by: family.byId.get(id)?.by ?? null }));
 
@@ -224,7 +223,7 @@ export function openingLine(family, kin) {
 export function rootsLine(family, kin) {
   const featuredName = nameOf(family, kin, kin.featured);
   if (!featuredName) return null;
-  const gens = [...(kin.circles.grandparents ?? []), ...(kin.circles.ancestors ?? [])]
+  const gens = [...kin.circles.grandparents, ...kin.circles.ancestors]
     .map((id) => kin.people.get(id).gen)
     .filter((g) => g !== null);
   if (!gens.length) return null;
