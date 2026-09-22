@@ -72,6 +72,11 @@ jobs:
       - name: Pillow, for the photographs in the sample tree
         run: python3 -m pip install --break-system-packages pillow || python3 -m pip install pillow
 
+      # The storybook's fixtures (#245) are committed so other issues' tests can name their people,
+      # and generated so nobody edits one by hand. This fails if the two ever disagree.
+      - name: The storybook fixtures are what make_sample_tree.py makes
+        run: python3 tools/make_sample_tree.py --check-book-fixtures site/book/fixtures
+
       - name: Check the viewer parses and lays out a real archive
         run: |
           set -euo pipefail

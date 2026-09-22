@@ -203,6 +203,80 @@ silently drop one. Both painters are held to it — `format.test.mjs` paints it 
 tests read the same file — so it is the one place to change when format 2's meaning changes. It is
 written by hand, not generated: `UPDATE_GOLDEN=1` does not touch it.
 
+## What a PDF weighs
+
+The book screen says *About 3.4 MB* before anybody waits for the PDF. `estimateBytes` (compose.js)
+is that number, and the budget test holds every book under 10 MB with it. It errs toward "too big".
+
+- **Fonts and pages:** 420 KB plus 18 KB a page.
+- **Photographs:** 0.22 bytes a pixel as JPEG (desktop), 1.8 lossless (Android's `PdfDocument`).
+- **Paper-cut art (format 2 only, #245).** Format-1 books keep the estimate they had, which
+  already covers their starfields. For a format-2 book, `artStats(book)` counts what its drawing
+  is made of, with every `use` expanded, because a symbol drawn forty times is forty copies in the
+  PDF. The term is `ART_PDF` times those counts:
+
+  | count | what it is | bytes each |
+  |---|---|---|
+  | `bytes` | every path's data, plus 40 for each shape, group and use (words and photographs left out) | 0.75 |
+  | `translucent` | shapes with an opacity (a paper shadow is one) | 1,050 |
+  | `gradients` | shapes painted with a gradient: a shading, and a soft mask if it fades | 5,800 |
+  | `clips` | clipped groups | 1,600 |
+  | `layers` | groups and uses with an opacity | 0 (measured free: the cost is in what they hold) |
+
+**How it was measured,** 2026-09-22, with `tools/book_pdf_size.mjs` in Chromium 151:
+
+1. The samples:
+   - the six approved style frames and the design-system sheet, converted item for item from the
+     kit's SVG into format-2 Books that pass `validateBook`;
+   - the four pages of the conformance book;
+   - five calibration pages, each loaded with mostly one kind of cost.
+2. Each page was printed the way the desktop prints (the same HTML, `@page` A4, `page.pdf` with
+   `printBackground` and `preferCSSPageSize`), then printed again with only its text. The
+   difference is what its art cost.
+3. The five counts were fitted to that cost by non-negative least squares on relative error.
+4. The fit was scaled by its own 95th-percentile under-estimate (among pages with at least 18 KB
+   of art; the per-page constant already pays for less) and by a quarter again: 1.95 in all. The
+   result was rounded up.
+
+On every page measured, the term plus the per-page constant allows between 1.40 and 15 times
+what the art cost. The numbers are in `site/book/qa/pdf-size.json`, and `estimate.test.mjs`
+fails if a constant drops below them.
+
+| page | PDF | art in the PDF | art `bytes` | translucent | gradients | clips | term | allowed / cost |
+|---|---|---|---|---|---|---|---|---|
+| frame: cover | 857 KB | 845 KB | 711 KB | 1003 | 45 | 0 | 1817 KB | 2.17 |
+| frame: opening | 565 KB | 548 KB | 501 KB | 634 | 21 | 5 | 1153 KB | 2.13 |
+| frame: courtyards | 664 KB | 645 KB | 418 KB | 735 | 22 | 2 | 1195 KB | 1.88 |
+| frame: lane | 821 KB | 803 KB | 434 KB | 809 | 35 | 0 | 1354 KB | 1.71 |
+| frame: register | 696 KB | 676 KB | 251 KB | 873 | 41 | 23 | 1351 KB | 2.03 |
+| frame: remembrance | 424 KB | 406 KB | 523 KB | 352 | 17 | 2 | 853 KB | 2.14 |
+| frame: system | 404 KB | 384 KB | 378 KB | 384 | 13 | 12 | 770 KB | 2.05 |
+| conformance 1 | 8 KB | 1 KB | 1 KB | 0 | 0 | 1 | 2 KB | 15.49 |
+| conformance 2 | 17 KB | 7 KB | 2 KB | 1 | 2 | 1 | 16 KB | 4.77 |
+| conformance 3 | 52 KB | 45 KB | 2 KB | 0 | 7 | 2 | 45 KB | 1.40 |
+| conformance 4 | 16 KB | 9 KB | 1 KB | 0 | 0 | 0 | 1 KB | 2.02 |
+| paths | 291 KB | 291 KB | 602 KB | 0 | 0 | 0 | 452 KB | 1.62 |
+| dimmed paths | 449 KB | 449 KB | 602 KB | 400 | 0 | 0 | 862 KB | 1.96 |
+| paper shadows | 449 KB | 448 KB | 618 KB | 400 | 0 | 0 | 874 KB | 1.99 |
+| fading glows | 209 KB | 209 KB | 3 KB | 0 | 80 | 0 | 455 KB | 2.27 |
+| dimmed uses, clips | 105 KB | 105 KB | 257 KB | 0 | 0 | 40 | 256 KB | 2.61 |
+
+**What this means for the storybook.**
+- **The style frames are far too heavy to ship as they are drawn.** A frame's art prints at 380 to
+  850 KB. A 28-page book at that density, which the tool also prints, came to **18.6 MB** of PDF
+  and 8 MB of Book JSON, against 10 MB and 1.5 MB. Its estimate is 36.7 MB. **The storybook's
+  pages must be far lighter than the frames as drawn** (#253–#258).
+- **The budget for art.** To stay under 10 MB, a 28-page storybook's art term has to stay under
+  about 9 MB: roughly 330 KB of term a page, or about 170 KB of real art. The byte budgets in
+  `art/README.md` (a scene ≤ 40 KB, an avatar ≤ 2.5 KB, drawn as symbols) are what get it there.
+- **Paper shadows are the cost to watch.** Every shadow is a translucent shape, and the frames
+  draw about a thousand of them a page.
+
+**Android.** `PdfDocument` cannot draw format 2 until #246, so everything above is Chromium's
+PDF. #246, and #259 on the finished Diwali book, must measure Android's PDF of the same pages
+(`tools/book_pdf_size.mjs` writes the Books it prints), and raise `ART_PDF` if Android writes
+more. The estimate is only as high as its highest painter.
+
 ## Fonts
 
 Four static files embedded in the release, all covering Latin and Devanagari in one face:
@@ -415,3 +489,48 @@ progress is announced, and every control is reachable by keyboard and screen rea
   once a change is meant.
 - Serve the repository root (`python3 -m http.server`) and open `/site/book/preview.html` to see
   every template with every fixture, painted by the SVG painter the desktop prints with.
+
+### The QA harness (#245)
+
+- **Fixtures.** `site/book/fixtures/` holds the hand-written fixtures and the storybook's
+  synthetic ones (`story-*.json`: a family of 200 over six generations, F as the eldest and as a
+  leaf, a remarriage with half, step and explicit siblings, twelve siblings, three spouses, an
+  unlinked F, lost names, hostile notes, Devanagari, a tiny family and an empty tree).
+  - The synthetic ones are generated, never edited:
+    `python3 tools/make_sample_tree.py --book-fixtures site/book/fixtures`.
+  - `storybook.json` says what each one is and names the people a test can look for (`f` is F).
+  - CI runs `--check-book-fixtures` and fails if the committed files drift from the generator.
+    Other issues' tests name these people, so add a fixture rather than change one.
+- **The report.** `composeWithReport(doc, options, template, allowance)` returns the same book as
+  `composeBook` plus `{ shown, textBoxes, artZones, minSize, pages }`. Story pages feed it through
+  `ctx`:
+  - `ctx.show(id)` for everyone a page names (`ctx.portrait` already does);
+  - `ctx.zone('text' | 'face' | 'busy', box)` for where the art allows words;
+  - `ctx.describePage({ archetype, variant, people, density })`;
+  - `kind: 'body' | 'name' | 'caption' | 'ornament' | ...` on `ctx.line` and `ctx.lines`.
+
+  Each is a no-op when nobody asked for a report.
+- **The invariants.** `site/book/invariants.test.mjs` runs `qa/invariants.mjs` over every fixture,
+  every template the composer can draw, and three featured people (the most connected, the eldest
+  and a leaf).
+  - The storybook joins automatically once a format-2 template composes. Until then its test is
+    skipped, with the reason.
+  - A flag test fails if a story composer lands with no template to run it over, or if its pages
+    don't report their zones, archetypes and kinds.
+  - Format-1 books are held to what they promise. The tree page prints the years under each
+    name at 6.4 pt, under the storybook's 7 pt floor, and Heirloom's output is frozen, so format 1
+    is grandfathered at a 6 pt floor. Variety and the density caps are storybook rules and don't
+    apply to it.
+  - Lines the checks treat differently say so with `kind`: Heirloom's generation numeral is
+    `'ornament'` (left out of the collision checks), and the numbers page's longest life is
+    `'lifespan'` (the one "N years" a book may print).
+- **The contact sheet,** for the by-eye review. It is not run in CI, and it needs Playwright
+  (`npx playwright --version`) and its Chromium:
+  ```
+  FTREE_PLAYWRIGHT=<.../node_modules/playwright/index.mjs> node tools/book_contact_sheet.mjs <out-dir> [fixture ...]
+  ```
+  It writes one PNG per fixture (a row per template, every page labelled), each cover at 150 px
+  wide, and an `index.html` of the lot. Look at the covers at that size: they are the chat
+  thumbnail.
+- **PDF weight.** `tools/book_pdf_size.mjs <out-dir>` re-measures the art term, the same way
+  (see *What a PDF weighs*).

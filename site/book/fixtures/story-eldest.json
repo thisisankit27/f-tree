@@ -1,0 +1,334 @@
+{
+ "format": "f-tree",
+ "version": 1,
+ "people": [
+  {
+   "id": "f",
+   "name": "Kamala Iyer",
+   "gender": "FEMALE",
+   "birthDate": "1931",
+   "deathDate": null,
+   "deceased": false,
+   "photo": null,
+   "notes": null,
+   "origins": []
+  },
+  {
+   "id": "f-husband",
+   "name": "Venkatesh Iyer",
+   "gender": "MALE",
+   "birthDate": "1927",
+   "deathDate": "1999",
+   "deceased": true,
+   "photo": null,
+   "notes": null,
+   "origins": []
+  },
+  {
+   "id": "c1",
+   "name": "Raghavan Iyer",
+   "gender": "MALE",
+   "birthDate": "1953",
+   "deathDate": null,
+   "deceased": false,
+   "photo": null,
+   "notes": null,
+   "origins": []
+  },
+  {
+   "id": "c1-sp",
+   "name": "Meenakshi Iyer",
+   "gender": "FEMALE",
+   "birthDate": "1956",
+   "deathDate": null,
+   "deceased": false,
+   "photo": null,
+   "notes": null,
+   "origins": []
+  },
+  {
+   "id": "c1-k0",
+   "name": "Anand Iyer",
+   "gender": "MALE",
+   "birthDate": "1980",
+   "deathDate": null,
+   "deceased": false,
+   "photo": null,
+   "notes": null,
+   "origins": []
+  },
+  {
+   "id": "c1-k1",
+   "name": "Deepa Iyer",
+   "gender": "FEMALE",
+   "birthDate": "1983",
+   "deathDate": null,
+   "deceased": false,
+   "photo": null,
+   "notes": null,
+   "origins": []
+  },
+  {
+   "id": "c2",
+   "name": "Lakshmi Rao",
+   "gender": "FEMALE",
+   "birthDate": "1956",
+   "deathDate": null,
+   "deceased": false,
+   "photo": null,
+   "notes": null,
+   "origins": []
+  },
+  {
+   "id": "c2-sp",
+   "name": "Gopal Rao",
+   "gender": "MALE",
+   "birthDate": "1959",
+   "deathDate": null,
+   "deceased": false,
+   "photo": null,
+   "notes": null,
+   "origins": []
+  },
+  {
+   "id": "c2-k0",
+   "name": "Karthik Rao",
+   "gender": "MALE",
+   "birthDate": "1983",
+   "deathDate": null,
+   "deceased": false,
+   "photo": null,
+   "notes": null,
+   "origins": []
+  },
+  {
+   "id": "c2-k1",
+   "name": "Vidya Rao",
+   "gender": "FEMALE",
+   "birthDate": "1986",
+   "deathDate": null,
+   "deceased": false,
+   "photo": null,
+   "notes": null,
+   "origins": []
+  },
+  {
+   "id": "c3",
+   "name": "Srinivas Iyer",
+   "gender": "MALE",
+   "birthDate": "1960",
+   "deathDate": null,
+   "deceased": false,
+   "photo": null,
+   "notes": null,
+   "origins": []
+  },
+  {
+   "id": "c3-sp",
+   "name": "Janaki Iyer",
+   "gender": "FEMALE",
+   "birthDate": "1963",
+   "deathDate": null,
+   "deceased": false,
+   "photo": null,
+   "notes": null,
+   "origins": []
+  },
+  {
+   "id": "c3-k0",
+   "name": "Hari Iyer",
+   "gender": "MALE",
+   "birthDate": "1987",
+   "deathDate": null,
+   "deceased": false,
+   "photo": null,
+   "notes": null,
+   "origins": []
+  },
+  {
+   "id": "c3-k1",
+   "name": "Uma Iyer",
+   "gender": "FEMALE",
+   "birthDate": "1990",
+   "deathDate": null,
+   "deceased": false,
+   "photo": null,
+   "notes": null,
+   "origins": []
+  },
+  {
+   "id": "c1-k0-k0",
+   "name": "Aditi Iyer",
+   "gender": "FEMALE",
+   "birthDate": "2012",
+   "deathDate": null,
+   "deceased": false,
+   "photo": null,
+   "notes": null,
+   "origins": []
+  }
+ ],
+ "relationships": [
+  {
+   "id": "r0",
+   "from": "f",
+   "to": "f-husband",
+   "type": "SPOUSE",
+   "subtype": "WIDOWED"
+  },
+  {
+   "id": "r1",
+   "from": "f",
+   "to": "c1",
+   "type": "PARENT",
+   "subtype": null
+  },
+  {
+   "id": "r2",
+   "from": "f-husband",
+   "to": "c1",
+   "type": "PARENT",
+   "subtype": null
+  },
+  {
+   "id": "r3",
+   "from": "c1",
+   "to": "c1-sp",
+   "type": "SPOUSE",
+   "subtype": "MARRIED"
+  },
+  {
+   "id": "r4",
+   "from": "c1",
+   "to": "c1-k0",
+   "type": "PARENT",
+   "subtype": null
+  },
+  {
+   "id": "r5",
+   "from": "c1-sp",
+   "to": "c1-k0",
+   "type": "PARENT",
+   "subtype": null
+  },
+  {
+   "id": "r6",
+   "from": "c1",
+   "to": "c1-k1",
+   "type": "PARENT",
+   "subtype": null
+  },
+  {
+   "id": "r7",
+   "from": "c1-sp",
+   "to": "c1-k1",
+   "type": "PARENT",
+   "subtype": null
+  },
+  {
+   "id": "r8",
+   "from": "f",
+   "to": "c2",
+   "type": "PARENT",
+   "subtype": null
+  },
+  {
+   "id": "r9",
+   "from": "f-husband",
+   "to": "c2",
+   "type": "PARENT",
+   "subtype": null
+  },
+  {
+   "id": "r10",
+   "from": "c2",
+   "to": "c2-sp",
+   "type": "SPOUSE",
+   "subtype": "MARRIED"
+  },
+  {
+   "id": "r11",
+   "from": "c2",
+   "to": "c2-k0",
+   "type": "PARENT",
+   "subtype": null
+  },
+  {
+   "id": "r12",
+   "from": "c2-sp",
+   "to": "c2-k0",
+   "type": "PARENT",
+   "subtype": null
+  },
+  {
+   "id": "r13",
+   "from": "c2",
+   "to": "c2-k1",
+   "type": "PARENT",
+   "subtype": null
+  },
+  {
+   "id": "r14",
+   "from": "c2-sp",
+   "to": "c2-k1",
+   "type": "PARENT",
+   "subtype": null
+  },
+  {
+   "id": "r15",
+   "from": "f",
+   "to": "c3",
+   "type": "PARENT",
+   "subtype": null
+  },
+  {
+   "id": "r16",
+   "from": "f-husband",
+   "to": "c3",
+   "type": "PARENT",
+   "subtype": null
+  },
+  {
+   "id": "r17",
+   "from": "c3",
+   "to": "c3-sp",
+   "type": "SPOUSE",
+   "subtype": "MARRIED"
+  },
+  {
+   "id": "r18",
+   "from": "c3",
+   "to": "c3-k0",
+   "type": "PARENT",
+   "subtype": null
+  },
+  {
+   "id": "r19",
+   "from": "c3-sp",
+   "to": "c3-k0",
+   "type": "PARENT",
+   "subtype": null
+  },
+  {
+   "id": "r20",
+   "from": "c3",
+   "to": "c3-k1",
+   "type": "PARENT",
+   "subtype": null
+  },
+  {
+   "id": "r21",
+   "from": "c3-sp",
+   "to": "c3-k1",
+   "type": "PARENT",
+   "subtype": null
+  },
+  {
+   "id": "r22",
+   "from": "c1-k0",
+   "to": "c1-k0-k0",
+   "type": "PARENT",
+   "subtype": null
+  }
+ ]
+}

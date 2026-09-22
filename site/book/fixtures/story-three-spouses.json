@@ -1,0 +1,191 @@
+{
+ "format": "f-tree",
+ "version": 1,
+ "people": [
+  {
+   "id": "f-father",
+   "name": "Bhanu Pratap Chauhan",
+   "gender": "MALE",
+   "birthDate": "1922",
+   "deathDate": "1988",
+   "deceased": true,
+   "photo": null,
+   "notes": null,
+   "origins": []
+  },
+  {
+   "id": "f",
+   "name": "Devraj Chauhan",
+   "gender": "MALE",
+   "birthDate": "1950",
+   "deathDate": null,
+   "deceased": false,
+   "photo": null,
+   "notes": null,
+   "origins": []
+  },
+  {
+   "id": "former",
+   "name": "Nirmala Rathore",
+   "gender": "FEMALE",
+   "birthDate": "1952",
+   "deathDate": null,
+   "deceased": false,
+   "photo": null,
+   "notes": null,
+   "origins": []
+  },
+  {
+   "id": "late",
+   "name": "Sushma Chauhan",
+   "gender": "FEMALE",
+   "birthDate": "1956",
+   "deathDate": "1994-03-12",
+   "deceased": true,
+   "photo": null,
+   "notes": null,
+   "origins": []
+  },
+  {
+   "id": "current",
+   "name": "Madhuri Chauhan",
+   "gender": "FEMALE",
+   "birthDate": "1962",
+   "deathDate": null,
+   "deceased": false,
+   "photo": null,
+   "notes": null,
+   "origins": []
+  },
+  {
+   "id": "k-former",
+   "name": "Vikram Chauhan",
+   "gender": "MALE",
+   "birthDate": "1975",
+   "deathDate": null,
+   "deceased": false,
+   "photo": null,
+   "notes": null,
+   "origins": []
+  },
+  {
+   "id": "k-late-1",
+   "name": "Pallavi Chauhan",
+   "gender": "FEMALE",
+   "birthDate": "1982",
+   "deathDate": null,
+   "deceased": false,
+   "photo": null,
+   "notes": null,
+   "origins": []
+  },
+  {
+   "id": "k-late-2",
+   "name": "Rahul Chauhan",
+   "gender": "MALE",
+   "birthDate": "1986",
+   "deathDate": null,
+   "deceased": false,
+   "photo": null,
+   "notes": null,
+   "origins": []
+  },
+  {
+   "id": "k-current",
+   "name": "Aditya Chauhan",
+   "gender": "MALE",
+   "birthDate": "1997",
+   "deathDate": null,
+   "deceased": false,
+   "photo": null,
+   "notes": null,
+   "origins": []
+  }
+ ],
+ "relationships": [
+  {
+   "id": "r0",
+   "from": "f-father",
+   "to": "f",
+   "type": "PARENT",
+   "subtype": null
+  },
+  {
+   "id": "r1",
+   "from": "f",
+   "to": "former",
+   "type": "SPOUSE",
+   "subtype": "DIVORCED"
+  },
+  {
+   "id": "r2",
+   "from": "f",
+   "to": "late",
+   "type": "SPOUSE",
+   "subtype": "WIDOWED"
+  },
+  {
+   "id": "r3",
+   "from": "current",
+   "to": "f",
+   "type": "SPOUSE",
+   "subtype": "MARRIED"
+  },
+  {
+   "id": "r4",
+   "from": "f",
+   "to": "k-former",
+   "type": "PARENT",
+   "subtype": null
+  },
+  {
+   "id": "r5",
+   "from": "former",
+   "to": "k-former",
+   "type": "PARENT",
+   "subtype": null
+  },
+  {
+   "id": "r6",
+   "from": "f",
+   "to": "k-late-1",
+   "type": "PARENT",
+   "subtype": null
+  },
+  {
+   "id": "r7",
+   "from": "late",
+   "to": "k-late-1",
+   "type": "PARENT",
+   "subtype": null
+  },
+  {
+   "id": "r8",
+   "from": "f",
+   "to": "k-late-2",
+   "type": "PARENT",
+   "subtype": null
+  },
+  {
+   "id": "r9",
+   "from": "late",
+   "to": "k-late-2",
+   "type": "PARENT",
+   "subtype": null
+  },
+  {
+   "id": "r10",
+   "from": "f",
+   "to": "k-current",
+   "type": "PARENT",
+   "subtype": null
+  },
+  {
+   "id": "r11",
+   "from": "current",
+   "to": "k-current",
+   "type": "PARENT",
+   "subtype": null
+  }
+ ]
+}

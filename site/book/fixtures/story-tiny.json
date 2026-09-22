@@ -1,0 +1,62 @@
+{
+ "format": "f-tree",
+ "version": 1,
+ "people": [
+  {
+   "id": "father",
+   "name": "Tenzin Dorjee",
+   "gender": "MALE",
+   "birthDate": "1984",
+   "deathDate": null,
+   "deceased": false,
+   "photo": null,
+   "notes": null,
+   "origins": []
+  },
+  {
+   "id": "mother",
+   "name": "Pema Lhamo",
+   "gender": "FEMALE",
+   "birthDate": "1987",
+   "deathDate": null,
+   "deceased": false,
+   "photo": null,
+   "notes": null,
+   "origins": []
+  },
+  {
+   "id": "f",
+   "name": "Karma Dorjee",
+   "gender": "MALE",
+   "birthDate": "2015",
+   "deathDate": null,
+   "deceased": false,
+   "photo": null,
+   "notes": null,
+   "origins": []
+  }
+ ],
+ "relationships": [
+  {
+   "id": "r0",
+   "from": "father",
+   "to": "mother",
+   "type": "SPOUSE",
+   "subtype": "MARRIED"
+  },
+  {
+   "id": "r1",
+   "from": "father",
+   "to": "f",
+   "type": "PARENT",
+   "subtype": null
+  },
+  {
+   "id": "r2",
+   "from": "mother",
+   "to": "f",
+   "type": "PARENT",
+   "subtype": null
+  }
+ ]
+}

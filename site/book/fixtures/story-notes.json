@@ -1,0 +1,105 @@
+{
+ "format": "f-tree",
+ "version": 1,
+ "people": [
+  {
+   "id": "f",
+   "name": "Farida Khan",
+   "gender": "FEMALE",
+   "birthDate": "1948",
+   "deathDate": null,
+   "deceased": false,
+   "photo": null,
+   "notes": "Taught at the girls' school in Lucknow for thirty years.\nKept every letter.\nPlanted the neem in the courtyard.\nA fourth line no card has room for.",
+   "origins": []
+  },
+  {
+   "id": "husband",
+   "name": "Salim Khan",
+   "gender": "MALE",
+   "birthDate": "1944",
+   "deathDate": "2012",
+   "deceased": true,
+   "photo": null,
+   "notes": "Ran the \u202eyrotcaf\u202c paper factory\u0007 on\tStation Road.",
+   "origins": []
+  },
+  {
+   "id": "son",
+   "name": "Imran Khan",
+   "gender": "MALE",
+   "birthDate": "1972",
+   "deathDate": null,
+   "deceased": false,
+   "photo": null,
+   "notes": "\u0000\b\u001b[31mnot a colour\u001b[0m\r\nSecond line\r\n",
+   "origins": []
+  },
+  {
+   "id": "daughter",
+   "name": "Nasreen Khan",
+   "gender": "FEMALE",
+   "birthDate": "1975",
+   "deathDate": null,
+   "deceased": false,
+   "photo": null,
+   "notes": "\u2067Khuda hafiz\u2069, she said, in three languages. \u200fok\u200f",
+   "origins": []
+  },
+  {
+   "id": "grandson",
+   "name": "Zaid Khan",
+   "gender": "MALE",
+   "birthDate": "2001",
+   "deathDate": null,
+   "deceased": false,
+   "photo": null,
+   "notes": "   \n\t\n   ",
+   "origins": []
+  }
+ ],
+ "relationships": [
+  {
+   "id": "r0",
+   "from": "f",
+   "to": "husband",
+   "type": "SPOUSE",
+   "subtype": "WIDOWED"
+  },
+  {
+   "id": "r1",
+   "from": "f",
+   "to": "son",
+   "type": "PARENT",
+   "subtype": null
+  },
+  {
+   "id": "r2",
+   "from": "husband",
+   "to": "son",
+   "type": "PARENT",
+   "subtype": null
+  },
+  {
+   "id": "r3",
+   "from": "f",
+   "to": "daughter",
+   "type": "PARENT",
+   "subtype": null
+  },
+  {
+   "id": "r4",
+   "from": "husband",
+   "to": "daughter",
+   "type": "PARENT",
+   "subtype": null
+  },
+  {
+   "id": "r5",
+   "from": "son",
+   "to": "grandson",
+   "type": "PARENT",
+   "subtype": null
+  }
+ ]
+}

@@ -1,0 +1,337 @@
+{
+ "format": "f-tree",
+ "version": 1,
+ "people": [
+  {
+   "id": "father",
+   "name": "Ramkishan Yadav",
+   "gender": "MALE",
+   "birthDate": "1925",
+   "deathDate": "1990",
+   "deceased": true,
+   "photo": null,
+   "notes": null,
+   "origins": []
+  },
+  {
+   "id": "mother",
+   "name": "Phoolmati Devi",
+   "gender": "FEMALE",
+   "birthDate": "1929",
+   "deathDate": "2004",
+   "deceased": true,
+   "photo": null,
+   "notes": null,
+   "origins": []
+  },
+  {
+   "id": "sib1",
+   "name": "Shivram Yadav",
+   "gender": "MALE",
+   "birthDate": "1946",
+   "deathDate": "2006",
+   "deceased": true,
+   "photo": null,
+   "notes": null,
+   "origins": []
+  },
+  {
+   "id": "sib2",
+   "name": "Kaushalya Devi",
+   "gender": "FEMALE",
+   "birthDate": "1948",
+   "deathDate": "2009",
+   "deceased": true,
+   "photo": null,
+   "notes": null,
+   "origins": []
+  },
+  {
+   "id": "sib3",
+   "name": "Jagdish Yadav",
+   "gender": "MALE",
+   "birthDate": "1950",
+   "deathDate": "2012",
+   "deceased": true,
+   "photo": null,
+   "notes": null,
+   "origins": []
+  },
+  {
+   "id": "sib4",
+   "name": "Shanti Devi",
+   "gender": "FEMALE",
+   "birthDate": "1952",
+   "deathDate": null,
+   "deceased": false,
+   "photo": null,
+   "notes": null,
+   "origins": []
+  },
+  {
+   "id": "sib5",
+   "name": "Rambabu Yadav",
+   "gender": "MALE",
+   "birthDate": "1954",
+   "deathDate": null,
+   "deceased": false,
+   "photo": null,
+   "notes": null,
+   "origins": []
+  },
+  {
+   "id": "sib6",
+   "name": "Pushpa Devi",
+   "gender": "FEMALE",
+   "birthDate": "1956",
+   "deathDate": null,
+   "deceased": false,
+   "photo": null,
+   "notes": null,
+   "origins": []
+  },
+  {
+   "id": "f",
+   "name": "Omprakash Yadav",
+   "gender": "MALE",
+   "birthDate": "1958",
+   "deathDate": null,
+   "deceased": false,
+   "photo": null,
+   "notes": null,
+   "origins": []
+  },
+  {
+   "id": "sib8",
+   "name": "Kamla Devi",
+   "gender": "FEMALE",
+   "birthDate": "1960",
+   "deathDate": null,
+   "deceased": false,
+   "photo": null,
+   "notes": null,
+   "origins": []
+  },
+  {
+   "id": "sib9",
+   "name": "Raghunath Yadav",
+   "gender": "MALE",
+   "birthDate": "1962",
+   "deathDate": null,
+   "deceased": false,
+   "photo": null,
+   "notes": null,
+   "origins": []
+  },
+  {
+   "id": "sib10",
+   "name": "Sarla Devi",
+   "gender": "FEMALE",
+   "birthDate": "1964",
+   "deathDate": null,
+   "deceased": false,
+   "photo": null,
+   "notes": null,
+   "origins": []
+  },
+  {
+   "id": "sib11",
+   "name": "Devendra Yadav",
+   "gender": "MALE",
+   "birthDate": "1966",
+   "deathDate": null,
+   "deceased": false,
+   "photo": null,
+   "notes": null,
+   "origins": []
+  },
+  {
+   "id": "sib12",
+   "name": "Munni Devi",
+   "gender": "FEMALE",
+   "birthDate": "1968",
+   "deathDate": null,
+   "deceased": false,
+   "photo": null,
+   "notes": null,
+   "origins": []
+  }
+ ],
+ "relationships": [
+  {
+   "id": "r0",
+   "from": "father",
+   "to": "mother",
+   "type": "SPOUSE",
+   "subtype": "WIDOWED"
+  },
+  {
+   "id": "r1",
+   "from": "father",
+   "to": "sib1",
+   "type": "PARENT",
+   "subtype": null
+  },
+  {
+   "id": "r2",
+   "from": "mother",
+   "to": "sib1",
+   "type": "PARENT",
+   "subtype": null
+  },
+  {
+   "id": "r3",
+   "from": "father",
+   "to": "sib2",
+   "type": "PARENT",
+   "subtype": null
+  },
+  {
+   "id": "r4",
+   "from": "mother",
+   "to": "sib2",
+   "type": "PARENT",
+   "subtype": null
+  },
+  {
+   "id": "r5",
+   "from": "father",
+   "to": "sib3",
+   "type": "PARENT",
+   "subtype": null
+  },
+  {
+   "id": "r6",
+   "from": "mother",
+   "to": "sib3",
+   "type": "PARENT",
+   "subtype": null
+  },
+  {
+   "id": "r7",
+   "from": "father",
+   "to": "sib4",
+   "type": "PARENT",
+   "subtype": null
+  },
+  {
+   "id": "r8",
+   "from": "mother",
+   "to": "sib4",
+   "type": "PARENT",
+   "subtype": null
+  },
+  {
+   "id": "r9",
+   "from": "father",
+   "to": "sib5",
+   "type": "PARENT",
+   "subtype": null
+  },
+  {
+   "id": "r10",
+   "from": "mother",
+   "to": "sib5",
+   "type": "PARENT",
+   "subtype": null
+  },
+  {
+   "id": "r11",
+   "from": "father",
+   "to": "sib6",
+   "type": "PARENT",
+   "subtype": null
+  },
+  {
+   "id": "r12",
+   "from": "mother",
+   "to": "sib6",
+   "type": "PARENT",
+   "subtype": null
+  },
+  {
+   "id": "r13",
+   "from": "father",
+   "to": "f",
+   "type": "PARENT",
+   "subtype": null
+  },
+  {
+   "id": "r14",
+   "from": "mother",
+   "to": "f",
+   "type": "PARENT",
+   "subtype": null
+  },
+  {
+   "id": "r15",
+   "from": "father",
+   "to": "sib8",
+   "type": "PARENT",
+   "subtype": null
+  },
+  {
+   "id": "r16",
+   "from": "mother",
+   "to": "sib8",
+   "type": "PARENT",
+   "subtype": null
+  },
+  {
+   "id": "r17",
+   "from": "father",
+   "to": "sib9",
+   "type": "PARENT",
+   "subtype": null
+  },
+  {
+   "id": "r18",
+   "from": "mother",
+   "to": "sib9",
+   "type": "PARENT",
+   "subtype": null
+  },
+  {
+   "id": "r19",
+   "from": "father",
+   "to": "sib10",
+   "type": "PARENT",
+   "subtype": null
+  },
+  {
+   "id": "r20",
+   "from": "mother",
+   "to": "sib10",
+   "type": "PARENT",
+   "subtype": null
+  },
+  {
+   "id": "r21",
+   "from": "father",
+   "to": "sib11",
+   "type": "PARENT",
+   "subtype": null
+  },
+  {
+   "id": "r22",
+   "from": "mother",
+   "to": "sib11",
+   "type": "PARENT",
+   "subtype": null
+  },
+  {
+   "id": "r23",
+   "from": "father",
+   "to": "sib12",
+   "type": "PARENT",
+   "subtype": null
+  },
+  {
+   "id": "r24",
+   "from": "mother",
+   "to": "sib12",
+   "type": "PARENT",
+   "subtype": null
+  }
+ ]
+}
