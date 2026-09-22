@@ -3,19 +3,21 @@
 This is the plan behind umbrella **#239**, written for whoever builds it next, including an AI
 session. It was made on 2026-09-16, and Ankit approved the visual direction the same day.
 
-> **Status (2026-09-22): wave 1 and the first half of wave 2 have landed.**
+> **Status (2026-09-22): waves 1 and 2 have landed. Wave 3 is next.**
 > - **Wave 1:** #241 (Book format 2 in JS), #242 (Kalam `book_hand`), #243 (template format 2) and
 >   #244 (composer options) are done.
-> - **Wave 2, first half:** #246 (Android format 2), #247 (art compiler + `draw.js`), #248
->   (Android book screen), #249 (desktop book dialog), #250 (`kin.js`), #251 (`plan.js`) and #252
->   (`copy.js`) are done.
+> - **Wave 2:** all done.
+>   - Formats and shells: #246 (Android format 2), #247 (art compiler + `draw.js`), #248 (Android
+>     book screen), #249 (desktop book dialog).
+>   - Story logic: #250 (`kin.js`), #251 (`plan.js`), #252 (`copy.js`).
+>   - Art: #253 (frames, avatars, motifs), #254 (six scenes), #255 (procedural).
 > - **#245 is open**, but only for the storybook half: its invariants run over the story book
 >   once it exists. Everything else in it has landed.
-> - **Next is the rest of wave 2,** then wave 3 (#239):
->   - wave 2: #253/#254 (assets), #255 (procedural);
->   - wave 3: #256–#258 (archetypes), then #259 (the swap, **must merge by 2026-10-12**) and
->     #260 (release checks).
-> - Read **"Handover after wave 2"** below before starting.
+> - **Next is wave 3** (#239): #256–#258 (page archetypes), then #259 (the swap, **must merge by
+>   2026-10-12**) and #260 (release checks).
+>   - If #256–#258 are at risk on 2026-10-05, post a reduced page set on #239.
+>   - Never cut the register, the completeness guarantee or any non-negotiable.
+> - Read **"Handover after wave 2"** below before starting, including **"Wave 2, second half"**.
 
 ## The idea, in one breath
 
@@ -185,9 +187,69 @@ comment has the detail.
 - **Still to do by eye:** a `/run` of the real desktop dialog and a saved PDF, and a release build
   exercised on the emulator. Both are scheduled with #260's release checks.
 
+**Wave 2, second half (#251–#255, merged 2026-09-22): what wave 3 builds on**
+- **`story/plan.js` (#251):** `planStory(kin, template, family, options)` returns
+  `{featured, shape, pages, pagesOf, registerOnly}`.
+  - Each page is `{pageNo, chapter, archetype, variant, people, copyKey, continued, …}`.
+  - It exports `CHAPTERS`, `MIN_CONTINUATION = 3`, `MAX_STORY_PAGES = 28`, `EXTRA_PAGE_PRIORITY`,
+    `TINY` and `NO_NOTES` (the register).
+  - `compose.js` routes a format-2 template to `storyBook(ctx)`, which runs `kinOf` and
+    `planStory` and then refuses by name: the archetypes don't exist yet. **#256–#258 replace that
+    throw.** `DRAWABLE_FORMATS` stays `[1]` until they do; #245's flag test enforces this.
+- **`story/copy.js` (#252):**
+  - `chapterCopy(chapterId, {family, kin, tpl})` covers every chapter.
+  - Composed sentences: `openingLine`, `rootsLine`, `stillToBeFoundCaption`, and `numberFact`
+    (`{one, many}` nouns).
+  - Names and captions: `nameOf` ("Shyam Lal's wife", never "Unknown"), `kinCaption` (Hindi or
+    English per `words`), `noteCaption`.
+  - Each clause is optional and drops out when its fact is missing. Birth order appears only when
+    every full sibling's year is known.
+- **Art library (#253, #254):**
+  - **Avatars:** faceless busts by gender × 4 stages × 2 variants. With no photo, the hero is seen
+    from behind (`hero-*`); a youth uses the adult figure.
+  - **Frames:** `medallion`, `medallion-petals` (group portraits; a petal rim, never a marigold
+    ring), `medallion-carved`, `cameo`, `arch-jharokha`.
+  - **Motifs and ornaments:**
+    - lamps: the diya family, and `lamp-unknown` (dashed brass: a person whose name isn't known);
+    - `aala` (the only other brass), `mala-departed`;
+    - kandil, lotus, peepal, toran, `mango-leaf`, `marigold-bead`;
+    - `band-sanjhi` tiles, corner, divider.
+  - **Scenes:** `ghat-night` (cover), `banyan`, `aangan`, `haveli-lane`, `remembrance-night`,
+    `closing-sky`. They hold no people and no counting lamps. Pages place those in named zones:
+    `art.zones(id, …)` returns `{kind, name?, …}` for text, lamps, figures, medallions, aala niches,
+    plates and QR.
+  - **Compiler:** a `fill` on a `<use>` or `<g data-asset>` is a silhouette. A shadow shares its
+    shape's compiled part.
+  - **`art.place('mala-departed', …)` throws without `{ departed: true }`.** Pass it only when the
+    record says the person has died.
+- **Procedural (#255), in `art/procedural/`:**
+  - `rangoli(P, cx, cy, R, seed)`: at most about 13 KB.
+  - `toran(art, P, x1, x2, y, seed)`: mango leaves with alternate marigolds, about 168 KB at full
+    width.
+  - `diyaRow(art, …, count, seed, {unknownAt})`: exactly `count` lamps, about 138 KB for 8 and
+    828 KB for 48.
+  - Seeds come from the family, never the page number.
+- **For the archetypes (#256–#258), from review:**
+  - A page lighting a whole family needs several diya rows or smaller lamps: 48 on one row
+    overlap. Lamp count drives PDF weight almost linearly.
+  - Tilt a rangoli onto the floor, as `style-frames/frames.mjs` does.
+  - `aangan` always draws both houses. Crop it when only one side of the family is known.
+  - The six scenes add about 270 KB before lamps and frames. Budget pages against the 10 MB cap
+    from the start.
+  - Planner edge for #245: an unnamed tree of 5 or more people plans 4 pages, which the drafted
+    page-count invariant rejects. Add a fixture and settle the rule.
+  - Open for Ankit: aunts and uncles appear both on the parents page and in their lane.
+- **Not yet checked on a device:** rendering the art library through BookPainter. Both painters
+  have supported every primitive it uses (silhouettes, dashes, even-odd, clips) since #246, but no
+  page draws the art yet. #259 renders the book on the emulator when it re-measures the art term.
+
 **How the work was run:** one worktree and branch per issue. Sub-agents never ran Gradle, the
 emulator or Electron; one session ran those, one process at a time. `/code-review` and `/simplify`
 ran on every PR, and every regression test was checked to fail without its fix.
+Art PRs
+also went through three rounds of an Opus design critic. The critic compared specimen PNGs
+(rendered through `svg.js` in Chromium) against `style-frames/approved/`. Wave 3 pages should
+run the same loop over `tools/book_contact_sheet.mjs` output.
 
 ## Story sequence (adapts to the data)
 
