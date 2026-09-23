@@ -14,7 +14,9 @@ import { validateTemplate } from './template.js';
 import { METRICS } from './metrics/index.js';
 import { resolveFeatured } from './story/featured.js';
 import { kinOf } from './story/kin.js';
-import { planStory } from './story/plan.js';
+import { planStory, VARIANTS } from './story/plan.js';
+import { PAGES } from './story/pages/index.js';
+import { artFor } from './art/index.js';
 import { cover } from './blocks/cover.js';
 import { treePage } from './blocks/tree.js';
 import { numbersPage } from './blocks/numbers.js';
@@ -76,13 +78,18 @@ export function composeWithReport(doc, options, template, allowance = {}) {
   return { book, report: finishReport(book, rec) };
 }
 
+/** Every page archetype the story planner can ask for (story/plan.js). */
+const STORY_ARCHETYPES = Object.freeze(Object.keys(VARIANTS));
+
 /**
- * The template formats this composer can draw. A format-2 (storybook) template validates, and
- * `storyBook` plans its pages (#251), but nothing draws them until the archetypes (#256-#258)
- * land; the QA harness asks `drawable`
- * rather than matching the error, so it picks the storybook up the day this list grows.
+ * The template formats this composer can draw. Format 2 (the storybook) joins the day the last
+ * page archetype lands, and not one merge before: the three issues that build them (#256-#258)
+ * each fill in their own module of `story/pages/`, and this asks `PAGES` whether they are all
+ * there rather than making one of the three remember to flip a flag. The QA harness asks
+ * `drawable` rather than matching the error text, so it picks the storybook up the same day.
  */
-export const DRAWABLE_FORMATS = Object.freeze([1]);
+export const missingArchetypes = (pages = PAGES) => STORY_ARCHETYPES.filter((a) => !pages[a]);
+export const DRAWABLE_FORMATS = Object.freeze(missingArchetypes().length ? [1] : [1, 2]);
 export const drawable = (template) => DRAWABLE_FORMATS.includes(validateTemplate(template).format);
 
 function compose(doc, options, template, allowance, rec) {
@@ -92,7 +99,7 @@ function compose(doc, options, template, allowance, rec) {
 
   const family = readFamily(doc, options, allowance);
   const ctx = context(family, options, tpl, allowance, { year: Number(now[1]), month: Number(now[2]) }, rec);
-  if (tpl.format === 2) return storyBook(ctx);
+  if (tpl.format === 2) return storyBook(ctx, options);
   const pages = [];
   for (const name of pageBlocks(tpl, options)) {
     for (const page of BLOCKS[name](ctx, pages.length + 1)) {
@@ -100,18 +107,27 @@ function compose(doc, options, template, allowance, rec) {
       ctx.pageNo = pages.length + 1;
     }
   }
-  const photos = budgetPhotos(ctx.photos, options?.photoBudget ?? PHOTO_BUDGET);
-  // A book declares the lowest format that draws it, so the format is read off the pages rather
-  // than written by hand: a book reaches format 2 the day it first clips or reuses something, and
-  // never a release before that.
+  return finishBook(ctx, options, pages);
+}
+
+/**
+ * The finished book, whichever composer drew the pages.
+ *
+ * A book declares the lowest format that draws it, so the format is read off the pages rather than
+ * written by hand: a book reaches format 2 the day it first clips or reuses something, and never a
+ * release before that. `symbols` is left out entirely when the book placed no art, because a book
+ * never carries an empty symbols map (docs/family-book.md).
+ */
+function finishBook(ctx, options, pages, symbols) {
   const book = {
-    template: tpl.id,
-    title: family.title,
-    fileName: fileName(family.title, tpl),
+    template: ctx.tpl.id,
+    title: ctx.family.title,
+    fileName: fileName(ctx.family.title, ctx.tpl),
     size: { ...PAGE },
-    fonts: { ...tpl.fonts },
+    fonts: { ...ctx.tpl.fonts },
     defs: ctx.defs,
-    photos,
+    ...(symbols ? { symbols } : {}),
+    photos: budgetPhotos(ctx.photos, options?.photoBudget ?? PHOTO_BUDGET),
     pages,
   };
   return { format: formatOf(book), ...book };
@@ -119,17 +135,32 @@ function compose(doc, options, template, allowance, rec) {
 
 /**
  * A format-2 (storybook) template's book: the featured person's circles (`story/kin.js`), then
- * every page planned and numbered (`story/plan.js`) before any is drawn.
+ * every page planned and numbered (`story/plan.js`) before any is drawn, then each page drawn by
+ * its archetype (`story/pages/`).
  *
- * A stub until the page archetypes land (#256-#258): it plans the whole book, then refuses, by
- * name, to draw it. `DRAWABLE_FORMATS` stays [1] until then, so `drawable()` and the QA harness
- * keep treating the storybook as not yet drawable - and invariants.test.mjs's flag test fails the
- * day format 2 is added there without a template for the suite to run over.
+ * The plan is made in full even for `coverOnly`, because a page carries the number the whole book
+ * gave it: the cover a chat app shows is the cover of the book the reader will get, not of a
+ * one-page book. Only the drawing is skipped.
+ *
+ * While the archetypes are still being built (#256-#258), a page whose archetype nobody has
+ * written yet makes this refuse by name rather than print a book with holes in it. `drawable()`
+ * says the same thing to the QA harness, from `DRAWABLE_FORMATS`.
  */
-function storyBook(ctx) {
+function storyBook(ctx, options) {
   const kin = kinOf(ctx.family, ctx.featured, { words: ctx.options.words });
   const plan = planStory(kin, ctx.tpl, ctx.family);
-  throw new Error(`composeBook: "${ctx.tpl.id}" is a format-2 storybook template: its ${plan.pages.length} pages are planned, but their archetypes are not built yet (#256-#258), so this composer cannot draw them`);
+  const wanted = options?.coverOnly ? plan.pages.slice(0, 1) : plan.pages;
+  const missing = [...new Set(wanted.map((p) => p.archetype))].filter((a) => !PAGES[a]);
+  if (missing.length) {
+    throw new Error(`composeBook: "${ctx.tpl.id}" is a format-2 storybook template: its ${plan.pages.length} pages are planned, but ${missing.length === 1 ? 'the archetype' : 'the archetypes'} ${missing.join(', ')} ${missing.length === 1 ? 'is' : 'are'} not built yet (#256-#258), so this composer cannot draw them`);
+  }
+  ctx.art = artFor(ctx);
+  const story = { kin, plan };
+  const pages = wanted.map((p) => {
+    ctx.pageNo = p.pageNo;
+    return PAGES[p.archetype](ctx, p, story);
+  });
+  return finishBook(ctx, options, pages, ctx.art.symbols());
 }
 
 /**
@@ -267,11 +298,17 @@ function context(family, options, tpl, allowance, now, rec) {
     facts: familyFacts(family),
     tpl,
     P,
-    options: { photos: options.photos !== false, livingDates: options.livingDates === true, words: options.words === 'hi' ? 'hi' : 'en' },
+    // `notes` is carried here as well as read in family.js, because copy.js's `noteCaption` asks
+    // for it: a page that has a person's clamped note still has to be told the reader asked for
+    // notes at all, and only one place should decide what "asked" means.
+    options: { photos: options.photos !== false, livingDates: options.livingDates === true, words: options.words === 'hi' ? 'hi' : 'en', notes: options.notes === true },
     // Who the story is told around (`story/featured.js`), resolved once, up front, so every block
     // that will ask "is this the featured person?" (#256-258) asks it the same way. Cheap even when
     // nothing reads it yet: one O(V) pass at most, never `relate()`.
     featured: resolveFeatured(family, options),
+    // The paper-cut art library, for a storybook page to place drawings through (art/draw.js).
+    // `storyBook` fills it in; a format-1 block has no art to place and never looks.
+    art: null,
     attribution: allowance.attribution !== false,
     now: { ...now, label: `${MONTHS[now.month - 1]} ${now.year}` },
     defs,

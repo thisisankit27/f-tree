@@ -243,6 +243,25 @@ comment has the detail.
   have supported every primitive it uses (silhouettes, dashes, even-odd, clips) since #246, but no
   page draws the art yet. #259 renders the book on the emulator when it re-measures the art term.
 
+**Wave 3's scaffolding (on `main` before #256-#258 started)**
+- **`site/book/story/pages/`** is the archetype dispatch. `index.js` merges `hero.js` (#256: cover,
+  opening-hero, waiting, portrait-hero, closing), `family.js` (#257: banyan, courtyards, gathering)
+  and `lists.js` (#258: lane, numbers, register, still-to-be-found, legacy) into one `PAGES` map, so
+  the three issues never edit the same file. A page archetype is
+  `draw(ctx, page, story) -> { label, items }`, where `page` is the `PagePlan` and `story` is
+  `{ kin, plan }`; `index.js` carries the full contract.
+- **`compose.js`'s `storyBook`** now draws through that map: `ctx.art` is the art library
+  (`art/index.js`), `options.coverOnly` draws the cover alone off the whole book's plan (so its
+  page numbers are the real ones), and `book.symbols` comes from `ctx.art.symbols()`.
+- **`DRAWABLE_FORMATS` is computed,** not written: format 2 joins it the day `PAGES` covers every
+  archetype in `plan.js`'s `VARIANTS`, so no issue has to remember to flip a flag and a
+  half-finished storybook refuses by naming the archetypes nobody has drawn yet.
+- **`site/book/qa/story-template.mjs`** is the one storybook template every wave-3 test composes
+  against (the approved palette, all 14 chapters, the copy). It is test-only: a file in
+  `templates/` must be in the catalogue (`catalog.test.mjs`) and a catalogued format-2 entry must be
+  drawable (`invariants.test.mjs`), so `templates/diwali-story.json` can only land once the last
+  archetype has - with #245's storybook run, before #259 swaps Diwali itself over.
+
 **How the work was run:** one worktree and branch per issue. Sub-agents never ran Gradle, the
 emulator or Electron; one session ran those, one process at a time. `/code-review` and `/simplify`
 ran on every PR, and every regression test was checked to fail without its fix.
