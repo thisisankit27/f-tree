@@ -188,7 +188,8 @@ test('every module the main process requires is inside the package', { skip: noP
  *
  * Browsers resolve module specifiers literally, so unlike require there is no extension guessing.
  */
-test('the window\'s page and every module it imports are packaged', { skip: noPackage }, () => {
+test('the window\'s page and every module it imports are packaged', { skip: noPackage }, async () => {
+  const { stripComments } = await import('../site/book/qa/closure.mjs');
   const main = asar.extractFile(ARCHIVE, 'main.js').toString('utf8');
   const viewer = main.match(/process\.resourcesPath\s*,\s*((?:\s*'[^']+'\s*,?)+)\)/);
   assert.ok(viewer, 'main.js no longer builds the packaged page path in a readable way');
@@ -215,7 +216,12 @@ test('the window\'s page and every module it imports are packaged', { skip: noPa
       missing.push(`${file} is imported and not packaged`);
       continue;
     }
-    const source = fs.readFileSync(abs(file), 'utf8');
+    // Comments first: a module that *writes about* an import ("staged by walking `from './x.js'`",
+    // as site/book/art/index.js and story/pages/index.js both do) would otherwise be read as
+    // importing it, and this test would fail for a file nobody imports. `stripComments` is the
+    // composer's own scanner (site/book/qa/closure.mjs), which knows a quote inside a comment from
+    // a comment token inside a string.
+    const source = stripComments(fs.readFileSync(abs(file), 'utf8'));
     const specifiers = [
       ...[...source.matchAll(/\bfrom\s*['"](\.[^'"]+)['"]/g)].map((m) => m[1]),
       ...[...source.matchAll(/\bimport\s*\(?\s*['"](\.[^'"]+)['"]/g)].map((m) => m[1]),
