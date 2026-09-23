@@ -10,7 +10,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { composeBook, DRAWABLE_FORMATS, missingArchetypes } from '../compose.js';
+import { composeBook, composeWithPages, DRAWABLE_FORMATS, missingArchetypes } from '../compose.js';
+import { validateBook } from '../format.js';
+import { withStubs } from '../qa/stub-pages.mjs';
 import { PAGES } from './pages/index.js';
 import * as hero from './pages/hero.js';
 import * as family from './pages/family.js';
@@ -114,4 +116,59 @@ test('its copy names only chapters it lists, and every chapter but the cover has
     if (chapter === 'cover') continue;   // the cover's words are `cover`, not `copy.cover`
     assert.ok(t.copy[chapter], `no copy for the "${chapter}" chapter`);
   }
+});
+
+/* ------------------------------------------------------------------ the composer, end to end */
+
+/*
+ * The dispatch itself, drawn with stand-in pages (`qa/stub-pages.mjs`), so what every archetype
+ * inherits - the art library, the page numbers, the symbols, `coverOnly` - is checked before the
+ * first real archetype lands, and by the three issues' own tests after it.
+ */
+
+test('a storybook composes through the dispatch: format 2, every planned page, the plan\'s numbers', async () => {
+  const doc = await loadFixture('story-large');
+  const { plan } = await plannedArchetypes('story-large');
+  const { book, report } = composeWithPages(doc, { now: NOW }, STORY_TEMPLATE, withStubs());
+  assert.deepEqual(validateBook(book), [], 'the book the dispatch drew is not a valid Book');
+  // Stubs place no art, and a book declares the lowest format that draws it - so this one is
+  // format 1 until a real archetype puts a `use` on a page (see the ctx.art test below).
+  assert.equal(book.format, 1);
+  assert.equal(book.pages.length, plan.pages.length);
+  assert.deepEqual(report.pages.map((p) => p.page), plan.pages.map((p) => p.pageNo), 'a page was drawn under the wrong number');
+  assert.deepEqual(report.pages.map((p) => p.archetype), plan.pages.map((p) => p.archetype));
+  assert.ok(report.textBoxes.every((b) => b.kind), 'a line did not say what kind it is');
+});
+
+test('every person in scope is shown, because the register page is one of the pages drawn', async () => {
+  const doc = await loadFixture('story-large');
+  const { book, report } = composeWithPages(doc, { now: NOW }, STORY_TEMPLATE, withStubs());
+  const inScope = new Set(book.pages.length ? doc.people.map((p) => p.id) : []);
+  for (const id of inScope) assert.ok(report.shown[id]?.length, `${id} is in the tree and on no page`);
+});
+
+test('a page draws through ctx.art, and the book carries exactly the symbols it placed', async () => {
+  const doc = await loadFixture('story-tiny');
+  const placed = [];
+  const pages = withStubs({
+    cover: (ctx, page) => {
+      ctx.describePage({ archetype: page.archetype, variant: page.variant, people: [], density: null });
+      placed.push(typeof ctx.art?.place);
+      return ctx.page('cover', [ctx.art.place('diya', { x: 300, y: 500, w: 40, shadow: true })], ctx.P.night);
+    },
+  });
+  const { book } = composeWithPages(doc, { now: NOW }, STORY_TEMPLATE, pages);
+  assert.deepEqual(placed, ['function'], 'a story page was drawn without ctx.art');
+  assert.ok(Object.keys(book.symbols ?? {}).includes('pc-diya'), 'the diya it placed is not in book.symbols');
+  assert.equal(book.format, 2, 'a book that places art reaches format 2');
+  assert.deepEqual(validateBook(book), []);
+});
+
+test('coverOnly draws one page, and it is the cover the whole book would have', async () => {
+  const doc = await loadFixture('story-large');
+  const whole = composeWithPages(doc, { now: NOW }, STORY_TEMPLATE, withStubs()).book;
+  const cover = composeWithPages(doc, { now: NOW, coverOnly: true }, STORY_TEMPLATE, withStubs()).book;
+  assert.equal(cover.pages.length, 1, 'coverOnly drew the whole book');
+  assert.ok(whole.pages.length > 1);
+  assert.deepEqual(cover.pages[0], whole.pages[0], 'the cover a chat app shows is not the book\'s own cover');
 });

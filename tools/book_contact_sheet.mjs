@@ -20,21 +20,31 @@
 
 import { mkdirSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
-import { composeBook, drawable } from '../site/book/compose.js';
+import { composeBook, composeWithPages, drawable } from '../site/book/compose.js';
 import { paintPage, esc } from '../site/book/svg.js';
 import { BOOK_FIXTURES, TEMPLATES, NOW, loadFixture, openFixtureArchive } from '../site/book/qa/book-fixtures.mjs';
+import { STORY_TEMPLATE } from '../site/book/qa/story-template.mjs';
+import { withStubs, stubbed } from '../site/book/qa/stub-pages.mjs';
 import { loadPlaywright, fontFaces, settle } from './book_print.mjs';
 
 const THUMB = 180;      // px wide, a page on the sheet
 const COVER = 150;      // px wide, the chat thumbnail
 
-const out = process.argv[2];
+const args = process.argv.slice(2);
+/*
+ * `--story` adds the storybook (`qa/story-template.mjs`) as a row of its own, drawing any archetype
+ * nobody has built yet as a stub (`qa/stub-pages.mjs`). That is how the wave-3 issues (#256-#258)
+ * see their own pages while the other two issues are still being written; it drops out on its own
+ * once `templates/diwali-story.json` ships and the row above draws it for real.
+ */
+const withStory = args.includes('--story');
+const out = args.filter((a) => !a.startsWith('--'))[0];
 if (!out) {
-  console.error('usage: node tools/book_contact_sheet.mjs <out-dir> [fixture ...]');
+  console.error('usage: node tools/book_contact_sheet.mjs [--story] <out-dir> [fixture ...]');
   process.exit(2);
 }
 mkdirSync(out, { recursive: true });
-const wanted = process.argv.slice(3);
+const wanted = args.filter((a) => !a.startsWith('--')).slice(1);
 const fixtures = Object.keys(BOOK_FIXTURES).filter((f) => !wanted.length || wanted.includes(f));
 const unknown = wanted.filter((f) => !BOOK_FIXTURES[f]);
 if (unknown.length) {
@@ -58,9 +68,20 @@ async function photosOf(name, doc) {
 }
 
 /** A fixture's rows: one book per template, or a note that the composer cannot draw it yet. */
-const books = (doc) => Object.entries(TEMPLATES).map(([tid, tpl]) => (drawable(tpl)
-  ? { label: tid, tid, book: composeBook(doc, { now: NOW }, tpl) }
-  : { label: `${tid}: format ${tpl.format}, which the composer cannot draw yet`, tid, book: null }));
+const books = (doc) => {
+  const rows = Object.entries(TEMPLATES).map(([tid, tpl]) => (drawable(tpl)
+    ? { label: tid, tid, book: composeBook(doc, { now: NOW }, tpl) }
+    : { label: `${tid}: format ${tpl.format}, which the composer cannot draw yet`, tid, book: null }));
+  if (!withStory || TEMPLATES[STORY_TEMPLATE.id]) return rows;
+  const missing = stubbed();
+  const note = missing.length ? ` - ${missing.join(', ')} still drawn as stubs` : '';
+  rows.push({
+    label: `${STORY_TEMPLATE.id} (not shipped yet)${note}`,
+    tid: STORY_TEMPLATE.id,
+    book: composeWithPages(doc, { now: NOW }, STORY_TEMPLATE, withStubs()).book,
+  });
+  return rows;
+};
 
 function sheetHtml(name, rows, photo) {
   const row = ({ label, book }, r) => {

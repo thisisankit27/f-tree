@@ -52,7 +52,7 @@ import * as lists from './lists.js';
  *   - calls `ctx.describePage({ archetype, variant, people, density })` from the plan, so the QA
  *     harness can check density and page-to-page variety;
  *   - calls `ctx.show(id)` for everyone it names or portrays (`ctx.portrait` already does);
- *   - says what each line is - `ctx.line(..., { kind: 'title' | 'body' | 'name' | 'caption' })` -
+ *   - says what each line is - `ctx.line(..., { kind: 'title' | 'body' | 'name' | 'caption' | 'folio' })` -
  *     so the type-size floors are checked against the right one;
  *   - marks the art it places with `ctx.zone('text' | 'face' | 'busy', box)`, so text-over-art is
  *     checked against something.

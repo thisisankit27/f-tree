@@ -78,6 +78,19 @@ export function composeWithReport(doc, options, template, allowance = {}) {
   return { book, report: finishReport(book, rec) };
 }
 
+/**
+ * The same again, drawing the storybook's pages with `pages` instead of the archetypes the book
+ * ships with (`story/pages/`). **For the QA harness and the contact sheet only**, and only while
+ * the archetypes are being built: it is how one issue's pages can be composed and looked at before
+ * the other issues' exist (`qa/stub-pages.mjs` stands in for the rest). Nothing a shell calls
+ * passes this, and no template can ask for it.
+ */
+export function composeWithPages(doc, options, template, pages, allowance = {}) {
+  const rec = recorder();
+  const book = compose(doc, options, template, allowance, rec, pages);
+  return { book, report: finishReport(book, rec) };
+}
+
 /** Every page archetype the story planner can ask for (story/plan.js). */
 const STORY_ARCHETYPES = Object.freeze(Object.keys(VARIANTS));
 
@@ -92,14 +105,14 @@ export const missingArchetypes = (pages = PAGES) => STORY_ARCHETYPES.filter((a) 
 export const DRAWABLE_FORMATS = Object.freeze(missingArchetypes().length ? [1] : [1, 2]);
 export const drawable = (template) => DRAWABLE_FORMATS.includes(validateTemplate(template).format);
 
-function compose(doc, options, template, allowance, rec) {
+function compose(doc, options, template, allowance, rec, archetypes = PAGES) {
   const tpl = validateTemplate(template);
   const now = /^(\d{4})-(\d{2})/.exec(options?.now ?? '');
   if (!now) throw new Error('composeBook: options.now must be an ISO date - the composer never reads the clock');
 
   const family = readFamily(doc, options, allowance);
   const ctx = context(family, options, tpl, allowance, { year: Number(now[1]), month: Number(now[2]) }, rec);
-  if (tpl.format === 2) return storyBook(ctx, options);
+  if (tpl.format === 2) return storyBook(ctx, options, archetypes);
   const pages = [];
   for (const name of pageBlocks(tpl, options)) {
     for (const page of BLOCKS[name](ctx, pages.length + 1)) {
@@ -146,11 +159,11 @@ function finishBook(ctx, options, pages, symbols) {
  * written yet makes this refuse by name rather than print a book with holes in it. `drawable()`
  * says the same thing to the QA harness, from `DRAWABLE_FORMATS`.
  */
-function storyBook(ctx, options) {
+function storyBook(ctx, options, table) {
   const kin = kinOf(ctx.family, ctx.featured, { words: ctx.options.words });
   const plan = planStory(kin, ctx.tpl, ctx.family);
   const wanted = options?.coverOnly ? plan.pages.slice(0, 1) : plan.pages;
-  const missing = [...new Set(wanted.map((p) => p.archetype))].filter((a) => !PAGES[a]);
+  const missing = [...new Set(wanted.map((p) => p.archetype))].filter((a) => !table[a]);
   if (missing.length) {
     throw new Error(`composeBook: "${ctx.tpl.id}" is a format-2 storybook template: its ${plan.pages.length} pages are planned, but ${missing.length === 1 ? 'the archetype' : 'the archetypes'} ${missing.join(', ')} ${missing.length === 1 ? 'is' : 'are'} not built yet (#256-#258), so this composer cannot draw them`);
   }
@@ -158,7 +171,7 @@ function storyBook(ctx, options) {
   const story = { kin, plan };
   const pages = wanted.map((p) => {
     ctx.pageNo = p.pageNo;
-    return PAGES[p.archetype](ctx, p, story);
+    return table[p.archetype](ctx, p, story);
   });
   return finishBook(ctx, options, pages, ctx.art.symbols());
 }
@@ -388,10 +401,16 @@ function context(family, options, tpl, allowance, now, rec) {
       return items;
     },
 
-    /** The quiet line at the foot of an interior page. */
+    /**
+     * The quiet line at the foot of an interior page: the folio, and the credit opposite it.
+     *
+     * Both are marked `kind: 'folio'` - page furniture, not reading text, so they answer to the
+     * book's own 7 pt floor rather than a caption's 8 (`qa/invariants.mjs`). Every storybook page
+     * calls this, and every line in a storybook has to say what it is.
+     */
     footer(ink) {
-      const items = [text(PAGE.w - 40, PAGE.h - 22, String(ctx.pageNo), 'text', 7.5, ink, { align: 'end', w: 30, op: 0.85 })];
-      if (ctx.attribution) items.push(text(40, PAGE.h - 22, 'Made with f-tree', 'text', 7, ink, { w: 120, op: 0.75 }));
+      const items = [said(text(PAGE.w - 40, PAGE.h - 22, String(ctx.pageNo), 'text', 7.5, ink, { align: 'end', w: 30, op: 0.85 }), 'folio')];
+      if (ctx.attribution) items.push(said(text(40, PAGE.h - 22, 'Made with f-tree', 'text', 7, ink, { w: 120, op: 0.75 }), 'folio'));
       return items;
     },
 
