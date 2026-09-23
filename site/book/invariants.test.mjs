@@ -157,27 +157,42 @@ test('storybook: a story composer cannot land without the suite covering it', as
  */
 async function composeUnnamed() {
   const doc = await loadFixture('story-unnamed');
-  const { book, report } = composeWithPages(doc, { now: NOW }, STORY_TEMPLATE, withStubs());
-  const family = readFamily(doc, { now: NOW });
+  const options = { now: NOW };
+  const { book, report } = composeWithPages(doc, options, STORY_TEMPLATE, withStubs());
+  const family = readFamily(doc, options);
   const scope = new Set(doc.people.map((p) => p.id));
-  return { doc, book: { ...book, format: 2 }, report, family, scope };
+  return { doc, book: { ...book, format: 2 }, report, family, scope, options };
 }
 
 test('storybook: a tree where nobody is nameable still composes - cover, waiting, register, closing', async () => {
-  const { doc, book, report, family, scope } = await composeUnnamed();
+  const { doc, book, report, family, scope, options } = await composeUnnamed();
   assert.ok(doc.people.length >= 5, 'the fixture is meant to prove the shape past the tiny-family cutoff');
   assert.ok(doc.people.every((p) => !p.name), 'the fixture is meant to have nobody named');
   assert.deepEqual(report.pages.map((p) => p.archetype), ['cover', 'waiting', 'register', 'closing']);
-  assert.deepEqual(pageCount({ book, scope, family }), [], 'the page-count invariant must accept this shape');
+  assert.deepEqual(pageCount({ book, scope, family, options }), [], 'the page-count invariant must accept this shape');
 });
 
 test('meta: the page-count rule still fails loudly on an unnamed tree with the wrong number of pages', async () => {
-  const { book, family, scope } = await composeUnnamed();
-  assert.deepEqual(pageCount({ book, scope, family }), []);
+  const { book, family, scope, options } = await composeUnnamed();
+  assert.deepEqual(pageCount({ book, scope, family, options }), []);
   const tooFew = { ...book, pages: book.pages.slice(0, 2) };
-  assert.equal(pageCount({ book: tooFew, scope, family }).length, 1, 'a book missing pages must still fail');
+  assert.equal(pageCount({ book: tooFew, scope, family, options }).length, 1, 'a book missing pages must still fail');
   const tooMany = { ...book, pages: [...book.pages, ...Array.from({ length: 40 }, () => book.pages[0])] };
-  assert.equal(pageCount({ book: tooMany, scope, family }).length, 1, 'a book that ran away must still fail');
+  assert.equal(pageCount({ book: tooMany, scope, family, options }).length, 1, 'a book that ran away must still fail');
+});
+
+test('meta: the page-count rule reads named-ness from resolveFeatured, not from whether anyone has a name', async () => {
+  // Every person in this fixture is unnamed, but asking for one of them by id still resolves F
+  // (resolveFeatured never requires a name for an explicit `options.featured`) - the plan is then
+  // the ordinary shape, not shape.empty, and takes far more than 4 pages. A `named` flag read off
+  // "does anyone in the family have a name" would get this backwards and reject a good book.
+  const doc = await loadFixture('story-unnamed');
+  const options = { now: NOW, featured: 'parent' };
+  const { book } = composeWithPages(doc, options, STORY_TEMPLATE, withStubs());
+  const family = readFamily(doc, options);
+  const scope = new Set(doc.people.map((p) => p.id));
+  assert.ok(book.pages.length > 5, 'featuring an unnamed person by id plans the ordinary shape, well past the empty one\'s 4 pages');
+  assert.deepEqual(pageCount({ book: { ...book, format: 2 }, scope, family, options }), []);
 });
 
 // ---------------------------------------------------------------------------------------------
@@ -187,8 +202,9 @@ let baseBook;
 const base = async () => {
   if (!baseBook) {
     const doc = await loadFixture('story-leaf');
-    const { book, report } = composeWithReport(doc, { now: NOW }, TEMPLATES.heirloom);
-    baseBook = { doc, family: readFamily(doc, { now: NOW }), book, report, scope: new Set(doc.people.map((p) => p.id)), year: YEAR };
+    const options = { now: NOW };
+    const { book, report } = composeWithReport(doc, options, TEMPLATES.heirloom);
+    baseBook = { doc, family: readFamily(doc, options), book, report, scope: new Set(doc.people.map((p) => p.id)), year: YEAR, options };
   }
   return baseBook;
 };

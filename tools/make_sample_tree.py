@@ -734,8 +734,9 @@ def story_tiny():
 
 def story_unnamed():
     """
-    Five people over three generations, and not one of them has a name. `resolveFeatured`
-    (story/featured.js) only ever picks a named person, so F is null here and the story planner
+    Five people over three generations, and not one of them has a name. Nobody is asked for by id
+    or by branch scope here, so `resolveFeatured` (story/featured.js) falls back to its
+    mostConnected pick among named people - and finds none. F is null, and the story planner
     (story/plan.js) takes its `shape.empty` path - the same one an empty tree takes - regardless of
     how many people are in the record: a cover, a page waiting for its family, the register (which
     still has to list everyone, so it is one page or more) and the closing. Five is enough to prove
