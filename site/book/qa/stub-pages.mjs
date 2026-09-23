@@ -42,6 +42,3 @@ export const STUB_PAGES = Object.freeze(Object.fromEntries(Object.keys(VARIANTS)
 
 /** The real archetypes where they exist, stubs everywhere else. */
 export const withStubs = (pages = PAGES) => ({ ...STUB_PAGES, ...pages });
-
-/** Which archetypes `withStubs` would still be standing in for. */
-export const stubbed = (pages = PAGES) => Object.keys(STUB_PAGES).filter((a) => !pages[a]);

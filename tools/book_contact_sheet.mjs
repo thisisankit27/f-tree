@@ -20,11 +20,11 @@
 
 import { mkdirSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
-import { composeBook, composeWithPages, drawable } from '../site/book/compose.js';
+import { composeBook, composeWithPages, drawable, missingArchetypes } from '../site/book/compose.js';
 import { paintPage, esc } from '../site/book/svg.js';
 import { BOOK_FIXTURES, TEMPLATES, NOW, loadFixture, openFixtureArchive } from '../site/book/qa/book-fixtures.mjs';
 import { STORY_TEMPLATE } from '../site/book/qa/story-template.mjs';
-import { withStubs, stubbed } from '../site/book/qa/stub-pages.mjs';
+import { withStubs } from '../site/book/qa/stub-pages.mjs';
 import { loadPlaywright, fontFaces, settle } from './book_print.mjs';
 
 const THUMB = 180;      // px wide, a page on the sheet
@@ -38,13 +38,14 @@ const args = process.argv.slice(2);
  * once `templates/diwali-story.json` ships and the row above draws it for real.
  */
 const withStory = args.includes('--story');
-const out = args.filter((a) => !a.startsWith('--'))[0];
+const positional = args.filter((a) => !a.startsWith('--'));
+const out = positional[0];
 if (!out) {
   console.error('usage: node tools/book_contact_sheet.mjs [--story] <out-dir> [fixture ...]');
   process.exit(2);
 }
 mkdirSync(out, { recursive: true });
-const wanted = args.filter((a) => !a.startsWith('--')).slice(1);
+const wanted = positional.slice(1);
 const fixtures = Object.keys(BOOK_FIXTURES).filter((f) => !wanted.length || wanted.includes(f));
 const unknown = wanted.filter((f) => !BOOK_FIXTURES[f]);
 if (unknown.length) {
@@ -73,7 +74,7 @@ const books = (doc) => {
     ? { label: tid, tid, book: composeBook(doc, { now: NOW }, tpl) }
     : { label: `${tid}: format ${tpl.format}, which the composer cannot draw yet`, tid, book: null }));
   if (!withStory || TEMPLATES[STORY_TEMPLATE.id]) return rows;
-  const missing = stubbed();
+  const missing = missingArchetypes();
   const note = missing.length ? ` - ${missing.join(', ')} still drawn as stubs` : '';
   rows.push({
     label: `${STORY_TEMPLATE.id} (not shipped yet)${note}`,

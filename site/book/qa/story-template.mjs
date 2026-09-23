@@ -71,6 +71,3 @@ export const STORY_TEMPLATE = Object.freeze({
     closing: { title: 'शुभ दीपावली', line: 'Is someone missing? Add them, and send the book again next year.' },
   },
 });
-
-/** The same template with something changed, for a test that needs a different shape. */
-export const storyTemplate = (overrides = {}) => ({ ...STORY_TEMPLATE, ...overrides });
