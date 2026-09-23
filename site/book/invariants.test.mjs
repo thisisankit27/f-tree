@@ -17,6 +17,7 @@ import { readFamily, byKey } from './family.js';
 import { BOOK_FIXTURES, STORYBOOK_MANIFEST, TEMPLATES, NOW, loadFixture } from './qa/book-fixtures.mjs';
 import { withStubs } from './qa/stub-pages.mjs';
 import { STORY_TEMPLATE } from './qa/story-template.mjs';
+import { DENSITY } from './story/plan.js';
 import {
   INVARIANTS, everyoneShown, sizes, noTextOverlap, noTextInBusyArt, consecutivePagesVary, peoplePerPage,
   pageCount, jsonBudget, pdfBudget, noLivingAge, pageBounds,
@@ -155,9 +156,9 @@ test('storybook: a story composer cannot land without the suite covering it', as
  * stand-in archetypes, not about the shape being checked here: the template is format 2, and
  * `pageCount` needs to be told that to pick the right bound.
  */
-async function composeUnnamed() {
+async function composeUnnamed(optionsOverrides = {}) {
   const doc = await loadFixture('story-unnamed');
-  const options = { now: NOW };
+  const options = { now: NOW, ...optionsOverrides };
   const { book, report } = composeWithPages(doc, options, STORY_TEMPLATE, withStubs());
   const family = readFamily(doc, options);
   const scope = new Set(doc.people.map((p) => p.id));
@@ -186,13 +187,9 @@ test('meta: the page-count rule reads named-ness from resolveFeatured, not from 
   // (resolveFeatured never requires a name for an explicit `options.featured`) - the plan is then
   // the ordinary shape, not shape.empty, and takes far more than 4 pages. A `named` flag read off
   // "does anyone in the family have a name" would get this backwards and reject a good book.
-  const doc = await loadFixture('story-unnamed');
-  const options = { now: NOW, featured: 'parent' };
-  const { book } = composeWithPages(doc, options, STORY_TEMPLATE, withStubs());
-  const family = readFamily(doc, options);
-  const scope = new Set(doc.people.map((p) => p.id));
+  const { book, family, scope, options } = await composeUnnamed({ featured: 'parent' });
   assert.ok(book.pages.length > 5, 'featuring an unnamed person by id plans the ordinary shape, well past the empty one\'s 4 pages');
-  assert.deepEqual(pageCount({ book: { ...book, format: 2 }, scope, family, options }), []);
+  assert.deepEqual(pageCount({ book, scope, family, options }), []);
 });
 
 // ---------------------------------------------------------------------------------------------
@@ -280,12 +277,11 @@ test('meta: a book that runs away, or comes up empty, fails the page count', asy
   assert.deepEqual(pageBounds(2, 3), [3, 7]);
   assert.ok(pageBounds(2, 200)[1] >= 28 + 5, 'about 200 people may take 22-28 story pages plus the register');
   // Nobody nameable: shape.empty runs regardless of n, so 4 pages (cover, waiting, register,
-  // closing) is in bounds at 5 people and still in bounds once the register needs more than one
+  // closing) is in bounds at 5 people, and stays in bounds once the register needs more than one
   // page - but a book that skips the register, or runs away, is still outside them.
-  assert.deepEqual(pageBounds(2, 5, { named: false }), [4, 5]);
-  assert.ok(pageBounds(2, 5, { named: false })[0] <= 4 && pageBounds(2, 5, { named: false })[1] >= 4, '5 unnamed people plans 4 pages (#245, per #251\'s note)');
+  assert.deepEqual(pageBounds(2, 5, { named: false }), [4, 5], '5 unnamed people plans 4 pages (#245, per #251\'s note)');
   const [lo200, hi200] = pageBounds(2, 200, { named: false });
-  assert.ok(lo200 === 4 && hi200 >= 4 + Math.ceil(200 / 47), 'an unnamed tree of 200 needs several register pages, not the storybook\'s 28');
+  assert.ok(lo200 === 4 && hi200 >= 4 + Math.ceil(200 / (DENSITY.register - 1)), 'an unnamed tree of 200 needs several register pages, not the storybook\'s 28');
 });
 
 test('meta: JSON over budget fails, for the page and for the book', async () => {

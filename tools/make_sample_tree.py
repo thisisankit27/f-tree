@@ -779,8 +779,7 @@ BOOK_FIXTURES = {
     "notes": (story_notes, "notes with control and bidi characters", {"featured": "f"}),
     "devanagari": (story_devanagari, "a family written in Devanagari", {"featured": "f"}),
     "tiny": (story_tiny, "three people", {"featured": "f"}),
-    "unnamed": (story_unnamed, "five people over three generations, nobody named",
-               {}),
+    "unnamed": (story_unnamed, "five people over three generations, nobody named", {}),
     "empty": (None, "an empty tree, as Android exports it", {}),
 }
 
