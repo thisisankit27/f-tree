@@ -11,6 +11,8 @@
  */
 
 import { estimateBytes } from '../compose.js';
+import { resolveFeatured } from '../story/featured.js';
+import { DENSITY } from '../story/plan.js';
 
 /** The design system's floors, by what the page said a line is (`ctx.line(..., { kind })`). */
 export const SIZE_FLOORS = Object.freeze({ body: 10.5, name: 9, caption: 8 });
@@ -119,19 +121,40 @@ export function peoplePerPage({ report }) {
  * runs away or comes up empty, not one that is a page longer than it was.
  *   - format 1: cover, tree, numbers, closing and at least one generations page; at most about a
  *     page of generations per ten people and an index page per hundred;
- *   - storybook: an empty tree is a cover, a "waiting for its family" page and the closing; a tiny
- *     family (<= 4) collapses to 3-7 pages; otherwise 5 up to the plan's ~28 story pages, plus the
- *     register at 48 a page (docs/storybook-plan.md).
+ *   - storybook, F unresolved (`named: false` below): `resolveFeatured` (story/featured.js) found
+ *     nobody to feature - nobody asked for by id or by branch scope, and nobody left for its
+ *     mostConnected fallback to pick, because nobody in the record has a name - so `shape.empty`
+ *     in story/plan.js runs, the same path an empty tree takes, however many people are in the
+ *     record. That path is fixed regardless of n: a cover, a "waiting for its family" page, the
+ *     register (which still has to show everyone, however few or many - the one promise a page
+ *     without a featured person still has to keep - so it is one page or more) and the closing.
+ *     Four pages is therefore both the floor and, for a family small enough to fit the register's
+ *     own cap (`DENSITY.register`, 48 rows including the heading each page repeats) in one page,
+ *     the number itself; the ceiling only grows once the register needs more of them (#245, per
+ *     #251's note on an unnamed tree of 5 or more people);
+ *   - storybook, F resolved: an empty tree is 3-4 pages (the case above, with nobody in it at
+ *     all); a tiny family (<= 4) collapses to 3-7 pages; otherwise 5 up to the plan's ~28 story
+ *     pages, plus the register at 48 a page (docs/storybook-plan.md).
  */
-export function pageBounds(format, n) {
+export function pageBounds(format, n, { named = true } = {}) {
   if (format === 1) return [5, 5 + Math.ceil(n / 10) + Math.ceil(n / 100)];
   if (n === 0) return [3, 4];
+  // A register page holds at most DENSITY.register - 1 people once its own heading is counted (it
+  // repeats that heading on every page it continues onto, even though 'elsewhere' - where an
+  // unfeatured book puts everyone - is the only section there is to reopen).
+  if (!named) return [4, 4 + Math.ceil(n / (DENSITY.register - 1))];
   if (n <= 4) return [3, 7];
-  return [5, 30 + Math.ceil(n / 48)];
+  return [5, 30 + Math.ceil(n / DENSITY.register)];
 }
 
-export function pageCount({ book, scope }) {
-  const [lo, hi] = pageBounds(book.format, scope.size);
+/**
+ * @param options the same composition options the book was made with (`composeBook`'s second
+ *                argument) - `resolveFeatured` needs them to tell a book that really has nobody to
+ *                feature from one that was simply never given a `featured` id
+ */
+export function pageCount({ book, scope, family, options = {} }) {
+  const named = !family || resolveFeatured(family, options) !== null;
+  const [lo, hi] = pageBounds(book.format, scope.size, { named });
   const n = book.pages.length;
   return n < lo || n > hi ? [`${n} pages for ${scope.size} people, outside ${lo}-${hi}`] : [];
 }

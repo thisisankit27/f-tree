@@ -732,6 +732,29 @@ def story_tiny():
     return t
 
 
+def story_unnamed():
+    """
+    Five people over three generations, and not one of them has a name. Nobody is asked for by id
+    or by branch scope here, so `resolveFeatured` (story/featured.js) falls back to its
+    mostConnected pick among named people - and finds none. F is null, and the story planner
+    (story/plan.js) takes its `shape.empty` path - the same one an empty tree takes - regardless of
+    how many people are in the record: a cover, a page waiting for its family, the register (which
+    still has to list everyone, so it is one page or more) and the closing. Five is enough to prove
+    that the shape holds past the tiny-family cutoff, not just at zero (#245, per #251's note).
+    """
+    t = BookTree()
+    t.person("gf", None, "MALE", "1930", "1998")
+    t.person("gm", None, "FEMALE", "1934", "2015")
+    t.couple("gf", "gm", "WIDOWED")
+    t.person("parent", None, "MALE", "1958")
+    t.child(["gf", "gm"], "parent")
+    t.person("child1", None, "FEMALE", "1985")
+    t.person("child2", None, "MALE", "1988")
+    t.child(["parent"], "child1")
+    t.child(["parent"], "child2")
+    return t
+
+
 # name -> (builder, what it is, the people a test can name). A None builder is the empty tree as
 # Android's exporter writes it: no people, and no empty lists either.
 BOOK_FIXTURES = {
@@ -756,6 +779,7 @@ BOOK_FIXTURES = {
     "notes": (story_notes, "notes with control and bidi characters", {"featured": "f"}),
     "devanagari": (story_devanagari, "a family written in Devanagari", {"featured": "f"}),
     "tiny": (story_tiny, "three people", {"featured": "f"}),
+    "unnamed": (story_unnamed, "five people over three generations, nobody named", {}),
     "empty": (None, "an empty tree, as Android exports it", {}),
 }
 

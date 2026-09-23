@@ -96,6 +96,11 @@ const GOLDEN = {
   'story-twelve-siblings': ['cover cover 0', 'opening opening-hero 1', 'parents portrait-hero 2', 'siblings gathering 5', "siblings' gathering 6", 'numbers numbers 0', 'register register 14', 'legacy legacy 1', 'closing closing 0'],
   'story-unknown-names': ['cover cover 0', 'opening opening-hero 1', 'roots+courtyards+parents+children gathering 6', 'numbers numbers 0', 'register register 7', 'still-to-be-found still-to-be-found 4', 'legacy legacy 1', 'closing closing 0'],
   'story-unlinked': ['cover cover 0', 'opening opening-hero 1', 'register register 5', 'legacy legacy 1', 'closing closing 0'],
+  // Nobody has a name, so resolveFeatured finds nobody and shape.empty runs even though the
+  // record has people in it (#245, per #251's note on this issue): cover, waiting, the register
+  // (which still shows everyone) and closing - four pages, never the eldest/leaf/opening-hero
+  // sequence a named family would get at the same size.
+  'story-unnamed': ['cover cover 0', 'opening waiting 0', 'register register 5', 'closing closing 0'],
 };
 const STORY_FIXTURES = Object.keys(BOOK_FIXTURES).filter((n) => n.startsWith('story-'));
 
@@ -159,7 +164,10 @@ for (const name of Object.keys(BOOK_FIXTURES)) {
     for (const featured of choices(doc)) {
       const { family, plan: p } = plan(doc, featured);
       assert.deepEqual(violations(p, family), [], `featuring ${featured ?? 'the most connected'}`);
-      const [lo, hi] = pageBounds(2, family.people.length);
+      // p.shape.empty is true whenever nobody was resolved to feature - an empty tree, or (#245,
+      // per #251's note) one where nobody has a name - and that is exactly when pageBounds' loose
+      // ceiling has to switch off the ordinary story-page range for its own tighter one.
+      const [lo, hi] = pageBounds(2, family.people.length, { named: !p.shape.empty });
       assert.ok(p.pages.length >= lo && p.pages.length <= hi, `${p.pages.length} pages, outside ${lo}-${hi}`);
     }
   });
