@@ -52,8 +52,10 @@ test('text boxes are where the text prints, at the size it prints', async () => 
   assert.equal(closing.size, 42);
   assert.equal(report.minSize, Math.min(...report.textBoxes.map((b) => b.size)));
   // Format-1 blocks name only the lines the checks must treat differently: the generation
-  // numeral's watermark and the numbers page's recorded life.
-  assert.ok(report.textBoxes.every((b) => b.kind === null || b.kind === 'ornament' || b.kind === 'lifespan'), 'an unexpected kind');
+  // numeral's watermark, the numbers page's recorded life, and the folio and credit that
+  // `ctx.footer` draws on every interior page of either format.
+  assert.ok(report.textBoxes.every((b) => [null, 'ornament', 'lifespan', 'folio'].includes(b.kind)), 'an unexpected kind');
+  assert.ok(report.textBoxes.some((b) => b.kind === 'folio'), 'the folio is marked');
   assert.ok(report.textBoxes.some((b) => b.kind === 'ornament'), 'the generation numeral is marked ornament');
   assert.deepEqual(report.artZones, [], 'format-1 art records no zones');
   assert.equal(report.pages.length, book.pages.length);

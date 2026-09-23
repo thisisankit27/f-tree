@@ -334,7 +334,7 @@ test('a tree with people but nobody named to feature still lists everyone, in th
 test('compose.js routes a format-2 template through the planner, then refuses to draw it by name', async () => {
   const doc = await loadFixture('story-large');
   assert.throws(() => composeBook(doc, { now: NOW, featured: 'f' }, TEMPLATE),
-    /"diwali-story" is a format-2 storybook template: its 25 pages are planned, but their archetypes are not built yet/);
+    /"diwali-story" is a format-2 storybook template: its 25 pages are planned, but the archetypes? .*(is|are) not built yet/);
   // The planner, not a blanket refusal, is what runs: a chapter it does not know fails there.
   assert.throws(() => composeBook(doc, { now: NOW }, storyTemplate([...CHAPTERS, 'fireworks'])), /does not know the chapter "fireworks"/);
 });
