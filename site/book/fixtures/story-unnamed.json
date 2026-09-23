@@ -1,0 +1,98 @@
+{
+ "format": "f-tree",
+ "version": 1,
+ "people": [
+  {
+   "id": "gf",
+   "name": null,
+   "gender": "MALE",
+   "birthDate": "1930",
+   "deathDate": "1998",
+   "deceased": true,
+   "photo": null,
+   "notes": null,
+   "origins": []
+  },
+  {
+   "id": "gm",
+   "name": null,
+   "gender": "FEMALE",
+   "birthDate": "1934",
+   "deathDate": "2015",
+   "deceased": true,
+   "photo": null,
+   "notes": null,
+   "origins": []
+  },
+  {
+   "id": "parent",
+   "name": null,
+   "gender": "MALE",
+   "birthDate": "1958",
+   "deathDate": null,
+   "deceased": false,
+   "photo": null,
+   "notes": null,
+   "origins": []
+  },
+  {
+   "id": "child1",
+   "name": null,
+   "gender": "FEMALE",
+   "birthDate": "1985",
+   "deathDate": null,
+   "deceased": false,
+   "photo": null,
+   "notes": null,
+   "origins": []
+  },
+  {
+   "id": "child2",
+   "name": null,
+   "gender": "MALE",
+   "birthDate": "1988",
+   "deathDate": null,
+   "deceased": false,
+   "photo": null,
+   "notes": null,
+   "origins": []
+  }
+ ],
+ "relationships": [
+  {
+   "id": "r0",
+   "from": "gf",
+   "to": "gm",
+   "type": "SPOUSE",
+   "subtype": "WIDOWED"
+  },
+  {
+   "id": "r1",
+   "from": "gf",
+   "to": "parent",
+   "type": "PARENT",
+   "subtype": null
+  },
+  {
+   "id": "r2",
+   "from": "gm",
+   "to": "parent",
+   "type": "PARENT",
+   "subtype": null
+  },
+  {
+   "id": "r3",
+   "from": "parent",
+   "to": "child1",
+   "type": "PARENT",
+   "subtype": null
+  },
+  {
+   "id": "r4",
+   "from": "parent",
+   "to": "child2",
+   "type": "PARENT",
+   "subtype": null
+  }
+ ]
+}

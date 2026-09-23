@@ -118,6 +118,11 @@
     "featured": "f"
    }
   },
+  "story-unnamed.json": {
+   "about": "five people over three generations, nobody named",
+   "people": 5,
+   "ids": {}
+  },
   "story-empty.json": {
    "about": "an empty tree, as Android exports it",
    "people": 0,

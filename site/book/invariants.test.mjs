@@ -12,9 +12,11 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { composeBook, composeWithReport, drawable, DRAWABLE_FORMATS } from './compose.js';
+import { composeBook, composeWithReport, composeWithPages, drawable, DRAWABLE_FORMATS } from './compose.js';
 import { readFamily, byKey } from './family.js';
 import { BOOK_FIXTURES, STORYBOOK_MANIFEST, TEMPLATES, NOW, loadFixture } from './qa/book-fixtures.mjs';
+import { withStubs } from './qa/stub-pages.mjs';
+import { STORY_TEMPLATE } from './qa/story-template.mjs';
 import {
   INVARIANTS, everyoneShown, sizes, noTextOverlap, noTextInBusyArt, consecutivePagesVary, peoplePerPage,
   pageCount, jsonBudget, pdfBudget, noLivingAge, pageBounds,
@@ -138,6 +140,47 @@ test('storybook: a story composer cannot land without the suite covering it', as
 });
 
 // ---------------------------------------------------------------------------------------------
+// The unnamed-tree shape (#245, per #251's note on this issue): nobody in the record has a name,
+// so `resolveFeatured` hands back nobody and the planner's `shape.empty` path runs even though the
+// tree has people in it - the same path an empty tree takes. Composed here with
+// `composeWithPages` + `qa/stub-pages.mjs`'s `withStubs()`, the test-only seam that lets a
+// storybook be checked before every archetype exists (#256-#258); this is not the drawable
+// composer and never runs through the fixture x template loop above.
+
+/**
+ * Compose the unnamed fixture with the stub archetypes, at the format-2 template's own declared
+ * format. The stub pages (qa/stub-pages.mjs) place no real art - none of them call `ctx.art.place`
+ * - so `book.symbols` stays empty and `formatOf` (format.js) reads the drawn book back as format 1,
+ * same as any book that happens to use nothing format 2 introduced. That is a fact about the
+ * stand-in archetypes, not about the shape being checked here: the template is format 2, and
+ * `pageCount` needs to be told that to pick the right bound.
+ */
+async function composeUnnamed() {
+  const doc = await loadFixture('story-unnamed');
+  const { book, report } = composeWithPages(doc, { now: NOW }, STORY_TEMPLATE, withStubs());
+  const family = readFamily(doc, { now: NOW });
+  const scope = new Set(doc.people.map((p) => p.id));
+  return { doc, book: { ...book, format: 2 }, report, family, scope };
+}
+
+test('storybook: a tree where nobody is nameable still composes - cover, waiting, register, closing', async () => {
+  const { doc, book, report, family, scope } = await composeUnnamed();
+  assert.ok(doc.people.length >= 5, 'the fixture is meant to prove the shape past the tiny-family cutoff');
+  assert.ok(doc.people.every((p) => !p.name), 'the fixture is meant to have nobody named');
+  assert.deepEqual(report.pages.map((p) => p.archetype), ['cover', 'waiting', 'register', 'closing']);
+  assert.deepEqual(pageCount({ book, scope, family }), [], 'the page-count invariant must accept this shape');
+});
+
+test('meta: the page-count rule still fails loudly on an unnamed tree with the wrong number of pages', async () => {
+  const { book, family, scope } = await composeUnnamed();
+  assert.deepEqual(pageCount({ book, scope, family }), []);
+  const tooFew = { ...book, pages: book.pages.slice(0, 2) };
+  assert.equal(pageCount({ book: tooFew, scope, family }).length, 1, 'a book missing pages must still fail');
+  const tooMany = { ...book, pages: [...book.pages, ...Array.from({ length: 40 }, () => book.pages[0])] };
+  assert.equal(pageCount({ book: tooMany, scope, family }).length, 1, 'a book that ran away must still fail');
+});
+
+// ---------------------------------------------------------------------------------------------
 // Meta: each invariant, on a book broken for the purpose. A check that never fails checks nothing.
 
 let baseBook;
@@ -220,6 +263,13 @@ test('meta: a book that runs away, or comes up empty, fails the page count', asy
   assert.deepEqual(pageBounds(2, 0), [3, 4]);
   assert.deepEqual(pageBounds(2, 3), [3, 7]);
   assert.ok(pageBounds(2, 200)[1] >= 28 + 5, 'about 200 people may take 22-28 story pages plus the register');
+  // Nobody nameable: shape.empty runs regardless of n, so 4 pages (cover, waiting, register,
+  // closing) is in bounds at 5 people and still in bounds once the register needs more than one
+  // page - but a book that skips the register, or runs away, is still outside them.
+  assert.deepEqual(pageBounds(2, 5, { named: false }), [4, 5]);
+  assert.ok(pageBounds(2, 5, { named: false })[0] <= 4 && pageBounds(2, 5, { named: false })[1] >= 4, '5 unnamed people plans 4 pages (#245, per #251\'s note)');
+  const [lo200, hi200] = pageBounds(2, 200, { named: false });
+  assert.ok(lo200 === 4 && hi200 >= 4 + Math.ceil(200 / 47), 'an unnamed tree of 200 needs several register pages, not the storybook\'s 28');
 });
 
 test('meta: JSON over budget fails, for the page and for the book', async () => {
