@@ -120,19 +120,21 @@ jobs:
           ram-size: 4096M
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
           disable-animations: true
+          # Every line here is run as its own `sh -c` by the action, so each one has to stand
+          # alone: no backslash continuations (they are passed to Gradle as a task named `\`), and
+          # nothing carried in a shell variable from the line before. Hence the one long line.
+          #
           # --no-daemon and a 3g ceiling: everything is already built by now, so Gradle is only
           # orchestrating the run and has no reason to hold a six-gigabyte heap beside the emulator.
           # logcat is captured because when the emulator dies the Gradle output says only "device
-          # not found" -- the reason, if there is one to see, is on the device.
+          # not found" -- the reason, if there is one to see, is on the device. The memory and disk
+          # either side of the run are printed for the same reason, the `after` pair reached through
+          # $status so that it is still printed when the run is the thing that failed.
           script: |
             adb logcat -G 16M
             adb logcat -v time > "$GITHUB_WORKSPACE/logcat-${{ matrix.variant }}.txt" 2>&1 &
             echo '--- before ---'; free -h; df -h /
-            ./gradlew ${{ matrix.args }} --no-daemon \
-              -Dorg.gradle.jvmargs="-Xmx3g -XX:MaxMetaspaceSize=1g -Dfile.encoding=UTF-8" \
-              ${{ matrix.task }}; status=$?
-            echo '--- after ---'; free -h; df -h /
-            exit $status
+            ./gradlew ${{ matrix.args }} --no-daemon -Dorg.gradle.jvmargs="-Xmx3g -XX:MaxMetaspaceSize=1g -Dfile.encoding=UTF-8" ${{ matrix.task }}; status=$?; echo '--- after ---'; free -h; df -h /; exit $status
 
       # always(): the reports are most wanted exactly when the run failed. For the release run they
       # also carry R8's mapping and usage files, which are how a NoClassDefFoundError gets traced
