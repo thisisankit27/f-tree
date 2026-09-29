@@ -52,6 +52,13 @@
 # (and every other package the app owns) keeps being shrunk, renamed and merged.
 -keep interface com.vibethroughcode.ftree.data.*Dao { *; }
 
+# androidx.room.Room is the facade, and the app only ever reaches it through
+# `Room.databaseBuilder(...)`, a static call R8 inlines -- after which nothing holds the class and
+# it goes. The tests build their databases with `Room.inMemoryDatabaseBuilder(...)`, so they need
+# the class itself to still be there. Same shape as the DAOs: correct for the app, fatal for a
+# test APK that names it.
+-keep class androidx.room.Room { *; }
+
 # ViewTreeLifecycleOwner is the other half of the Compose test rule's reach into the app.
 -keep class androidx.lifecycle.ViewTree* { *; }
 -keep class androidx.savedstate.ViewTree* { *; }

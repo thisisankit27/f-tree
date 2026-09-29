@@ -154,7 +154,12 @@ jobs:
             echo '--- before ---'; free -h; df -h /
             timeout 1500 ./gradlew ${{ matrix.args }} --no-daemon -Dorg.gradle.jvmargs="-Xmx3g -XX:MaxMetaspaceSize=1g -Dfile.encoding=UTF-8" ${{ matrix.task }}; status=$?; echo "--- gradle exit $status (124 = timed out) ---"; echo '--- after ---'; free -h; df -h /; echo '--- logcat: the app and its runner ---'; grep -aE 'ftree|AndroidJUnitRunner|MonitoringInstr|FATAL EXCEPTION|NoClassDefFoundError|ClassNotFoundException|VerifyError|lowmemorykiller' "$GITHUB_WORKSPACE/logcat-${{ matrix.variant }}.txt" | tail -40; exit $status
 
-      # The results, small enough to read in the job log. The XML is the only place that says how
+      # The results, small enough to read in the job log. Errors are counted separately from
+      # failures because they are a separate XML element: a run where every test errored on a
+      # missing class reads as "failed: 0" if only <failure> is counted, which is the opposite of
+      # what happened.
+      #
+      # The XML is the only place that says how
       # many tests actually ran, and the distinct missing classes matter far more than the hundreds
       # of stack traces that repeat them -- reading those back out of a 700KB artifact, or out of a
       # log long enough to be truncated, cost more than one wrong conclusion here.
@@ -164,6 +169,7 @@ jobs:
           results=app/build/outputs/androidTest-results/connected
           echo "ran:    $(grep -roh '<testcase ' $results 2>/dev/null | wc -l)"
           echo "failed: $(grep -roh '<failure ' $results 2>/dev/null | wc -l)"
+          echo "errored: $(grep -roh '<error ' $results 2>/dev/null | wc -l)"
           echo '--- classes the run could not resolve ---'
           grep -roh 'ClassNotFoundException: [A-Za-z0-9_.$]*' $results 2>/dev/null | sort | uniq -c | sort -rn | head -25
           echo '--- failing tests ---'
