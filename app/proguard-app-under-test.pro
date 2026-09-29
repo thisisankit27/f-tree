@@ -2,67 +2,120 @@
 # minified build (`-Pftree.testBuildType=release`). Never part of a shipping APK: `release.yml`
 # and a plain `./gradlew assembleRelease` do not set that property, so they never read this file.
 #
-# Why this is not just proguard-test-rules.pro, which sounds like it should cover it:
-# `testProguardFiles` configures `minifyReleaseAndroidTestWithR8`, the run over the TEST apk. The
-# classes the runner dies on are not in the test APK at all. They arrive transitively through the
-# app's own dependencies, so AGP leaves them out of the test APK as duplicates, and then
-# `minifyReleaseWithR8` drops them from the app because no app code refers to them. Only the app's
-# own run can keep them, which is what this file is for.
+# Why this is not proguard-test-rules.pro, which sounds like it should cover it: `testProguardFiles`
+# configures `minifyReleaseAndroidTestWithR8`, the run over the TEST apk. These classes are not in
+# the test APK at all -- they arrive in the app transitively, AGP leaves them out as duplicates,
+# and then `minifyReleaseWithR8` drops them from the app because no app code names them. Only the
+# app's own run can keep them.
 #
-# Found in CI, one per run, each surfacing only once the one before it was kept:
-#   androidx.tracing.Trace  - AndroidJUnitRunner.onCreate
-#   kotlin.LazyKt           - AndroidJUnitRunner.parseRunnerArgs
-# Before the first of them was kept the runner died with a FATAL EXCEPTION before any test, and
-# because no result ever came back the Gradle task hung instead of failing.
+# The list below is DERIVED, not discovered one crash at a time. `.github/scripts/missing-under-test.py`
+# intersects the test APK's dex type table with usage.txt, which is every class R8 discarded, and
+# prints the whole set after a single assemble. Regenerate it rather than adding to it by hand:
 #
-# Kept per package rather than class by class. These three are third-party scaffolding that the
-# test harness reaches into from code R8 cannot see, and finding each missing class costs a
-# ten-minute emulator run; kotlinx.coroutines is included before it has been seen to fail because
-# the test APK reaches into it the same way. kotlin.LazyKt is the illustrative case: `lazy()` is
-# inlined wherever app code uses it, so nothing holds the class alive for the runner that needs it.
+#   python3 .github/scripts/missing-under-test.py \
+#     app/build/outputs/apk/androidTest/release/app-release-androidTest.apk \
+#     app/build/outputs/mapping/release/usage.txt
 #
-# The line that matters: nothing under com.vibethroughcode is kept here. The app's own classes stay
-# fully shrunk, renamed and optimised in the APK under test -- that is where #297-shaped breakage
-# lives, and keeping this file off it is what makes the release run worth running.
+# Everything here is third-party scaffolding the instrumentation harness reaches into. Keeping it
+# hides nothing: the breakage this leg exists to catch (#297-shaped -- the book engine and
+# kotlinx-serialization under minification) lives in app code, and NOTHING under
+# com.vibethroughcode is kept, so app code stays shrunk, renamed and merged.
+
+
+# androidx.tracing / the runner's own startup path.
 -keep class androidx.tracing.** { *; }
-# Compose's test infrastructure lives in the test APK but drives Compose through classes that live
-# in the app. Two of them showed up as 79 failures across every Compose UI test, and nothing else:
-#   androidx.compose.ui.platform.InfiniteAnimationPolicy  - how the test rule stops the clock
-#   androidx.compose.runtime.Composer                     - reached by name, so renaming breaks it
-# Kept per package because ViewRootForTest and the rest of the synchronisation surface sit beside
-# them and would each cost another emulator run to discover. Compose's foundation, material,
-# animation and ui packages are NOT kept, and neither is any app code.
--keep class androidx.compose.ui.platform.** { *; }
--keep class androidx.compose.runtime.** { *; }
--dontwarn androidx.compose.**
+
+# the Kotlin stdlib and coroutine runtime the harness reaches by name.
 -keep class kotlin.** { *; }
 -keep class kotlinx.coroutines.** { *; }
-# The instrumented tests name app types, and R8 is free to restructure them. It removes the three
-# Room DAO interfaces outright -- usage.txt lists 37 entries for RelationshipDao and 33 for
-# PersonDao, while mapping.txt shows only their generated _Impl classes surviving -- which is
-# vertical merging of an interface that has exactly one implementation.
-#
-# That is correct, and it is NOT a bug in the shipping app: nothing in the app looks these up by
-# name, so R8 rewrites every reference consistently and release builds work. It breaks only the
-# test APK, which asks for `com.vibethroughcode.ftree.data.RelationshipDao` through reflection on
-# a DAO accessor's return type. Remapping cannot rescue that -- a class merged away has no mapping
-# target to rewrite to -- so the interface has to survive in the APK under test.
-#
-# Three interfaces, named by shape rather than a package wildcard, so the rest of the data layer
-# (and every other package the app owns) keeps being shrunk, renamed and merged.
--keep interface com.vibethroughcode.ftree.data.*Dao { *; }
 
-# androidx.room.Room is the facade, and the app only ever reaches it through
-# `Room.databaseBuilder(...)`, a static call R8 inlines -- after which nothing holds the class and
-# it goes. The tests build their databases with `Room.inMemoryDatabaseBuilder(...)`, so they need
-# the class itself to still be there. Same shape as the DAOs: correct for the app, fatal for a
-# test APK that names it.
+# the Compose surface the test rule drives.
+-keep class androidx.compose.ui.platform.** { *; }
+-keep class androidx.compose.runtime.** { *; }
+
+# the Room facade the tests build their databases with.
 -keep class androidx.room.Room { *; }
 
-# ViewTreeLifecycleOwner is the other half of the Compose test rule's reach into the app.
+# ViewTree owners, the other half of the test rule's reach.
 -keep class androidx.lifecycle.ViewTree* { *; }
 -keep class androidx.savedstate.ViewTree* { *; }
 
--dontwarn androidx.tracing.**
+# The derived set: every other third-party class the test APK names and R8 removed.
+-keep class androidx.compose.foundation.layout.BoxScopeInstance { *; }
+-keep class androidx.compose.runtime.CompositionContext { *; }
+-keep class androidx.compose.runtime.CompositionLocal { *; }
+-keep class androidx.compose.runtime.DisposableEffectScope { *; }
+-keep class androidx.compose.runtime.ProvidableCompositionLocal { *; }
+-keep class androidx.compose.runtime.ProvidedValue { *; }
+-keep class androidx.compose.ui.Alignment$Companion { *; }
+-keep class androidx.compose.ui.ComposedModifierKt { *; }
+-keep class androidx.compose.ui.geometry.Offset$Companion { *; }
+-keep class androidx.compose.ui.geometry.OffsetKt { *; }
+-keep class androidx.compose.ui.geometry.RectKt { *; }
+-keep class androidx.compose.ui.graphics.ImageBitmap { *; }
+-keep class androidx.compose.ui.input.indirect.AndroidIndirectPointerEvent_androidKt { *; }
+-keep class androidx.compose.ui.input.indirect.IndirectPointerEventType { *; }
+-keep class androidx.compose.ui.input.indirect.IndirectPointerEventType$Companion { *; }
+-keep class androidx.compose.ui.input.key.Key$Companion { *; }
+-keep class androidx.compose.ui.input.key.KeyEvent_androidKt { *; }
+-keep class androidx.compose.ui.input.pointer.PointerId { *; }
+-keep class androidx.compose.ui.input.pointer.util.VelocityTracker { *; }
+-keep class androidx.compose.ui.layout.LayoutCoordinatesKt { *; }
+-keep class androidx.compose.ui.layout.LayoutInfo { *; }
+-keep class androidx.compose.ui.layout.SubcomposeLayoutKt { *; }
+-keep class androidx.compose.ui.node.ComposeUiNode$Companion { *; }
+-keep class androidx.compose.ui.platform.AbstractComposeView { *; }
+-keep class androidx.compose.ui.semantics.CustomAccessibilityAction { *; }
+-keep class androidx.compose.ui.semantics.SemanticsOwnerKt { *; }
+-keep class androidx.compose.ui.text.font.FontFamilyResolver_androidKt { *; }
+-keep class androidx.compose.ui.text.input.ImeAction$Companion { *; }
+-keep class androidx.compose.ui.unit.Constraints$Companion { *; }
+-keep class androidx.compose.ui.unit.Dp$Companion { *; }
+-keep class androidx.compose.ui.unit.DpKt { *; }
+-keep class androidx.compose.ui.unit.DpRect { *; }
+-keep class androidx.compose.ui.unit.IntSizeKt { *; }
+-keep class androidx.compose.ui.util.MathHelpersKt { *; }
+-keep class androidx.compose.ui.window.DialogWindowProvider { *; }
+-keep class androidx.concurrent.futures.CallbackToFutureAdapter { *; }
+-keep class androidx.core.os.ConfigurationCompat { *; }
+-keep class androidx.core.view.ViewConfigurationCompat { *; }
+-keep class androidx.core.view.ViewGroupKt { *; }
+-keep class androidx.lifecycle.ViewModelStoreOwnerDefaults { *; }
+-keep class androidx.lifecycle.viewmodel.compose.ViewModelKt { *; }
+-keep class androidx.room.BaseRoomConnectionManager { *; }
+-keep class androidx.room.RoomDatabase$MigrationContainer { *; }
+-keep class androidx.room.RoomDatabase$PrepackagedDatabaseCallback { *; }
+-keep class androidx.room.migration.AutoMigrationSpec { *; }
+-keep class androidx.room.migration.Migration { *; }
+-keep class androidx.room.util.FtsTableInfo { *; }
+-keep class androidx.room.util.FtsTableInfo$Companion { *; }
+-keep class androidx.room.util.TableInfo$Companion { *; }
+-keep class androidx.room.util.ViewInfo { *; }
+-keep class androidx.room.util.ViewInfo$Companion { *; }
+-keep class androidx.sqlite.SQLite { *; }
+-keep class androidx.sqlite.db.SupportSQLiteDatabase { *; }
+-keep class androidx.sqlite.db.SupportSQLiteOpenHelper$Callback { *; }
+-keep class androidx.sqlite.db.SupportSQLiteOpenHelper$Configuration { *; }
+-keep class androidx.sqlite.db.SupportSQLiteOpenHelper$Configuration$Builder { *; }
+-keep class androidx.sqlite.db.SupportSQLiteOpenHelper$Configuration$Companion { *; }
+-keep class androidx.sqlite.db.SupportSQLiteOpenHelper$Factory { *; }
+-keep class androidx.sqlite.db.framework.FrameworkSQLiteOpenHelperFactory { *; }
+-keep class androidx.sqlite.driver.SupportSQLiteDriver { *; }
+-keep class kotlin.collections.ArraysKt { *; }
+-keep class kotlin.collections.MapsKt { *; }
+-keep class kotlin.ranges.RangesKt { *; }
+-keep class kotlinx.coroutines.internal.MainDispatchersKt { *; }
+-keep class kotlinx.serialization.DeserializationStrategy { *; }
+-keep class kotlinx.serialization.SerialName { *; }
+-keep class kotlinx.serialization.SerializationStrategy { *; }
+-keep class kotlinx.serialization.internal.PluginExceptionsKt { *; }
+-keep class kotlinx.serialization.json.JsonContentPolymorphicSerializer { *; }
+-keep class kotlinx.serialization.json.JsonElementBuildersKt { *; }
+-keep class kotlinx.serialization.json.JsonKt { *; }
+-keep class kotlinx.serialization.json.JvmStreamsKt { *; }
+-keep class kotlinx.serialization.modules.SerializersModule { *; }
+-keep class kotlinx.serialization.modules.SerializersModuleBuilder { *; }
+
+-dontwarn androidx.**
 -dontwarn kotlin.**
--dontwarn kotlinx.coroutines.**
+-dontwarn kotlinx.**
