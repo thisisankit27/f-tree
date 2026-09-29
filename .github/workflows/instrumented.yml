@@ -28,6 +28,12 @@ jobs:
     # one where an x86_64 emulator runs at hardware speed instead of by software emulation.
     runs-on: ubuntu-latest
 
+    # A backstop, not a target: the debug suite takes about ten minutes. The release run has hung
+    # here with no output at all, and the default six-hour limit means a hang like that burns an
+    # afternoon of runner time before anyone is told. The `timeout` inside the script below is the
+    # one that should normally fire, because it leaves time for the diagnostics to print.
+    timeout-minutes: 45
+
     strategy:
       # The release run is the experiment here. If it fails, the debug run's result is exactly the
       # information needed to tell an R8 problem apart from a broken test, so never cancel it.
@@ -134,11 +140,17 @@ jobs:
           # not found" -- the reason, if there is one to see, is on the device. The memory and disk
           # either side of the run are printed for the same reason, the `after` pair reached through
           # $status so that it is still printed when the run is the thing that failed.
+          #
+          # `timeout` rather than leaving it to the job's own limit: a hung run killed by the job
+          # timeout prints nothing, and the whole point of the lines after it is to say why it hung.
+          # The release run has sat silent here for 79 minutes without reaching its first test, so
+          # the grep and the tail below exist to get that story into the job log, where it can be
+          # read without downloading an artifact.
           script: |
             adb logcat -G 16M
             adb logcat -v time > "$GITHUB_WORKSPACE/logcat-${{ matrix.variant }}.txt" 2>&1 &
             echo '--- before ---'; free -h; df -h /
-            ./gradlew ${{ matrix.args }} --no-daemon -Dorg.gradle.jvmargs="-Xmx3g -XX:MaxMetaspaceSize=1g -Dfile.encoding=UTF-8" ${{ matrix.task }}; status=$?; echo '--- after ---'; free -h; df -h /; exit $status
+            timeout 1500 ./gradlew ${{ matrix.args }} --no-daemon -Dorg.gradle.jvmargs="-Xmx3g -XX:MaxMetaspaceSize=1g -Dfile.encoding=UTF-8" ${{ matrix.task }}; status=$?; echo "--- gradle exit $status (124 = timed out) ---"; echo '--- after ---'; free -h; df -h /; echo '--- installed packages ---'; adb shell pm list packages | grep -i ftree; echo '--- logcat: crashes and instrumentation ---'; grep -aiE 'FATAL|AndroidRuntime|NoClassDefFound|ClassNotFound|VerifyError|NoSuchMethod|TestRunner|Instrumentation|am_crash|Process .* died' "$GITHUB_WORKSPACE/logcat-${{ matrix.variant }}.txt" | tail -120; echo '--- logcat: last lines ---'; tail -60 "$GITHUB_WORKSPACE/logcat-${{ matrix.variant }}.txt"; exit $status
 
       # always(): the reports are most wanted exactly when the run failed. For the release run they
       # also carry R8's mapping and usage files, which are how a NoClassDefFoundError gets traced
