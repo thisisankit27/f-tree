@@ -144,13 +144,15 @@ jobs:
           # `timeout` rather than leaving it to the job's own limit: a hung run killed by the job
           # timeout prints nothing, and the whole point of the lines after it is to say why it hung.
           # The release run has sat silent here for 79 minutes without reaching its first test, so
-          # the grep and the tail below exist to get that story into the job log, where it can be
-          # read without downloading an artifact.
+          # the grep below exists to get that story into the job log, where it can be read without
+          # downloading an artifact. Kept to forty lines, and matched on this app and its runner
+          # rather than on anything that looks like a crash: a wider net buried the actual failure
+          # under a screenful of unrelated system chatter.
           script: |
             adb logcat -G 16M
             adb logcat -v time > "$GITHUB_WORKSPACE/logcat-${{ matrix.variant }}.txt" 2>&1 &
             echo '--- before ---'; free -h; df -h /
-            timeout 1500 ./gradlew ${{ matrix.args }} --no-daemon -Dorg.gradle.jvmargs="-Xmx3g -XX:MaxMetaspaceSize=1g -Dfile.encoding=UTF-8" ${{ matrix.task }}; status=$?; echo "--- gradle exit $status (124 = timed out) ---"; echo '--- after ---'; free -h; df -h /; echo '--- installed packages ---'; adb shell pm list packages | grep -i ftree; echo '--- logcat: crashes and instrumentation ---'; grep -aiE 'FATAL|AndroidRuntime|NoClassDefFound|ClassNotFound|VerifyError|NoSuchMethod|TestRunner|Instrumentation|am_crash|Process .* died' "$GITHUB_WORKSPACE/logcat-${{ matrix.variant }}.txt" | tail -120; echo '--- logcat: last lines ---'; tail -60 "$GITHUB_WORKSPACE/logcat-${{ matrix.variant }}.txt"; exit $status
+            timeout 1500 ./gradlew ${{ matrix.args }} --no-daemon -Dorg.gradle.jvmargs="-Xmx3g -XX:MaxMetaspaceSize=1g -Dfile.encoding=UTF-8" ${{ matrix.task }}; status=$?; echo "--- gradle exit $status (124 = timed out) ---"; echo '--- after ---'; free -h; df -h /; echo '--- installed packages ---'; adb shell pm list packages | grep -i ftree; echo '--- logcat: the app and its runner ---'; grep -aE 'ftree|AndroidJUnitRunner|MonitoringInstr|FATAL EXCEPTION|NoClassDefFoundError|ClassNotFoundException|VerifyError|lowmemorykiller' "$GITHUB_WORKSPACE/logcat-${{ matrix.variant }}.txt" | tail -40; exit $status
 
       # always(): the reports are most wanted exactly when the run failed. For the release run they
       # also carry R8's mapping and usage files, which are how a NoClassDefFoundError gets traced

@@ -71,6 +71,9 @@ fun bookEngine(site: File): List<File> {
     return found.toList() + (site.resolve("book/templates").listFiles { f -> f.extension == "json" }?.sorted() ?: emptyList())
 }
 
+/** Which build type the instrumented tests run against; see `testBuildType` below. */
+val ftreeTestBuildType = (project.findProperty("ftree.testBuildType") as String?) ?: "debug"
+
 android {
     namespace = "com.vibethroughcode.ftree"
     compileSdk = 37
@@ -136,7 +139,7 @@ android {
      *
      *   ANDROID_SERIAL=emulator-5554 ./gradlew :app:connectedReleaseAndroidTest -Pftree.testBuildType=release
      */
-    testBuildType = (project.findProperty("ftree.testBuildType") as String?) ?: "debug"
+    testBuildType = ftreeTestBuildType
 
     buildTypes {
         /*
@@ -162,8 +165,16 @@ android {
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-            // Test-only keeps, never in the shipping APK. See the file's own comment.
+            // Test-only keeps, never in the shipping APK. See each file's own comment.
+            //
+            // Two files because there are two R8 runs. `testProguardFiles` feeds the one over the
+            // test APK; the app's own run needs its own keeps for the classes the harness uses and
+            // the app does not, and it only gets them when this build type is the one under test --
+            // so a shipping release build is minified exactly as it always was.
             testProguardFiles("proguard-test-rules.pro")
+            if (ftreeTestBuildType == "release") {
+                proguardFiles("proguard-app-under-test.pro")
+            }
         }
     }
 
