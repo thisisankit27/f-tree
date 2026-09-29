@@ -5,6 +5,10 @@ name: Instrumented tests
 # the minified release build, which is the half that matters -- R8 is a real risk to the reflective
 # paths the book leans on, and #297 was exactly that kind of break reaching a phone unnoticed.
 on:
+  # By hand as well as on a change. This job takes a quarter of an hour and its failures have been
+  # environmental as often as not, so being able to re-run it against a branch without inventing a
+  # commit to carry the request is worth the three lines.
+  workflow_dispatch:
   push:
     branches: [main]
     paths:
