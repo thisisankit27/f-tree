@@ -1,0 +1,135 @@
+name: Instrumented tests
+
+# The instrumented suite has never run anywhere but a developer's own phone (#260). It runs here on
+# an emulator, twice: once against the debug build everybody already tests against, and once against
+# the minified release build, which is the half that matters -- R8 is a real risk to the reflective
+# paths the book leans on, and #297 was exactly that kind of break reaching a phone unnoticed.
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'app/**'
+      - 'site/book/**'
+      - '.github/workflows/instrumented.yml'
+  pull_request:
+    # Repeated rather than shared through a YAML anchor: Actions does not expand anchors.
+    paths:
+      - 'app/**'
+      - 'site/book/**'
+      - '.github/workflows/instrumented.yml'
+
+concurrency:
+  group: instrumented-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  connected:
+    # ubuntu-latest is the only hosted Linux runner with nested virtualisation, so it is the only
+    # one where an x86_64 emulator runs at hardware speed instead of by software emulation.
+    runs-on: ubuntu-latest
+
+    strategy:
+      # The release run is the experiment here. If it fails, the debug run's result is exactly the
+      # information needed to tell an R8 problem apart from a broken test, so never cancel it.
+      fail-fast: false
+      matrix:
+        include:
+          - variant: debug
+            task: ':app:connectedDebugAndroidTest'
+            args: ''
+          - variant: release
+            task: ':app:connectedReleaseAndroidTest'
+            args: '-Pftree.testBuildType=release'
+
+    name: ${{ matrix.variant }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # /dev/kvm is root-only on the runner image. Without this the emulator silently falls back to
+      # software rendering and the suite times out rather than failing.
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' \
+            | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      # Same two-step as ci.yml: the action installs cmdline-tools and accepts the licences, and AGP
+      # installs platform 37 itself because the runner's cmdline-tools cannot resolve its id.
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      # A release build is unsigned when keystore.properties is absent -- release.yml has a step
+      # whose whole job is to catch that -- and an unsigned APK will not install, so the release run
+      # would fail at `adb install` before a test ran. This key is a throwaway made on the runner and
+      # thrown away with it: it signs nothing that leaves this job, and the real signing secrets are
+      # deliberately not exposed here, where pull requests can reach.
+      - name: Make a throwaway signing key
+        if: matrix.variant == 'release'
+        run: |
+          keytool -genkeypair -v -keystore "$RUNNER_TEMP/ci.jks" \
+            -storepass ci-password -keypass ci-password \
+            -alias ci -keyalg RSA -keysize 2048 -validity 30 \
+            -dname 'CN=f-tree CI, OU=CI, O=f-tree, C=IN'
+          cat > keystore.properties <<EOF
+          storeFile=$RUNNER_TEMP/ci.jks
+          storePassword=ci-password
+          keyAlias=ci
+          keyPassword=ci-password
+          EOF
+
+      # Built before the emulator starts, not inside the `script` below: R8 on the release variant is
+      # the memory-hungriest thing in this job, and running it while an emulator holds its own RAM is
+      # how the release build dies locally. This also keeps the emulator from idling through a build.
+      - name: Assemble
+        run: >-
+          ./gradlew ${{ matrix.args }}
+          -Dorg.gradle.jvmargs="-Xmx6g -XX:MaxMetaspaceSize=1g -Dfile.encoding=UTF-8"
+          :app:assemble${{ matrix.variant == 'release' && 'Release' || 'Debug' }}
+          :app:assemble${{ matrix.variant == 'release' && 'Release' || 'Debug' }}AndroidTest
+
+      # API 34 rather than targetSdk's 36: this is the project's first emulator job, and a level with
+      # fewer boot and rendering surprises is worth more than matching the ship target. google_apis
+      # rather than aosp_atd because the book is laid out by a real WebView, which the atd images
+      # leave out. If 34 ever misbehaves, move to 36 -- the app is known to run there -- rather than
+      # widening this into a matrix.
+      - name: ${{ matrix.task }}
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          target: google_apis
+          arch: x86_64
+          profile: pixel_6
+          ram-size: 4096M
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          disable-animations: true
+          script: >-
+            ./gradlew ${{ matrix.args }}
+            -Dorg.gradle.jvmargs="-Xmx6g -XX:MaxMetaspaceSize=1g -Dfile.encoding=UTF-8"
+            ${{ matrix.task }}
+
+      # always(): the reports are most wanted exactly when the run failed. For the release run they
+      # also carry R8's mapping and usage files, which are how a NoClassDefFoundError gets traced
+      # back to the rule that should have kept the class.
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: instrumented-${{ matrix.variant }}
+          path: |
+            app/build/reports/androidTests/
+            app/build/outputs/androidTest-results/
+            app/build/outputs/mapping/
+          retention-days: 7
+
+      - name: Remove the throwaway signing key
+        if: always() && matrix.variant == 'release'
+        run: rm -f keystore.properties "$RUNNER_TEMP/ci.jks"
