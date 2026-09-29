@@ -1,0 +1,807 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="release" tests="201">
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case0">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case1">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case2">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case3">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case4">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case5">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case6">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case7">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case8">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case9">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case10">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case11">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case12">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case13">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case14">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case15">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case16">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case17">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case18">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case19">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case20">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case21">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case22">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case23">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case24">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case25">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case26">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case27">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case28">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case29">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case30">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case31">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case32">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case33">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case34">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case35">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case36">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case37">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case38">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case39">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case40">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case41">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case42">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case43">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case44">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case45">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case46">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case47">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case48">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case49">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case50">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case51">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case52">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case53">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case54">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case55">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case56">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case57">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case58">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case59">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case60">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case61">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case62">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case63">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case64">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case65">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case66">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case67">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case68">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case69">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case70">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case71">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case72">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case73">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case74">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case75">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case76">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case77">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case78">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case79">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case80">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case81">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case82">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case83">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case84">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case85">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case86">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case87">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case88">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case89">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case90">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case91">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case92">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case93">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case94">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case95">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case96">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case97">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case98">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case99">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case100">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case101">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case102">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case103">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case104">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case105">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case106">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case107">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case108">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case109">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case110">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case111">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case112">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case113">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case114">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case115">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case116">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case117">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case118">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case119">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case120">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case121">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case122">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case123">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case124">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case125">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case126">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case127">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case128">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case129">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case130">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case131">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case132">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case133">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case134">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case135">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case136">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case137">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case138">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case139">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case140">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case141">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case142">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case143">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case144">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case145">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case146">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case147">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case148">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case149">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case150">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case151">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case152">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case153">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case154">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case155">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case156">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case157">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case158">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case159">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case160">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case161">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case162">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case163">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case164">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case165">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case166">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case167">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case168">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case169">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case170">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case171">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case172">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case173">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case174">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case175">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case176">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case177">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case178">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case179">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case180">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case181">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case182">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case183">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case184">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case185">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case186">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case187">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case188">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case189">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case190">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case191">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case192">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case193">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case194">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case195">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case196">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case197">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case198">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case199">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.data.FamilyRepositoryTest" name="case200">
+    <error>java.lang.ClassNotFoundException: androidx.room.Room
+	at com.vibethroughcode.ftree.data.FamilyRepositoryTest.setUp(Unknown)</error>
+  </testcase>
+</testsuite>

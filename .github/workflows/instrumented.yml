@@ -1,0 +1,206 @@
+name: Instrumented tests
+
+# The instrumented suite has never run anywhere but a developer's own phone (#260). It runs here on
+# an emulator, twice: once against the debug build everybody already tests against, and once against
+# the minified release build, which is the half that matters -- R8 is a real risk to the reflective
+# paths the book leans on, and #297 was exactly that kind of break reaching a phone unnoticed.
+on:
+  # By hand as well as on a change. This job takes a quarter of an hour and its failures have been
+  # environmental as often as not, so being able to re-run it against a branch without inventing a
+  # commit to carry the request is worth the three lines.
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'app/**'
+      - 'site/book/**'
+      - '.github/workflows/instrumented.yml'
+  pull_request:
+    # Repeated rather than shared through a YAML anchor: Actions does not expand anchors.
+    paths:
+      - 'app/**'
+      - 'site/book/**'
+      - '.github/workflows/instrumented.yml'
+
+concurrency:
+  group: instrumented-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  connected:
+    # ubuntu-latest is the only hosted Linux runner with nested virtualisation, so it is the only
+    # one where an x86_64 emulator runs at hardware speed instead of by software emulation.
+    runs-on: ubuntu-latest
+
+    # A backstop, not a target: the debug suite takes about ten minutes. The release run has hung
+    # here with no output at all, and the default six-hour limit means a hang like that burns an
+    # afternoon of runner time before anyone is told. The `timeout` inside the script below is the
+    # one that should normally fire, because it leaves time for the diagnostics to print.
+    timeout-minutes: 45
+
+    strategy:
+      # The release run is the experiment here. If it fails, the debug run's result is exactly the
+      # information needed to tell an R8 problem apart from a broken test, so never cancel it.
+      fail-fast: false
+      matrix:
+        include:
+          - variant: debug
+            task: ':app:connectedDebugAndroidTest'
+            args: ''
+          - variant: release
+            task: ':app:connectedReleaseAndroidTest'
+            args: '-Pftree.testBuildType=release'
+
+    name: ${{ matrix.variant }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # /dev/kvm is root-only on the runner image. Without this the emulator silently falls back to
+      # software rendering and the suite times out rather than failing.
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' \
+            | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      # Same two-step as ci.yml: the action installs cmdline-tools and accepts the licences, and AGP
+      # installs platform 37 itself because the runner's cmdline-tools cannot resolve its id.
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      # A release build is unsigned when keystore.properties is absent -- release.yml has a step
+      # whose whole job is to catch that -- and an unsigned APK will not install, so the release run
+      # would fail at `adb install` before a test ran. This key is a throwaway made on the runner and
+      # thrown away with it: it signs nothing that leaves this job, and the real signing secrets are
+      # deliberately not exposed here, where pull requests can reach.
+      - name: Make a throwaway signing key
+        if: matrix.variant == 'release'
+        run: |
+          keytool -genkeypair -v -keystore "$RUNNER_TEMP/ci.jks" \
+            -storepass ci-password -keypass ci-password \
+            -alias ci -keyalg RSA -keysize 2048 -validity 30 \
+            -dname 'CN=f-tree CI, OU=CI, O=f-tree, C=IN'
+          cat > keystore.properties <<EOF
+          storeFile=$RUNNER_TEMP/ci.jks
+          storePassword=ci-password
+          keyAlias=ci
+          keyPassword=ci-password
+          EOF
+
+      # Built before the emulator starts, not inside the `script` below: R8 on the release variant is
+      # the memory-hungriest thing in this job, and running it while an emulator holds its own RAM is
+      # how the release build dies locally. This also keeps the emulator from idling through a build.
+      - name: Assemble
+        run: >-
+          ./gradlew ${{ matrix.args }}
+          -Dorg.gradle.jvmargs="-Xmx6g -XX:MaxMetaspaceSize=1g -Dfile.encoding=UTF-8"
+          :app:assemble${{ matrix.variant == 'release' && 'Release' || 'Debug' }}
+          :app:assemble${{ matrix.variant == 'release' && 'Release' || 'Debug' }}AndroidTest
+
+      # The build daemons do not exit on their own, and after the assemble above the Gradle and
+      # Kotlin ones are each sitting on gigabytes they grew during compilation and R8. Left alive
+      # they are still holding it when the emulator asks for its 4G, and on a 16G runner the kernel
+      # picks qemu to kill -- the emulator vanishes mid-suite and every remaining test is reported
+      # as "device not found". Stopping them here is what makes room for the emulator.
+      - name: Stop the build daemons
+        run: ./gradlew --stop
+
+      # API 36, matching targetSdk, and google_apis rather than aosp_atd because the book is laid
+      # out by a real WebView, which the atd images leave out.
+      #
+      # 34 was tried first, on the theory that an older level would have fewer surprises. It had
+      # one: `BookFlowTest.theStorybookReallyFeaturesOnePerson` took the whole emulator down with
+      # it, twice, at exactly the same test, with 13G of the runner's 15G free and swap untouched
+      # -- so not the host running out of memory, and not a flake either. 36 is the level this app
+      # is known to run on, and the one it targets, which makes it the level worth spending CI
+      # minutes on; 34 is a level nothing else here exercises.
+      - name: ${{ matrix.task }}
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 36
+          target: google_apis
+          arch: x86_64
+          profile: pixel_6
+          # 6G rather than 4, and plain `swiftshader` rather than `swiftshader_indirect`: the
+          # first of two attempts at the crash described above. logcat stops dead, with no FATAL,
+          # no lowmemorykiller and nothing from the app, seconds after Chromium's sandboxed
+          # WebView renderer starts -- the emulator process itself is going, host-side, not the
+          # guest killing something. `theStorybookReallyFeaturesOnePerson` is the peak-load moment
+          # of the suite (a full storybook recompose: WebView plus eleven pages of vector art
+          # through software GL) and it passes 8/8 on a physical device, so an emulator ceiling is
+          # the likelier reading than a product defect.
+          ram-size: 6144M
+          emulator-options: -no-window -gpu swiftshader -noaudio -no-boot-anim -camera-back none
+          disable-animations: true
+          # Every line here is run as its own `sh -c` by the action, so each one has to stand
+          # alone: no backslash continuations (they are passed to Gradle as a task named `\`), and
+          # nothing carried in a shell variable from the line before. Hence the one long line.
+          #
+          # --no-daemon and a 3g ceiling: everything is already built by now, so Gradle is only
+          # orchestrating the run and has no reason to hold a six-gigabyte heap beside the emulator.
+          # logcat is captured because when the emulator dies the Gradle output says only "device
+          # not found" -- the reason, if there is one to see, is on the device. The memory and disk
+          # either side of the run are printed for the same reason, the `after` pair reached through
+          # $status so that it is still printed when the run is the thing that failed.
+          #
+          # `timeout` rather than leaving it to the job's own limit: a hung run killed by the job
+          # timeout prints nothing, and the whole point of the lines after it is to say why it hung.
+          # The release run has sat silent here for 79 minutes without reaching its first test, so
+          # the grep below exists to get that story into the job log, where it can be read without
+          # downloading an artifact. Kept to forty lines, and matched on this app and its runner
+          # rather than on anything that looks like a crash: a wider net buried the actual failure
+          # under a screenful of unrelated system chatter.
+          script: |
+            adb logcat -G 16M
+            adb logcat -v time > "$GITHUB_WORKSPACE/logcat-${{ matrix.variant }}.txt" 2>&1 &
+            echo '--- before ---'; free -h; df -h /
+            timeout 1500 ./gradlew ${{ matrix.args }} --no-daemon -Dorg.gradle.jvmargs="-Xmx3g -XX:MaxMetaspaceSize=1g -Dfile.encoding=UTF-8" ${{ matrix.task }}; status=$?; echo "--- gradle exit $status (124 = timed out) ---"; echo '--- after ---'; free -h; df -h /; echo '--- logcat: the app and its runner ---'; grep -aE 'ftree|AndroidJUnitRunner|MonitoringInstr|FATAL EXCEPTION|NoClassDefFoundError|ClassNotFoundException|VerifyError|lowmemorykiller' "$GITHUB_WORKSPACE/logcat-${{ matrix.variant }}.txt" | tail -40; exit $status
+
+      # The results, read out of the XML by a parser with a fixture beside it rather than by a
+      # line of grep. The grep this replaces counted `<failure ` with a trailing space, and UTP
+      # writes `<failure>` with none, so a release run where all 201 tests errored on a missing
+      # class printed "failed: 0" and read as a pass. The selftest runs first so that cannot
+      # quietly come back.
+      - name: What failed
+        if: always()
+        run: |
+          python3 .github/scripts/test-summary.py --selftest
+          python3 .github/scripts/test-summary.py app/build/outputs/androidTest-results/connected
+
+      # Every class the test APK names that R8 removed from the app, derived in one build by
+      # diffing the test APK's dex type table against usage.txt -- rather than one class per
+      # quarter-hour run, which never says how many are left.
+      - name: What R8 removed that the tests need
+        if: always() && matrix.variant == 'release'
+        run: |
+          python3 .github/scripts/missing-under-test.py \
+            app/build/outputs/apk/androidTest/release/app-release-androidTest.apk \
+            app/build/outputs/mapping/release/usage.txt
+
+      # always(): the reports are most wanted exactly when the run failed. For the release run they
+      # also carry R8's mapping and usage files, which are how a NoClassDefFoundError gets traced
+      # back to the rule that should have kept the class.
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: instrumented-${{ matrix.variant }}
+          path: |
+            app/build/reports/androidTests/
+            app/build/outputs/androidTest-results/
+            app/build/outputs/mapping/
+            logcat-${{ matrix.variant }}.txt
+          retention-days: 7
+
+      - name: Remove the throwaway signing key
+        if: always() && matrix.variant == 'release'
+        run: rm -f keystore.properties "$RUNNER_TEMP/ci.jks"
