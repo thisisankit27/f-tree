@@ -516,6 +516,17 @@ function portraitHero(ctx, page, story) {
   const left = (W - (people.length * width + gap)) / 2;
   const boxes = people.map((p, i) => frameOuter(id, left + i * (width + gap), top, width));
 
+  /*
+   * A departed hero's mala hangs below the frame, never across the person (round 2, finding 1),
+   * so the name stack under it starts further down by the same drop.
+   *
+   * #287: the drop was taken per person, so on a page with one departed partner and one living
+   * one the two name stacks sat about 110 pt apart and the pair looked unfinished. One drop for
+   * the page, taken from whether anyone on it is departed, keeps the two baselines level. Every
+   * box on the page is the same width, so the opening is the same size in each.
+   */
+  const drop = arches && people.some((p) => p?.deceased) ? MALA_DROP * openingIn(id, boxes[0]).w : 0;
+
   let lowest = top;
   let noted = false;
   people.forEach((p, i) => {
@@ -524,17 +535,19 @@ function portraitHero(ctx, page, story) {
     // Round 2, finding 14: two arches side by side used to be a mirror of each other - the same
     // view, the same sun's side, the same cusping. The second person's whole frame (the jharokha's
     // own cusped silhouette included) turns around its own box, and its view is its own seed.
+    //
+    // #287, finding 14: the view is drawn unmirrored and the group flip below does the turning.
+    // Passing `mirror` here as well put the sun on the left and then the flip put it back, so the
+    // two negations cancelled and both suns landed on the same side - the copy-and-paste the
+    // round 2 fix was for, still there behind a mirror that mirrored nothing.
     const mirror = arches && i === 1;
     const framed = framedPerson(ctx, p, {
       id: p?.photo && ctx.options.photos && !arches ? 'medallion-carved' : id,
       outer, hero: arches, gen: story.kin.people.get(p?.id)?.gen ?? null, featuredBy: family.byId.get(story.kin.featured)?.by ?? null,
-      view: arches ? view(ctx, opening, { mirror, seed: p?.id ?? `${seed} ${i}` }) : [],
+      view: arches ? view(ctx, opening, { seed: p?.id ?? `${seed} ${i}` }) : [],
     });
     if (mirror) items.push(group(framed, { tf: [-1, 0, 0, 1, 2 * (outer.x + outer.w / 2), 0] }));
     else items.push(...framed);
-    // A departed hero's mala now hangs below the frame, never across the person (round 2, finding
-    // 1) - which means the name stack under it has to start further down, by the same drop.
-    const drop = arches && p?.deceased ? MALA_DROP * opening.w : 0;
     const stack = nameStack(ctx, story, p, { cx: outer.x + outer.w / 2, y: outer.y + outer.h + (arches ? 30 : 40) + drop, width: width + gap / 2, featuredName });
     items.push(...stack.items);
     lowest = Math.max(lowest, stack.bottom);

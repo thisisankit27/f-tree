@@ -550,14 +550,43 @@ test('finding 13: the handmade paper’s clouds composite as one layer, not one 
   assert.ok(g.items.every((it) => it.op === undefined), 'a cloud still carries its own opacity, which compounds where two overlap');
 });
 
-test('finding 14: a two-person portrait hero draws its two arches as a pair, not a mirror of itself', async () => {
+test('finding 14: the two arches turn to face each other, so the suns do not land on the same side', async () => {
+  /*
+   * Round 2 turned the second arch's whole group AND passed `mirror` into its view. The two
+   * negations cancelled - the sun moved left, the flip put it back - so both suns sat on the same
+   * side of their arches and the pair still read as a copy and a paste. The old test here asserted
+   * only that *some* group carried tf[0] === -1, which the bug passed, so it never said anything.
+   *
+   * The view is drawn unmirrored now and the group flip alone does the turning, which puts the two
+   * suns symmetrically about the page's spine. That is the property worth pinning: it is false the
+   * moment either half of the mirroring comes back.
+   */
   const { family } = await compose('story-eldest');
   const two = family.people.filter((p) => p.name).slice(0, 2).map((p) => p.id);
   const pages = insteadOf('gathering', 'portrait-hero', { variant: 'arch', density: 'hero', people: two });
   const { book, report } = await compose('story-eldest', {}, pages);
-  const page = pageOf(report, 'portrait-hero');
-  const mirrored = book.pages[page.page - 1].items.some((it) => it.t === 'group' && it.tf && it.tf[0] === -1);
-  assert.ok(mirrored, 'neither arch is mirrored - the pair still reads as a copy and a paste');
+  const page = book.pages[pageOf(report, 'portrait-hero').page - 1];
+
+  assert.ok(page.items.some((it) => it.t === 'group' && it.tf && it.tf[0] === -1),
+    'neither arch is mirrored - the pair still reads as a copy and a paste');
+
+  /*
+   * Every sun on the page in page coordinates. A flipped group maps x to (e - x), where e is the
+   * transform's own translate. The suns are the flame discs the views draw; the faint flame circles
+   * at the spine are the diya's halo between a couple, which is why opacity tells them apart.
+   */
+  const suns = [];
+  const walk = (items, flip) => {
+    for (const it of items ?? []) {
+      if (it.t === 'group') walk(it.items, it.tf && it.tf[0] === -1 ? it.tf[4] : flip);
+      else if (it.t === 'circle' && it.fill === PAPERCUT_PALETTE.flame && it.op > 0.5) suns.push(flip === null ? it.cx : flip - it.cx);
+    }
+  };
+  walk(page.items, null);
+  assert.equal(suns.length, 2, `expected one sun in each arch, found ${suns.length}`);
+
+  const off = Math.abs((suns[0] + suns[1]) / 2 - PAGE.w / 2);
+  assert.ok(off < 3, `the two suns sit ${off.toFixed(1)} pt off the page's spine, so both are on the same side of their own arch`);
 });
 
 test('finding 16: the sill diyas have a darker halo to sit against, not pale flame on a pale wall', async () => {
