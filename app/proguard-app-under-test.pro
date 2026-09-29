@@ -37,6 +37,25 @@
 -dontwarn androidx.compose.**
 -keep class kotlin.** { *; }
 -keep class kotlinx.coroutines.** { *; }
+# The instrumented tests name app types, and R8 is free to restructure them. It removes the three
+# Room DAO interfaces outright -- usage.txt lists 37 entries for RelationshipDao and 33 for
+# PersonDao, while mapping.txt shows only their generated _Impl classes surviving -- which is
+# vertical merging of an interface that has exactly one implementation.
+#
+# That is correct, and it is NOT a bug in the shipping app: nothing in the app looks these up by
+# name, so R8 rewrites every reference consistently and release builds work. It breaks only the
+# test APK, which asks for `com.vibethroughcode.ftree.data.RelationshipDao` through reflection on
+# a DAO accessor's return type. Remapping cannot rescue that -- a class merged away has no mapping
+# target to rewrite to -- so the interface has to survive in the APK under test.
+#
+# Three interfaces, named by shape rather than a package wildcard, so the rest of the data layer
+# (and every other package the app owns) keeps being shrunk, renamed and merged.
+-keep interface com.vibethroughcode.ftree.data.*Dao { *; }
+
+# ViewTreeLifecycleOwner is the other half of the Compose test rule's reach into the app.
+-keep class androidx.lifecycle.ViewTree* { *; }
+-keep class androidx.savedstate.ViewTree* { *; }
+
 -dontwarn androidx.tracing.**
 -dontwarn kotlin.**
 -dontwarn kotlinx.coroutines.**

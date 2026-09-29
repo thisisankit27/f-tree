@@ -177,7 +177,7 @@ jobs:
         if: always() && matrix.variant == 'release'
         run: |
           m=app/build/outputs/mapping/release
-          for c in RelationshipDao PersonDao FamilyDatabase; do
+          for c in RelationshipDao PersonDao PersonOriginDao FTreeDatabase; do
             echo "== $c =="
             echo "  removed (usage.txt):  $(grep -c "$c" $m/usage.txt 2>/dev/null || echo 0)"
             echo "  renamed (mapping.txt):"; grep -m3 "$c" $m/mapping.txt 2>/dev/null | sed 's/^/    /'
