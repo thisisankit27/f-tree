@@ -97,6 +97,14 @@ jobs:
           :app:assemble${{ matrix.variant == 'release' && 'Release' || 'Debug' }}
           :app:assemble${{ matrix.variant == 'release' && 'Release' || 'Debug' }}AndroidTest
 
+      # The build daemons do not exit on their own, and after the assemble above the Gradle and
+      # Kotlin ones are each sitting on gigabytes they grew during compilation and R8. Left alive
+      # they are still holding it when the emulator asks for its 4G, and on a 16G runner the kernel
+      # picks qemu to kill -- the emulator vanishes mid-suite and every remaining test is reported
+      # as "device not found". Stopping them here is what makes room for the emulator.
+      - name: Stop the build daemons
+        run: ./gradlew --stop
+
       # API 34 rather than targetSdk's 36: this is the project's first emulator job, and a level with
       # fewer boot and rendering surprises is worth more than matching the ship target. google_apis
       # rather than aosp_atd because the book is laid out by a real WebView, which the atd images
@@ -112,10 +120,19 @@ jobs:
           ram-size: 4096M
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
           disable-animations: true
-          script: >-
-            ./gradlew ${{ matrix.args }}
-            -Dorg.gradle.jvmargs="-Xmx6g -XX:MaxMetaspaceSize=1g -Dfile.encoding=UTF-8"
-            ${{ matrix.task }}
+          # --no-daemon and a 3g ceiling: everything is already built by now, so Gradle is only
+          # orchestrating the run and has no reason to hold a six-gigabyte heap beside the emulator.
+          # logcat is captured because when the emulator dies the Gradle output says only "device
+          # not found" -- the reason, if there is one to see, is on the device.
+          script: |
+            adb logcat -G 16M
+            adb logcat -v time > "$GITHUB_WORKSPACE/logcat-${{ matrix.variant }}.txt" 2>&1 &
+            echo '--- before ---'; free -h; df -h /
+            ./gradlew ${{ matrix.args }} --no-daemon \
+              -Dorg.gradle.jvmargs="-Xmx3g -XX:MaxMetaspaceSize=1g -Dfile.encoding=UTF-8" \
+              ${{ matrix.task }}; status=$?
+            echo '--- after ---'; free -h; df -h /
+            exit $status
 
       # always(): the reports are most wanted exactly when the run failed. For the release run they
       # also carry R8's mapping and usage files, which are how a NoClassDefFoundError gets traced
@@ -128,6 +145,7 @@ jobs:
             app/build/reports/androidTests/
             app/build/outputs/androidTest-results/
             app/build/outputs/mapping/
+            logcat-${{ matrix.variant }}.txt
           retention-days: 7
 
       - name: Remove the throwaway signing key
