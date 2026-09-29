@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="debug" tests="3">
+  <testcase classname="com.vibethroughcode.ftree.ui.BookFlowTest" name="passes"/>
+  <testcase classname="com.vibethroughcode.ftree.ui.BookFlowTest" name="disagrees">
+    <failure message="expected:&lt;2&gt; but was:&lt;3&gt;" type="junit.framework.AssertionFailedError">junit.framework.AssertionFailedError</failure>
+  </testcase>
+  <testcase classname="com.vibethroughcode.ftree.ui.BookFlowTest" name="cannotRun">
+    <error>java.lang.NoSuchMethodError: No virtual method getDatabase()</error>
+  </testcase>
+</testsuite>

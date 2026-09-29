@@ -131,8 +131,16 @@ jobs:
           target: google_apis
           arch: x86_64
           profile: pixel_6
-          ram-size: 4096M
-          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          # 6G rather than 4, and plain `swiftshader` rather than `swiftshader_indirect`: the
+          # first of two attempts at the crash described above. logcat stops dead, with no FATAL,
+          # no lowmemorykiller and nothing from the app, seconds after Chromium's sandboxed
+          # WebView renderer starts -- the emulator process itself is going, host-side, not the
+          # guest killing something. `theStorybookReallyFeaturesOnePerson` is the peak-load moment
+          # of the suite (a full storybook recompose: WebView plus eleven pages of vector art
+          # through software GL) and it passes 8/8 on a physical device, so an emulator ceiling is
+          # the likelier reading than a product defect.
+          ram-size: 6144M
+          emulator-options: -no-window -gpu swiftshader -noaudio -no-boot-anim -camera-back none
           disable-animations: true
           # Every line here is run as its own `sh -c` by the action, so each one has to stand
           # alone: no backslash continuations (they are passed to Gradle as a task named `\`), and
@@ -158,40 +166,26 @@ jobs:
             echo '--- before ---'; free -h; df -h /
             timeout 1500 ./gradlew ${{ matrix.args }} --no-daemon -Dorg.gradle.jvmargs="-Xmx3g -XX:MaxMetaspaceSize=1g -Dfile.encoding=UTF-8" ${{ matrix.task }}; status=$?; echo "--- gradle exit $status (124 = timed out) ---"; echo '--- after ---'; free -h; df -h /; echo '--- logcat: the app and its runner ---'; grep -aE 'ftree|AndroidJUnitRunner|MonitoringInstr|FATAL EXCEPTION|NoClassDefFoundError|ClassNotFoundException|VerifyError|lowmemorykiller' "$GITHUB_WORKSPACE/logcat-${{ matrix.variant }}.txt" | tail -40; exit $status
 
-      # The results, small enough to read in the job log. Errors are counted separately from
-      # failures because they are a separate XML element: a run where every test errored on a
-      # missing class reads as "failed: 0" if only <failure> is counted, which is the opposite of
-      # what happened.
-      #
-      # The XML is the only place that says how
-      # many tests actually ran, and the distinct missing classes matter far more than the hundreds
-      # of stack traces that repeat them -- reading those back out of a 700KB artifact, or out of a
-      # log long enough to be truncated, cost more than one wrong conclusion here.
+      # The results, read out of the XML by a parser with a fixture beside it rather than by a
+      # line of grep. The grep this replaces counted `<failure ` with a trailing space, and UTP
+      # writes `<failure>` with none, so a release run where all 201 tests errored on a missing
+      # class printed "failed: 0" and read as a pass. The selftest runs first so that cannot
+      # quietly come back.
       - name: What failed
         if: always()
         run: |
-          results=app/build/outputs/androidTest-results/connected
-          echo "ran:    $(grep -roh '<testcase ' $results 2>/dev/null | wc -l)"
-          echo "failed: $(grep -roh '<failure ' $results 2>/dev/null | wc -l)"
-          echo "errored: $(grep -roh '<error ' $results 2>/dev/null | wc -l)"
-          echo '--- classes the run could not resolve ---'
-          grep -roh 'ClassNotFoundException: [A-Za-z0-9_.$]*' $results 2>/dev/null | sort | uniq -c | sort -rn | head -25
-          echo '--- failing tests ---'
-          grep -roh 'classname="[^"]*" name="[^"]*"' $results 2>/dev/null | sort -u | head -40
+          python3 .github/scripts/test-summary.py --selftest
+          python3 .github/scripts/test-summary.py app/build/outputs/androidTest-results/connected
 
-      # R8 keeps two records, and between them they say whether a class the run could not find was
-      # removed or merely renamed -- which is the difference between a shrinking problem in the app
-      # and the test APK looking up a name that no longer exists. Worth printing rather than
-      # guessing: `usage.txt` lists what R8 discarded, `mapping.txt` what it renamed.
-      - name: Did R8 drop it or rename it
+      # Every class the test APK names that R8 removed from the app, derived in one build by
+      # diffing the test APK's dex type table against usage.txt -- rather than one class per
+      # quarter-hour run, which never says how many are left.
+      - name: What R8 removed that the tests need
         if: always() && matrix.variant == 'release'
         run: |
-          m=app/build/outputs/mapping/release
-          for c in RelationshipDao PersonDao PersonOriginDao FTreeDatabase; do
-            echo "== $c =="
-            echo "  removed (usage.txt):  $(grep -c "$c" $m/usage.txt 2>/dev/null || echo 0)"
-            echo "  renamed (mapping.txt):"; grep -m3 "$c" $m/mapping.txt 2>/dev/null | sed 's/^/    /'
-          done
+          python3 .github/scripts/missing-under-test.py \
+            app/build/outputs/apk/androidTest/release/app-release-androidTest.apk \
+            app/build/outputs/mapping/release/usage.txt
 
       # always(): the reports are most wanted exactly when the run failed. For the release run they
       # also carry R8's mapping and usage files, which are how a NoClassDefFoundError gets traced
