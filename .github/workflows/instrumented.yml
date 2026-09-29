@@ -152,7 +152,36 @@ jobs:
             adb logcat -G 16M
             adb logcat -v time > "$GITHUB_WORKSPACE/logcat-${{ matrix.variant }}.txt" 2>&1 &
             echo '--- before ---'; free -h; df -h /
-            timeout 1500 ./gradlew ${{ matrix.args }} --no-daemon -Dorg.gradle.jvmargs="-Xmx3g -XX:MaxMetaspaceSize=1g -Dfile.encoding=UTF-8" ${{ matrix.task }}; status=$?; echo "--- gradle exit $status (124 = timed out) ---"; echo '--- after ---'; free -h; df -h /; echo '--- installed packages ---'; adb shell pm list packages | grep -i ftree; echo '--- logcat: the app and its runner ---'; grep -aE 'ftree|AndroidJUnitRunner|MonitoringInstr|FATAL EXCEPTION|NoClassDefFoundError|ClassNotFoundException|VerifyError|lowmemorykiller' "$GITHUB_WORKSPACE/logcat-${{ matrix.variant }}.txt" | tail -40; exit $status
+            timeout 1500 ./gradlew ${{ matrix.args }} --no-daemon -Dorg.gradle.jvmargs="-Xmx3g -XX:MaxMetaspaceSize=1g -Dfile.encoding=UTF-8" ${{ matrix.task }}; status=$?; echo "--- gradle exit $status (124 = timed out) ---"; echo '--- after ---'; free -h; df -h /; echo '--- logcat: the app and its runner ---'; grep -aE 'ftree|AndroidJUnitRunner|MonitoringInstr|FATAL EXCEPTION|NoClassDefFoundError|ClassNotFoundException|VerifyError|lowmemorykiller' "$GITHUB_WORKSPACE/logcat-${{ matrix.variant }}.txt" | tail -40; exit $status
+
+      # The results, small enough to read in the job log. The XML is the only place that says how
+      # many tests actually ran, and the distinct missing classes matter far more than the hundreds
+      # of stack traces that repeat them -- reading those back out of a 700KB artifact, or out of a
+      # log long enough to be truncated, cost more than one wrong conclusion here.
+      - name: What failed
+        if: always()
+        run: |
+          results=app/build/outputs/androidTest-results/connected
+          echo "ran:    $(grep -roh '<testcase ' $results 2>/dev/null | wc -l)"
+          echo "failed: $(grep -roh '<failure ' $results 2>/dev/null | wc -l)"
+          echo '--- classes the run could not resolve ---'
+          grep -roh 'ClassNotFoundException: [A-Za-z0-9_.$]*' $results 2>/dev/null | sort | uniq -c | sort -rn | head -25
+          echo '--- failing tests ---'
+          grep -roh 'classname="[^"]*" name="[^"]*"' $results 2>/dev/null | sort -u | head -40
+
+      # R8 keeps two records, and between them they say whether a class the run could not find was
+      # removed or merely renamed -- which is the difference between a shrinking problem in the app
+      # and the test APK looking up a name that no longer exists. Worth printing rather than
+      # guessing: `usage.txt` lists what R8 discarded, `mapping.txt` what it renamed.
+      - name: Did R8 drop it or rename it
+        if: always() && matrix.variant == 'release'
+        run: |
+          m=app/build/outputs/mapping/release
+          for c in RelationshipDao PersonDao FamilyDatabase; do
+            echo "== $c =="
+            echo "  removed (usage.txt):  $(grep -c "$c" $m/usage.txt 2>/dev/null || echo 0)"
+            echo "  renamed (mapping.txt):"; grep -m3 "$c" $m/mapping.txt 2>/dev/null | sed 's/^/    /'
+          done
 
       # always(): the reports are most wanted exactly when the run failed. For the release run they
       # also carry R8's mapping and usage files, which are how a NoClassDefFoundError gets traced
