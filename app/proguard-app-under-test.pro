@@ -25,6 +25,16 @@
 # fully shrunk, renamed and optimised in the APK under test -- that is where #297-shaped breakage
 # lives, and keeping this file off it is what makes the release run worth running.
 -keep class androidx.tracing.** { *; }
+# Compose's test infrastructure lives in the test APK but drives Compose through classes that live
+# in the app. Two of them showed up as 79 failures across every Compose UI test, and nothing else:
+#   androidx.compose.ui.platform.InfiniteAnimationPolicy  - how the test rule stops the clock
+#   androidx.compose.runtime.Composer                     - reached by name, so renaming breaks it
+# Kept per package because ViewRootForTest and the rest of the synchronisation surface sit beside
+# them and would each cost another emulator run to discover. Compose's foundation, material,
+# animation and ui packages are NOT kept, and neither is any app code.
+-keep class androidx.compose.ui.platform.** { *; }
+-keep class androidx.compose.runtime.** { *; }
+-dontwarn androidx.compose.**
 -keep class kotlin.** { *; }
 -keep class kotlinx.coroutines.** { *; }
 -dontwarn androidx.tracing.**
