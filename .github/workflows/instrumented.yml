@@ -105,15 +105,19 @@ jobs:
       - name: Stop the build daemons
         run: ./gradlew --stop
 
-      # API 34 rather than targetSdk's 36: this is the project's first emulator job, and a level with
-      # fewer boot and rendering surprises is worth more than matching the ship target. google_apis
-      # rather than aosp_atd because the book is laid out by a real WebView, which the atd images
-      # leave out. If 34 ever misbehaves, move to 36 -- the app is known to run there -- rather than
-      # widening this into a matrix.
+      # API 36, matching targetSdk, and google_apis rather than aosp_atd because the book is laid
+      # out by a real WebView, which the atd images leave out.
+      #
+      # 34 was tried first, on the theory that an older level would have fewer surprises. It had
+      # one: `BookFlowTest.theStorybookReallyFeaturesOnePerson` took the whole emulator down with
+      # it, twice, at exactly the same test, with 13G of the runner's 15G free and swap untouched
+      # -- so not the host running out of memory, and not a flake either. 36 is the level this app
+      # is known to run on, and the one it targets, which makes it the level worth spending CI
+      # minutes on; 34 is a level nothing else here exercises.
       - name: ${{ matrix.task }}
         uses: reactivecircus/android-emulator-runner@v2
         with:
-          api-level: 34
+          api-level: 36
           target: google_apis
           arch: x86_64
           profile: pixel_6
