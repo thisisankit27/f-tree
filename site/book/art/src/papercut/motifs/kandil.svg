@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -2 60 72" data-anchor="top-center">
-<desc>An akash kandil: the star-cut paper lantern hung at Diwali, lit from inside, its paper tails below. From motifs.mjs kandil() (#240). Original f-tree work.</desc>
+<desc>An akash kandil: the star-cut paper lantern hung at Diwali, lit from inside, its paper tails below. From motifs.mjs kandil() (#240). Original f-tree work, MIT.</desc>
 <path d="M30 -2L30 9.6" fill="none" stroke="#f2b84b" stroke-width="0.8"/>
 <circle cx="30" cy="22" r="30" fill="#f2b84b" opacity="0.05"/>
 <circle cx="30" cy="22" r="25.2" fill="#f2b84b" opacity="0.06"/>
