@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" data-anchor="bottom-center">
-<desc>The back of a head and both ears: nothing of a face. The ears are their own cut, a tone darker than the head - cut in the same skin they were invisible against it (#287, finding 10). A cut shared by the heroes seen from behind (motifs.mjs backBust(), #240). Original f-tree work, MIT.</desc>
+<desc>The back of a head and both ears: nothing of a face. The ears are their own cut, a tone darker than the head - cut in the same skin they were invisible against it (#287, finding 10). A cut shared by the heroes seen from behind (motifs.mjs backBust(), #240). Original f-tree work.</desc>
 <defs><ellipse id="ear" cx="37.44" cy="40.06" rx="2.47" ry="4.13" fill="#b5562a"/></defs>
 <use href="#ear" fill="#2a1a33" opacity="0.15" x="0.8" y="1.1"/>
 <use href="#ear"/>
