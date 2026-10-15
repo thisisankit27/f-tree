@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" data-anchor="center">
-<desc>A faceless head and its ears, with the paper shadow it casts and the shade on its far side: no features, ever. A cut shared by the front busts (motifs.mjs bust(), #240). Original f-tree work, MIT.</desc>
+<desc>A faceless head and its ears, with the paper shadow it casts and the shade on its far side: no features, ever. A cut shared by the front busts (motifs.mjs bust(), #240). Original f-tree work.</desc>
 <defs><ellipse id="head" cx="50" cy="47.199999999999996" rx="13.200000000000001" ry="16" fill="#b97a52"/></defs>
 <circle cx="37.06" cy="48.48" r="2.64" fill="#b97a52"/>
 <circle cx="62.94" cy="48.48" r="2.64" fill="#b97a52"/>

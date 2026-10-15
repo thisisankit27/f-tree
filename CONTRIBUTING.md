@@ -174,4 +174,14 @@ By taking part you agree to the [Code of Conduct](CODE_OF_CONDUCT.md).
 
 ## Licence
 
-Contributions are accepted under the [MIT Licence](LICENSE), the same terms as the project.
+f-tree is under the [PolyForm Noncommercial License 1.0.0](LICENSE). By opening a pull request you
+agree that your contribution is licensed to the project, and to everyone who receives it, under those
+same terms, and that the maintainer may relicense it as the project's licence changes. Do not submit
+code you do not have the right to contribute.
+
+### Forks
+
+Forks are welcome for noncommercial use. If you build something worth keeping, open a pull request
+here rather than letting it live only in the fork; that is where the project's history is kept. A
+fork must keep the `Required Notice:` line in [LICENSE](LICENSE), must not be sold or used to earn
+money, and must not be released under the f-tree name or presented as the official app.

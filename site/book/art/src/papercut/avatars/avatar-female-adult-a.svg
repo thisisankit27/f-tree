@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" data-anchor="center">
-<desc>A faceless paper-cut bust of a woman, grown (variant a: saffron and peacock, long hair). Built from the shared bust-* cuts; converted from motifs.mjs bust() (#240). Original f-tree work, MIT.</desc>
+<desc>A faceless paper-cut bust of a woman, grown (variant a: saffron and peacock, long hair). Built from the shared bust-* cuts; converted from motifs.mjs bust() (#240). Original f-tree work.</desc>
 <rect data-zone="face" x="36.8" y="31.2" width="26.4" height="32"/>
 <g data-asset="bust-ground"/>
 <g data-asset="bust-hair-long"/>

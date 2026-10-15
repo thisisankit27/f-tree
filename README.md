@@ -6,7 +6,7 @@
 
 ### Your family tree — including the people nobody can name.
 
-**A free, offline, open-source family tree app for Android.**
+**A free, offline, source-available family tree app for Android.**
 Ask how any two people are related and it names the relationship, in English or Hindi, and draws the line between them.
 
 **No account. No server. No analytics. Nothing leaves your phone unless you send it.**
@@ -16,7 +16,7 @@ Ask how any two people are related and it names the relationship, in English or 
 [![Latest release](https://img.shields.io/github/v/release/thisisankit27/f-tree?style=for-the-badge&color=2a5138&labelColor=1a1c1a&label=release)](https://github.com/thisisankit27/f-tree/releases/latest)
 [![APK downloads](https://img.shields.io/github/downloads/thisisankit27/f-tree/total?style=for-the-badge&color=8a6420&labelColor=1a1c1a&label=downloads)](https://github.com/thisisankit27/f-tree/releases)
 [![Stars](https://img.shields.io/github/stars/thisisankit27/f-tree?style=for-the-badge&color=8a6420&labelColor=1a1c1a&label=stars)](https://github.com/thisisankit27/f-tree/stargazers)
-[![License: MIT](https://img.shields.io/badge/license-MIT-2a5138?style=for-the-badge&labelColor=1a1c1a)](LICENSE)
+[![License: PolyForm Noncommercial 1.0.0](https://img.shields.io/badge/license-PolyForm%20Noncommercial-2a5138?style=for-the-badge&labelColor=1a1c1a)](LICENSE)
 
 [![CI](https://img.shields.io/github/actions/workflow/status/thisisankit27/f-tree/ci.yml?branch=main&style=flat-square&label=CI&color=2a5138&labelColor=1a1c1a)](https://github.com/thisisankit27/f-tree/actions/workflows/ci.yml)
 [![Android 8.0+](https://img.shields.io/badge/Android-8.0%2B-2a5138?style=flat-square&labelColor=1a1c1a&logo=android&logoColor=white)](#install)
@@ -291,7 +291,14 @@ Start with [CONTRIBUTING.md](CONTRIBUTING.md) and the
 
 ## Licence
 
-[MIT](LICENSE) — use it, change it, ship it; just keep the copyright notice.
+[PolyForm Noncommercial 1.0.0](LICENSE) — read it, fork it, change it and use it for any noncommercial
+purpose (personal, family, hobby, research, education, charity). You may not sell it, use it to earn
+money, or release it as your own: keep the copyright notice and the licence with every copy. The name
+"f-tree" and the project's branding are not part of the grant; a fork needs its own name. Commercial
+use needs a separate licence from the author — open an issue to ask.
+
+This is a source-available licence, not an OSI "open source" one. Releases v0.1.1–v1.0.0 went out under
+the MIT licence and stay available on those terms. See [NOTICE](NOTICE) for third-party components.
 
 The bundled fonts (Literata, JetBrains Mono, and the family book's Rozha One and Mukta) are
 separately licensed under the SIL Open Font Licence 1.1. Their licence texts ship inside the app
