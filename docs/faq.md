@@ -8,7 +8,7 @@
 
 ### Is f-tree free?
 
-Yes. The source is public under the [PolyForm Noncommercial licence](../LICENSE), so it is free for personal and family use but not for resale. There is no paid tier, no subscription,
+Yes, and open source under the [MIT licence](../LICENSE). There is no paid tier, no subscription,
 no advertisement and no upsell. There is nothing to buy because there is no server to pay for.
 
 ### Is it on the Google Play Store?
@@ -90,7 +90,7 @@ limitation rather than an oversight; see the [security policy](../SECURITY.md).
 
 ### What happens to my tree if this project is abandoned?
 
-You keep it. It is on your device in a documented open format, the source is public, and there
+You keep it. It is on your device in a documented open format, the app is MIT-licensed, and there
 is no server whose shutdown could take anything with it.
 
 ---
@@ -320,7 +320,7 @@ version over a newer one. The next stable release does. Export your tree before 
 
 ### Who makes this?
 
-[Ankit Srivastava](https://github.com/thisisankit27). The source is public and contributions are
+[Ankit Srivastava](https://github.com/thisisankit27). It is MIT-licensed and contributions are
 welcome — see [CONTRIBUTING.md](../CONTRIBUTING.md).
 
 ### How can I help?

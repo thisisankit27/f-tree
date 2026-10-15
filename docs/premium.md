@@ -140,8 +140,8 @@ the day before a gate ships is a promise that outlives the release.
 | `:45` | The structured-data block's `"isAccessibleForFree": true`. |
 | `:46` | `"inLanguage": ["en", "hi"]` — not a claim about cost; listed only because it sits between the two lines that are, in the same JSON object, so the block is easy to find as a whole. |
 | `:47` | `"offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }` — the machine-readable price. Search engines and social previews read this, not just the visible page. |
-| `:165` | The hero eyebrow: *"Android, Windows & Linux · Free · No account · Source on GitHub."* |
-| `:535` | The last line of the "Nots" list: *"subscription, no trial, no upsell."* — the single most specific commitment on the page, and the one a gate would most directly contradict. |
+| `:165` | The hero eyebrow: *"Android, Windows & Linux · Free · No account · Open source."* |
+| `:535` | The last line of the "Nots" list: *"subscription, no trial, no upsell. MIT licence."* — the single most specific commitment on the page, and the one a gate would most directly contradict. |
 
 `:45` and `:47` matter in a way the visible copy does not: they are what a search engine or a
 social-media unfurl reads to decide how to describe this app to someone who has never seen the

@@ -44,8 +44,8 @@ art/
    particular relative. See *Principles* in the design system.
 6. **Deterministic.** Wobble and scatter come from `seeded()` with a seed made of the chapter and
    person ids, never the page number, so an unrelated edit doesn't reshuffle a picture.
-7. **Provenance.** Everything here is original work made for f-tree under the repository's
-   licence (see `LICENSE`). No stock art, no traced artwork, no AI-generated raster. If you adapt a public-domain
+7. **Provenance.** Everything here is original work made for f-tree under the repository's MIT
+   licence. No stock art, no traced artwork, no AI-generated raster. If you adapt a public-domain
    pattern, say so in the SVG's `<desc>`.
 
 ## Adding a drawing
