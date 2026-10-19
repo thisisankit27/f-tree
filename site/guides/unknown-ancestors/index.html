@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="en" data-root="../../">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How to Add an Unknown Ancestor to Your Family Tree | f-tree</title>
+<meta name="description" content="How to record a relative whose name nobody remembers without inventing one: what to write down, how to date them, and how to name them later.">
+<meta name="author" content="Ankit Srivastava">
+<meta name="theme-color" content="#f7f6f1" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#10150f" media="(prefers-color-scheme: dark)">
+<link rel="icon" href="../../favicon.svg" type="image/svg+xml">
+<link rel="icon" href="../../icons/icon-192.png" type="image/png" sizes="192x192">
+<link rel="apple-touch-icon" href="../../icons/apple-touch-icon.png">
+<link rel="manifest" href="../../manifest.webmanifest">
+<link rel="canonical" href="https://ftree.vibethroughcode.com/guides/unknown-ancestors/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="f-tree">
+<meta property="og:url" content="https://ftree.vibethroughcode.com/guides/unknown-ancestors/">
+<meta property="og:title" content="How to Add an Unknown Ancestor to Your Family Tree | f-tree">
+<meta property="og:description" content="How to record a relative whose name nobody remembers without inventing one: what to write down, how to date them, and how to name them later.">
+<meta property="og:image" content="https://ftree.vibethroughcode.com/og/unknown-ancestors.png">
+<meta property="og:image:type" content="image/png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="How to add an unknown ancestor to your family tree.">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="How to Add an Unknown Ancestor to Your Family Tree | f-tree">
+<meta name="twitter:description" content="How to record a relative whose name nobody remembers without inventing one: what to write down, how to date them, and how to name them later.">
+<meta name="twitter:image" content="https://ftree.vibethroughcode.com/og/unknown-ancestors.png">
+<meta name="twitter:image:alt" content="How to add an unknown ancestor to your family tree.">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"Article","headline":"How to add a relative whose name you don’t know to your family tree","description":"How to record a relative whose name nobody remembers without inventing one: what to write down, how to date them, and how to name them later.","author":{"@id":"https://ftree.vibethroughcode.com/about/#ankit"},"publisher":{"@type":"Organization","name":"f-tree","url":"https://ftree.vibethroughcode.com/"},"datePublished":"2026-10-19","dateModified":"2026-10-19","image":"https://ftree.vibethroughcode.com/og/unknown-ancestors.png","mainEntityOfPage":"https://ftree.vibethroughcode.com/guides/unknown-ancestors/","inLanguage":"en"}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"Person","@id":"https://ftree.vibethroughcode.com/about/#ankit","name":"Ankit Srivastava","url":"https://ftree.vibethroughcode.com/about/","description":"Creator and maintainer of f-tree, a free, offline family tree app.","sameAs":["https://github.com/thisisankit27"]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https://ftree.vibethroughcode.com/"},{"@type":"ListItem","position":2,"name":"Guides","item":"https://ftree.vibethroughcode.com/guides/"},{"@type":"ListItem","position":3,"name":"Unknown ancestors","item":"https://ftree.vibethroughcode.com/guides/unknown-ancestors/"}]}</script>
+<link rel="preload" href="../../fonts/literata.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="../../style.css">
+<script>
+(function () {
+  var root = document.documentElement;
+  root.setAttribute('data-js', '');
+  try {
+    var saved = localStorage.getItem('ftree.theme');
+    if (saved === 'dark' || saved === 'light') root.setAttribute('data-theme', saved);
+  } catch (e) { /* private windows and blocked storage land here; the system decides */ }
+})();
+</script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="masthead">
+  <div class="shell">
+    <a class="wordmark" href="../../" aria-label="f-tree home">
+      <svg width="26" height="26" viewBox="0 0 32 32" aria-hidden="true">
+        <rect width="32" height="32" rx="7" fill="var(--mark-tile)"/>
+        <g fill="none" stroke="var(--mark-line)" stroke-width="1.7" stroke-linecap="round">
+          <circle cx="11" cy="9.5" r="3.1"/><circle cx="21" cy="9.5" r="3.1"/>
+          <path d="M14.1 9.5h3.8"/><path d="M16 12.6v3.4M9 16h14M9 16v2.6M23 16v2.6"/>
+          <circle cx="9" cy="22" r="3.1"/>
+          <circle cx="23" cy="22" r="3.1" stroke="var(--mark-dash)" stroke-dasharray="2.2 2"/>
+        </g>
+      </svg>
+      f-tree
+    </a>
+    <nav class="nav-links" id="nav-links" aria-label="Main">
+      <a href="../../features/">Features</a>
+      <a href="../../#how">How it works</a>
+      <a href="../../privacy/">Privacy</a>
+      <a href="../../faq/">FAQ</a>
+      <a href="https://github.com/thisisankit27/f-tree">Open source</a>
+    </nav>
+    <div class="nav-tools">
+      <button type="button" class="theme-toggle" id="theme-toggle" aria-label="Switch theme">
+        <svg class="i-moon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.5 14.3A8.5 8.5 0 0 1 9.7 3.5a8.5 8.5 0 1 0 10.8 10.8z"/></svg>
+        <svg class="i-sun" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4.1"/><path d="M12 2.6v2.2M12 19.2v2.2M4.35 4.35l1.55 1.55M18.1 18.1l1.55 1.55M2.6 12h2.2M19.2 12h2.2M4.35 19.65 5.9 18.1M18.1 5.9l1.55-1.55"/></svg>
+      </button>
+      <div class="dl-menu" id="dl-menu">
+        <a class="nav-cta dl-fallback" href="../../download/">Download</a>
+        <button type="button" class="nav-cta dl-toggle" id="dl-toggle" aria-expanded="false" aria-controls="dl-panel">
+          Download
+          <svg class="dl-chevron" width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 4.5 6 7.5l3-3"/></svg>
+        </button>
+        <div class="dl-panel" id="dl-panel" hidden>
+          <a class="dl-option" href="../../thanks/" data-os="android">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.6 9.48l1.84-3.18a.63.63 0 0 0-.26-.85.64.64 0 0 0-.83.22l-1.88 3.24a11.43 11.43 0 0 0-8.94 0L5.65 5.67a.64.64 0 0 0-.87-.2.64.64 0 0 0-.22.83L6.4 9.48A10.78 10.78 0 0 0 1 18h22a10.78 10.78 0 0 0-5.4-8.52zM7 15.25a1.25 1.25 0 1 1 0-2.5 1.25 1.25 0 0 1 0 2.5zm10 0a1.25 1.25 0 1 1 0-2.5 1.25 1.25 0 0 1 0 2.5z"/></svg>
+            <span class="dl-text"><span class="dl-name">Android <span class="dl-yours" hidden>Your system</span></span><span class="dl-sub">For Android 8.0 or newer</span></span>
+            <span class="dl-meta" data-dl-meta="android"></span>
+          </a>
+          <a class="dl-option" href="../../desktop/thanks/?f=win" data-os="windows">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3 5.6l7.4-1v7.1H3V5.6zm8.6-1.2L21 3v8.7h-9.4V4.4zM3 12.8h7.4v7.1L3 18.9v-6.1zm8.6 0H21V21l-9.4-1.3v-6.9z"/></svg>
+            <span class="dl-text"><span class="dl-name">Windows <span class="dl-yours" hidden>Your system</span></span><span class="dl-sub">Installer for Windows 10 and 11</span></span>
+            <span class="dl-meta" data-dl-meta="windows"></span>
+          </a>
+          <a class="dl-option" href="../../desktop/thanks/?f=deb" data-os="linux">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2c-2.2 0-3.4 1.8-3.4 4 0 1.6.3 2.3-.5 3.6C7 11.4 5.6 13 5.6 15.4c0 .9.3 1.5-.3 2.3-.5.7-.4 1.5.4 1.8.9.3 1.6-.2 2.4.3 1 .6 2.3 1 3.9 1s2.9-.4 3.9-1c.8-.5 1.5 0 2.4-.3.8-.3.9-1.1.4-1.8-.6-.8-.3-1.4-.3-2.3 0-2.4-1.4-4-2.5-5.8-.8-1.3-.5-2-.5-3.6 0-2.2-1.2-4-3.4-4z"/></svg>
+            <span class="dl-text"><span class="dl-name">Linux <span class="dl-yours" hidden>Your system</span></span><span class="dl-sub">A <code>.deb</code> for Ubuntu, Debian and Mint</span></span>
+            <span class="dl-meta" data-dl-meta="linux"></span>
+          </a>
+          <div class="dl-foot">
+            <a href="../../download/">All files and checksums</a>
+            <a href="../../playground/">Open a tree in your browser</a>
+          </div>
+        </div>
+      </div>
+      <button type="button" class="nav-toggle" id="nav-toggle" aria-expanded="false" aria-controls="nav-links" aria-label="Menu">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+<main id="main">
+<section class="page-head"><div class="shell"><p class="crumbs"><a href="../../">Home</a><span aria-hidden="true">/</span><a href="../../guides/">Guides</a><span aria-hidden="true">/</span><span aria-current="page" style="margin:0">Unknown ancestors</span></p><h1>How to add a relative whose name you don’t know to your family tree</h1><p class="lede">Every family has someone nobody can name: a great-grandmother who is only ever “Dadi”, an uncle in a photograph no one can place. Most tree software wants a name before it will keep the person. Here is how to record them honestly instead.</p></div></section>
+<section class="section" style="padding-top:0">
+  <div class="shell">
+    <div class="prose">
+      <p class="byline">By <a href="../../about/">Ankit Srivastava</a>, creator of f-tree. Updated <time datetime="2026-10-19">19 October 2026</time>.</p>
+      <h2 style="margin-top:1.4em">Don’t invent a name</h2>
+      <p>A made-up name looks exactly like a real one. Once it is in the tree it is copied into a relative’s file, printed in a family book and quoted at the next wedding as fact. A blank is honest: it says the family knows this person existed and does not yet know more.</p>
+
+      <h2>Write down what the family does know</h2>
+      <p>The name is the least useful thing to have, and the first thing to go missing. These matter more:</p>
+      <ul>
+        <li><b>How they connect.</b> Whose parent, partner, child or sibling they were. This is the most valuable fact, because it fixes their place in the family.</li>
+        <li><b>Which side of the family.</b> Your father’s side and your mother’s side are named differently in many languages, Hindi among them, so it matters later. See the <a href="../../hindi-kinship/">Hindi relation chart</a>.</li>
+        <li><b>Roughly when.</b> A decade, “born before 1920”, “died young”. Anything that places them in time.</li>
+        <li><b>What people remember.</b> A trade, a village, a story. f-tree has a notes field for the family’s own words.</li>
+        <li><b>Who told you.</b> Two relatives often remember the same person differently, so write down whose memory it is.</li>
+      </ul>
+
+      <h2>Record dates you only half know</h2>
+      <p>f-tree accepts a year on its own (1938), a year and month (1942-08) or a full date. It never makes you choose a day you don’t know, and there is no separate “approximate” flag, because writing only the year is the statement. A birthday remembered without a year can be stored as just a day and month, so the birthday reminder still works.</p>
+
+      <h2>Put them in the tree where they belong</h2>
+      <p>Add the person, leave the name empty, and connect them to the people they link to. f-tree draws them as a dashed brass card marked <i>Unknown</i>, so you can see at a glance where the record has holes.</p>
+      <p>Because the unknown person is an ordinary person in the tree, everything keeps working around them. The chart, the compact view and the <a href="../../relationship-finder/">relationship finder</a> all treat them like anyone else, and in the finder’s line they appear as “Unknown”.</p>
+
+      <h2>Name them later without breaking anything</h2>
+      <p>When someone finally remembers, type the name into the same person. Nothing else moves: every relationship that pointed at the blank card now points at the named one.</p>
+
+      <h2>Questions that get relatives talking</h2>
+      <ul>
+        <li>Who did they marry, and where did they live?</li>
+        <li>What did people call them? Family nicknames and kinship words (“Badi Dadi”, “Chhote Mama”) are clues.</li>
+        <li>Is there a photograph, a letter or a document with their name on it?</li>
+        <li>Who was at the wedding or the funeral?</li>
+        <li>Who else remembers them, and would they talk to me?</li>
+      </ul>
+
+      <h2>When two blank cards might be one person</h2>
+      <p>Keep them separate until you have evidence. Combining two real people into one is much harder to undo than leaving a duplicate, which you can always merge later. The same reasoning is why f-tree never matches an unnamed person automatically when you import a relative’s file.</p>
+      <p>Cousins and removals are easy to get wrong by hand too. The <a href="../../relationship-finder/">relationship finder</a> explains what “first cousin once removed” means, and the <a href="https://en.wikipedia.org/wiki/Cousin">Wikipedia article on cousins</a> is a good neutral reference.</p>
+    </div>
+  </div>
+</section>
+<section class="section band-sunk"><div class="shell"><div class="section-head"><h2>Keep reading</h2></div><div class="bento is-links"><a class="tile link-tile" href="../../guides/merge-family-trees/"><span class="tpl-title">How to merge two family trees</span><span class="tpl-body">Combine a relative’s tree with yours without losing anything.</span></a><a class="tile link-tile" href="../../relationship-finder/"><span class="tpl-title">The relationship finder</span><span class="tpl-body">How any two people are related, with the line between them.</span></a><a class="tile link-tile" href="../../features/"><span class="tpl-title">Everything f-tree does</span><span class="tpl-body">Unknown people, merging, Hindi family words and more.</span></a></div></div></section><section class="section band-deep cta-band"><div class="shell"><h2>Record the people nobody can name</h2><p>Free, works offline, and there is no limit on how many people you can add.</p><div class="cta-row"><a class="btn btn-primary js-os-cta" href="../../download/"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12m0 0l-4.5-4.5M12 15l4.5-4.5M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg><span>Download f-tree</span></a><a class="btn btn-quiet" href="../../features/">See all features</a></div></div></section>
+</main>
+
+<footer class="footer">
+  <div class="shell">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <a class="wordmark" href="../../">
+          <svg width="26" height="26" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="7" fill="var(--mark-tile)"/><g fill="none" stroke="var(--mark-line)" stroke-width="1.7" stroke-linecap="round"><circle cx="11" cy="9.5" r="3.1"/><circle cx="21" cy="9.5" r="3.1"/><path d="M14.1 9.5h3.8"/><path d="M16 12.6v3.4M9 16h14M9 16v2.6M23 16v2.6"/><circle cx="9" cy="22" r="3.1"/><circle cx="23" cy="22" r="3.1" stroke="var(--mark-dash)" stroke-dasharray="2.2 2"/></g></svg>
+          f-tree
+        </a>
+        <p>A free, private family tree for Android, Windows and Linux. Built in the open by <a href="https://github.com/thisisankit27">Ankit Srivastava</a>.</p>
+      </div>
+      <div>
+        <h2>Product</h2>
+        <ul>
+          <li><a href="../../features/">Features</a></li>
+          <li><a href="../../download/">Download</a></li>
+          <li><a href="../../privacy/">Privacy</a></li>
+          <li><a href="../../faq/">FAQ</a></li>
+          <li><a href="../../about/">About</a></li>
+        </ul>
+      </div>
+      <div>
+        <h2>Learn</h2>
+        <ul>
+          <li><a href="../../guides/">Guides</a></li>
+          <li><a href="../../relationship-finder/">Relationship finder</a></li>
+          <li><a href="../../hindi-kinship/">Hindi relation names</a></li>
+          <li><a href="../../family-book/">Family book</a></li>
+          <li><a href="../../playground/">Browser viewer</a></li>
+        </ul>
+      </div>
+      <div>
+        <h2>Open source</h2>
+        <ul>
+          <li><a href="https://github.com/thisisankit27/f-tree">Source on GitHub</a></li>
+          <li><a href="https://github.com/thisisankit27/f-tree/releases">Releases</a></li>
+          <li><a href="https://github.com/thisisankit27/f-tree/blob/main/CHANGELOG.md">Changelog</a></li>
+          <li><a href="https://github.com/thisisankit27/f-tree/security/policy">Security policy</a></li>
+          <li><a href="https://github.com/thisisankit27/f-tree/issues/new">Report a problem</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-base">
+      <span>MIT licensed. No analytics, no cookies, no tracking.</span>
+      <span>f-tree is not on any app store. Every download is built by GitHub Actions and has a published checksum.</span>
+    </div>
+  </div>
+</footer>
+<script src="../../app.js" defer></script>
+</body>
+</html>
