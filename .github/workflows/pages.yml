@@ -79,7 +79,7 @@ jobs:
                   if not m: return None
                   parts.append(m.group(0))
               joined = '\n'.join(parts)
-              joined = re.sub(r'href="(?:\.\./|\./)*/?', 'href="', joined)
+              joined = re.sub(r'(href|src)="(?:\.\./|\./)*/?', r'\1="', joined)
               joined = joined.replace(' aria-current="page"', '')
               return joined
           base = None

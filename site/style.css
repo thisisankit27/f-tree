@@ -1377,3 +1377,8 @@ a.link-tile { text-decoration: none; color: inherit; transition: border-color .1
 a.link-tile:hover { border-color: var(--forest); background: var(--bone); }
 a.link-tile .tpl-title { display: block; margin: 0 0 8px; font-size: 20px; font-weight: 600; letter-spacing: -0.01em; line-height: 1.25; }
 a.link-tile .tpl-body { display: block; font-size: 16px; color: var(--ink-soft); }
+
+/* The Product Hunt review badge, hosted here so the page makes no request to them until it is clicked. */
+.footer-brand .ph-badge { margin-top: 18px; }
+.ph-badge { display: inline-block; line-height: 0; border-radius: 10px; }
+.ph-badge img { height: 43px; width: auto; }
