@@ -780,6 +780,10 @@
     document.addEventListener('keydown', function (e) {
       if (e.key === 'Escape' && links.classList.contains('is-open')) { set(false); toggle.focus(); }
     });
+    // A tap anywhere else puts the panel away, which also closes it when the Download menu opens.
+    document.addEventListener('click', function (e) {
+      if (links.classList.contains('is-open') && !links.contains(e.target) && !toggle.contains(e.target)) set(false);
+    });
   }
 
   /* -------------------------------------------------------------------- init */

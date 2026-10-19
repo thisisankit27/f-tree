@@ -322,22 +322,31 @@ summary:focus-visible {
 .nav-toggle { display: none; }
 
 @media (max-width: 860px) {
-  .masthead .shell { gap: 12px; }
-  /* Without JavaScript the links simply wrap under the bar; with it they fold into the toggle. */
-  .nav-links { order: 5; width: 100%; flex-wrap: wrap; padding-bottom: 10px; }
-  .masthead .shell { height: auto; flex-wrap: wrap; padding-block: 10px 0; }
-  :root[data-js] .nav-links {
+  /* One bar of fixed height at every phone width: logo left, three controls right, never wrapped. */
+  .masthead .shell { height: 64px; gap: 10px; flex-wrap: nowrap; }
+  .nav-tools { gap: 8px; }
+
+  /* With JavaScript the links are a panel that floats over the page from under the bar. */
+  .nav-links {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
     display: none;
     flex-direction: column;
     align-items: stretch;
     gap: 2px;
-    padding: 4px 0 14px;
+    padding: 8px var(--gutter) 18px;
+    border-bottom: 1px solid var(--rule);
+    background: var(--bone);
+    box-shadow: var(--shadow-cast);
   }
-  :root[data-js] .nav-links.is-open { display: flex; }
-  :root[data-js] .nav-links a { padding: 12px 14px; font-size: 16px; border-radius: var(--radius-sm); }
+  .nav-links.is-open { display: flex; }
+  .nav-links a { padding: 13px 14px; font-size: 16px; border-radius: var(--radius-sm); }
   :root[data-js] .nav-toggle {
     display: grid;
     place-items: center;
+    flex: none;
     width: 36px;
     height: 36px;
     padding: 0;
@@ -347,6 +356,20 @@ summary:focus-visible {
     color: var(--ink-soft);
     cursor: pointer;
   }
+  .nav-toggle[aria-expanded="true"] { background: var(--bone-dim); color: var(--ink); }
+
+  /* Without it there is nothing to open, so the links simply sit in a row under the bar. */
+  :root:not([data-js]) .masthead .shell { height: auto; flex-wrap: wrap; padding-block: 10px; }
+  :root:not([data-js]) .nav-links { position: static; display: flex; flex-direction: row; flex-wrap: wrap; order: 5; width: 100%; padding: 0; border: 0; box-shadow: none; background: none; }
+  :root:not([data-js]) .nav-links a { padding: 8px 12px; font-size: 14.5px; }
+}
+@media (max-width: 400px) {
+  .masthead .shell { gap: 6px; padding-inline: 16px; }
+  .wordmark { font-size: 18px; gap: 7px; }
+  .wordmark svg { width: 24px; height: 24px; }
+  .nav-tools { gap: 6px; }
+  .nav-cta { padding: 8px 13px; font-size: 14px; }
+  :root[data-js] .theme-toggle, :root[data-js] .nav-toggle { width: 34px; height: 34px; }
 }
 
 /* -------------------------------------------------------- the download menu */
@@ -415,8 +438,10 @@ summary:focus-visible {
   grid-column: 2;
   grid-row: 1;
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 8px;
+  gap: 2px 8px;
+  min-width: 0;
   font-weight: 600;
   font-size: 14.5px;
 }
