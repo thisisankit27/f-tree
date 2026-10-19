@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="en" data-root="../">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Relationship finder: how are we related? | f-tree</title>
+<meta name="description" content="Find how any two people in your family tree are related, such as first cousin once removed. f-tree names it in English or Hindi and shows the line.">
+<meta name="theme-color" content="#f7f6f1" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#10150f" media="(prefers-color-scheme: dark)">
+<link rel="icon" href="../favicon.svg" type="image/svg+xml">
+<link rel="icon" href="../icons/icon-192.png" type="image/png" sizes="192x192">
+<link rel="apple-touch-icon" href="../icons/apple-touch-icon.png">
+<link rel="manifest" href="../manifest.webmanifest">
+<link rel="canonical" href="https://ftree.vibethroughcode.com/relationship-finder/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="f-tree">
+<meta property="og:url" content="https://ftree.vibethroughcode.com/relationship-finder/">
+<meta property="og:title" content="Relationship finder: how are we related? | f-tree">
+<meta property="og:description" content="Find how any two people in your family tree are related, such as first cousin once removed. f-tree names it in English or Hindi and shows the line.">
+<meta property="og:image" content="https://ftree.vibethroughcode.com/og/relationship-finder.png">
+<meta property="og:image:type" content="image/png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="f-tree relationship finder: how are we related?">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Relationship finder: how are we related? | f-tree">
+<meta name="twitter:description" content="Find how any two people in your family tree are related, such as first cousin once removed. f-tree names it in English or Hindi and shows the line.">
+<meta name="twitter:image" content="https://ftree.vibethroughcode.com/og/relationship-finder.png">
+<meta name="twitter:image:alt" content="f-tree relationship finder: how are we related?">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"f-tree","description":"A free, offline family tree app for Android, Windows and Linux. Records relatives whose names are not known, names the relationship between any two people in English or Hindi, and keeps everything on the device.","url":"https://ftree.vibethroughcode.com/","applicationCategory":"LifestyleApplication","operatingSystem":"Android 8.0+, Windows 10+, Linux","downloadUrl":"https://ftree.vibethroughcode.com/download/","installUrl":"https://ftree.vibethroughcode.com/thanks/","license":"https://opensource.org/licenses/MIT","isAccessibleForFree":true,"inLanguage":["en","hi"],"screenshot":["https://ftree.vibethroughcode.com/shots/desktop-chart.webp","https://ftree.vibethroughcode.com/shots/desktop-relate.webp"],"featureList":["Record relatives with no name","Relationship finder in English and Hindi","Merge shared branches without overwriting","Nearby sharing over Wi-Fi","Birthday reminders","PDF family book","Works fully offline","No account"],"offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"author":{"@type":"Person","name":"Ankit Srivastava","url":"https://github.com/thisisankit27"}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https://ftree.vibethroughcode.com/"},{"@type":"ListItem","position":2,"name":"Relationship finder","item":"https://ftree.vibethroughcode.com/relationship-finder/"}]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"What does first cousin once removed mean?","acceptedAnswer":{"@type":"Answer","text":"A first cousin once removed is the child of your first cousin, or the first cousin of your parent. You share grandparents with one of you, and the two of you are one generation apart."}}]}</script>
+<link rel="preload" href="../fonts/literata.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="../style.css">
+<script>
+(function () {
+  var root = document.documentElement;
+  root.setAttribute('data-js', '');
+  try {
+    var saved = localStorage.getItem('ftree.theme');
+    if (saved === 'dark' || saved === 'light') root.setAttribute('data-theme', saved);
+  } catch (e) { /* private windows and blocked storage land here; the system decides */ }
+})();
+</script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="masthead">
+  <div class="shell">
+    <a class="wordmark" href="../" aria-label="f-tree home">
+      <svg width="26" height="26" viewBox="0 0 32 32" aria-hidden="true">
+        <rect width="32" height="32" rx="7" fill="var(--mark-tile)"/>
+        <g fill="none" stroke="var(--mark-line)" stroke-width="1.7" stroke-linecap="round">
+          <circle cx="11" cy="9.5" r="3.1"/><circle cx="21" cy="9.5" r="3.1"/>
+          <path d="M14.1 9.5h3.8"/><path d="M16 12.6v3.4M9 16h14M9 16v2.6M23 16v2.6"/>
+          <circle cx="9" cy="22" r="3.1"/>
+          <circle cx="23" cy="22" r="3.1" stroke="var(--mark-dash)" stroke-dasharray="2.2 2"/>
+        </g>
+      </svg>
+      f-tree
+    </a>
+    <nav class="nav-links" id="nav-links" aria-label="Main">
+      <a href="../features/">Features</a>
+      <a href="../#how">How it works</a>
+      <a href="../privacy/">Privacy</a>
+      <a href="../faq/">FAQ</a>
+      <a href="https://github.com/thisisankit27/f-tree">Open source</a>
+    </nav>
+    <div class="nav-tools">
+      <button type="button" class="theme-toggle" id="theme-toggle" aria-label="Switch theme">
+        <svg class="i-moon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.5 14.3A8.5 8.5 0 0 1 9.7 3.5a8.5 8.5 0 1 0 10.8 10.8z"/></svg>
+        <svg class="i-sun" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4.1"/><path d="M12 2.6v2.2M12 19.2v2.2M4.35 4.35l1.55 1.55M18.1 18.1l1.55 1.55M2.6 12h2.2M19.2 12h2.2M4.35 19.65 5.9 18.1M18.1 5.9l1.55-1.55"/></svg>
+      </button>
+      <div class="dl-menu" id="dl-menu">
+        <a class="nav-cta dl-fallback" href="../download/">Download</a>
+        <button type="button" class="nav-cta dl-toggle" id="dl-toggle" aria-expanded="false" aria-controls="dl-panel">
+          Download
+          <svg class="dl-chevron" width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 4.5 6 7.5l3-3"/></svg>
+        </button>
+        <div class="dl-panel" id="dl-panel" hidden>
+          <a class="dl-option" href="../thanks/" data-os="android">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.6 9.48l1.84-3.18a.63.63 0 0 0-.26-.85.64.64 0 0 0-.83.22l-1.88 3.24a11.43 11.43 0 0 0-8.94 0L5.65 5.67a.64.64 0 0 0-.87-.2.64.64 0 0 0-.22.83L6.4 9.48A10.78 10.78 0 0 0 1 18h22a10.78 10.78 0 0 0-5.4-8.52zM7 15.25a1.25 1.25 0 1 1 0-2.5 1.25 1.25 0 0 1 0 2.5zm10 0a1.25 1.25 0 1 1 0-2.5 1.25 1.25 0 0 1 0 2.5z"/></svg>
+            <span class="dl-text"><span class="dl-name">Android <span class="dl-yours" hidden>Your system</span></span><span class="dl-sub">For Android 8.0 or newer</span></span>
+            <span class="dl-meta" data-dl-meta="android"></span>
+          </a>
+          <a class="dl-option" href="../desktop/thanks/?f=win" data-os="windows">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3 5.6l7.4-1v7.1H3V5.6zm8.6-1.2L21 3v8.7h-9.4V4.4zM3 12.8h7.4v7.1L3 18.9v-6.1zm8.6 0H21V21l-9.4-1.3v-6.9z"/></svg>
+            <span class="dl-text"><span class="dl-name">Windows <span class="dl-yours" hidden>Your system</span></span><span class="dl-sub">Installer for Windows 10 and 11</span></span>
+            <span class="dl-meta" data-dl-meta="windows"></span>
+          </a>
+          <a class="dl-option" href="../desktop/thanks/?f=deb" data-os="linux">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2c-2.2 0-3.4 1.8-3.4 4 0 1.6.3 2.3-.5 3.6C7 11.4 5.6 13 5.6 15.4c0 .9.3 1.5-.3 2.3-.5.7-.4 1.5.4 1.8.9.3 1.6-.2 2.4.3 1 .6 2.3 1 3.9 1s2.9-.4 3.9-1c.8-.5 1.5 0 2.4-.3.8-.3.9-1.1.4-1.8-.6-.8-.3-1.4-.3-2.3 0-2.4-1.4-4-2.5-5.8-.8-1.3-.5-2-.5-3.6 0-2.2-1.2-4-3.4-4z"/></svg>
+            <span class="dl-text"><span class="dl-name">Linux <span class="dl-yours" hidden>Your system</span></span><span class="dl-sub">A <code>.deb</code> for Ubuntu, Debian and Mint</span></span>
+            <span class="dl-meta" data-dl-meta="linux"></span>
+          </a>
+          <div class="dl-foot">
+            <a href="../download/">All files and checksums</a>
+            <a href="../playground/">Open a tree in your browser</a>
+          </div>
+        </div>
+      </div>
+      <button type="button" class="nav-toggle" id="nav-toggle" aria-expanded="false" aria-controls="nav-links" aria-label="Menu">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+<main id="main">
+<section class="page-head"><div class="shell"><p class="crumbs"><a href="../">Home</a><span aria-hidden="true">/</span><span aria-current="page" style="margin:0">Relationship finder</span></p><h1>How are we related? Let your family tree answer</h1><p class="lede">Pick any two people in your tree and f-tree names the relationship, in English or Hindi, and shows the line between them.</p></div></section>
+<section class="section" style="padding-top:clamp(20px,3vw,40px)">
+  <div class="shell">
+    <div class="split">
+      <div>
+        <h2>The question every wedding asks</h2>
+        <p>Who is whose cousin, and how many times removed? f-tree answers from your own tree, in one sentence, and then shows its working: every person the line passes through, each one a link you can click.</p>
+        <ul class="ticks">
+          <li><span><b>It walks marriages as well as blood.</b> “My wife’s mother” and “my husband’s younger brother” are answers too.</span></li>
+          <li><span><b>It names the word, then shows the line.</b> So you can check it against what the family says.</span></li>
+          <li><span><b>It admits when the record doesn’t connect two people.</b> They may still be related; the file just doesn’t say how.</span></li>
+          <li><span><b>It answers in Hindi too.</b> <a href="../hindi-kinship/">All 65 terms</a>, chosen by side, link and birth order.</span></li>
+        </ul>
+        <div class="cta-row"><a class="btn btn-primary js-os-cta" href="../download/"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12m0 0l-4.5-4.5M12 15l4.5-4.5M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg><span>Download f-tree</span></a></div>
+      </div>
+      <figure class="shot-frame"><img class="on-light" src="../shots/desktop-relate.webp" width="1280" height="658" alt="The relationship finder in f-tree showing Anita Kumar as Aarav Kumar’s grandmother, with the chain of people." loading="lazy"><img class="on-dark" src="../shots/desktop-relate-dark.webp" width="1280" height="658" alt="The relationship finder in f-tree showing Anita Kumar as Aarav Kumar’s grandmother, with the chain of people." loading="lazy"></figure>
+    </div>
+  </div>
+</section>
+
+
+<section class="section">
+  <div class="shell">
+    <div class="section-head"><h2>The same answer on a phone</h2><p>On Android the answer comes with the line it followed, step by step, so you can check it against what the family says.</p></div>
+    <div class="phones is-two">
+      <figure class="phone"><img src="../shots/phone-relation-en.webp" width="600" height="1272" alt="The Android relationship finder: Rahul Verma is Aarav Kumar’s first cousin once removed, with the line of people between them." loading="lazy"><figcaption>In English: first cousin once removed</figcaption></figure>
+      <figure class="phone"><img class="on-light" src="../shots/phone-relation-hi.webp" width="600" height="1272" alt="The Android relationship finder naming Rahul Verma as Ankit Kumar’s father’s sister’s son in Hindi." loading="lazy"><img class="on-dark" src="../shots/phone-relation-hi-dark.webp" width="600" height="1272" alt="The Android relationship finder naming Rahul Verma as Ankit Kumar’s father’s sister’s son in Hindi." loading="lazy"><figcaption>In Hindi: the word for exactly this cousin</figcaption></figure>
+    </div>
+  </div>
+</section>
+
+<section class="section band-sunk">
+  <div class="shell">
+    <div class="section-head">
+      <h2>What “first cousin once removed” means</h2>
+      <p>Cousins share an ancestor. The number says how far back that ancestor is, and “removed” counts the generations between the two of you.</p>
+    </div>
+    <div class="table-wrap">
+      <table class="data">
+        <thead><tr><th scope="col">Relationship</th><th scope="col">Shared ancestors</th><th scope="col">Generations apart</th></tr></thead>
+        <tbody><tr><th scope="row">First cousin</th><td>Grandparents you share</td><td>Same generation</td></tr><tr><th scope="row">Second cousin</th><td>Great-grandparents you share</td><td>Same generation</td></tr><tr><th scope="row">Third cousin</th><td>Great-great-grandparents you share</td><td>Same generation</td></tr><tr><th scope="row">First cousin once removed</th><td>Grandparents of one of you, great-grandparents of the other</td><td>One generation apart</td></tr><tr><th scope="row">First cousin twice removed</th><td>Grandparents of one of you, great-great-grandparents of the other</td><td>Two generations apart</td></tr><tr><th scope="row">Second cousin once removed</th><td>Great-grandparents of one of you, great-great-grandparents of the other</td><td>One generation apart</td></tr></tbody>
+      </table>
+    </div>
+    <div class="prose" style="margin-top:32px">
+      <p><b>The rule:</b> count the generations from the shared ancestor down to whichever of you is nearer. Subtract one: that is the cousin number. Then the difference in generations between the two of you is how many times removed.</p>
+      <p>A first cousin’s child is your first cousin once removed, and so is your parent’s first cousin. Doing this by hand across a real family, with remarriages and half-siblings, is where people get stuck. That is the part f-tree does for you.</p>
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="shell">
+    <div class="section-head"><h2>Why not a relationship calculator website?</h2></div>
+    <div class="values">
+      <div><h3>It uses your real tree</h3><p>A web calculator asks you to count generations yourself. f-tree already knows the family, so you pick two names.</p></div>
+      <div><h3>It handles unknown people</h3><p>An unnamed ancestor still connects branches. The line goes through them and is shown as unknown.</p></div>
+      <div><h3>It stays private</h3><p>Nothing about your family is typed into a website or sent anywhere.</p></div>
+    </div>
+  </div>
+</section>
+<section class="section band-deep cta-band"><div class="shell"><h2>Settle it at the next wedding</h2><p>Free for Android, Windows and Linux. Works offline.</p><div class="cta-row"><a class="btn btn-primary js-os-cta" href="../download/"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12m0 0l-4.5-4.5M12 15l4.5-4.5M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg><span>Download f-tree</span></a><a class="btn btn-quiet" href="../features/">See all features</a></div></div></section>
+</main>
+
+<footer class="footer">
+  <div class="shell">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <a class="wordmark" href="../">
+          <svg width="26" height="26" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="7" fill="var(--mark-tile)"/><g fill="none" stroke="var(--mark-line)" stroke-width="1.7" stroke-linecap="round"><circle cx="11" cy="9.5" r="3.1"/><circle cx="21" cy="9.5" r="3.1"/><path d="M14.1 9.5h3.8"/><path d="M16 12.6v3.4M9 16h14M9 16v2.6M23 16v2.6"/><circle cx="9" cy="22" r="3.1"/><circle cx="23" cy="22" r="3.1" stroke="var(--mark-dash)" stroke-dasharray="2.2 2"/></g></svg>
+          f-tree
+        </a>
+        <p>A free, private family tree for Android, Windows and Linux. Built in the open by <a href="https://github.com/thisisankit27">Ankit Srivastava</a>.</p>
+      </div>
+      <div>
+        <h2>Product</h2>
+        <ul>
+          <li><a href="../features/">Features</a></li>
+          <li><a href="../download/">Download</a></li>
+          <li><a href="../privacy/">Privacy</a></li>
+          <li><a href="../faq/">FAQ</a></li>
+        </ul>
+      </div>
+      <div>
+        <h2>Learn</h2>
+        <ul>
+          <li><a href="../relationship-finder/">Relationship finder</a></li>
+          <li><a href="../hindi-kinship/">Hindi relation names</a></li>
+          <li><a href="../family-book/">Family book</a></li>
+          <li><a href="../playground/">Browser viewer</a></li>
+        </ul>
+      </div>
+      <div>
+        <h2>Open source</h2>
+        <ul>
+          <li><a href="https://github.com/thisisankit27/f-tree">Source on GitHub</a></li>
+          <li><a href="https://github.com/thisisankit27/f-tree/releases">Releases</a></li>
+          <li><a href="https://github.com/thisisankit27/f-tree/blob/main/CHANGELOG.md">Changelog</a></li>
+          <li><a href="https://github.com/thisisankit27/f-tree/security/policy">Security policy</a></li>
+          <li><a href="https://github.com/thisisankit27/f-tree/issues/new">Report a problem</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-base">
+      <span>MIT licensed. No analytics, no cookies, no tracking.</span>
+      <span>f-tree is not on any app store. Every download is built by GitHub Actions and has a published checksum.</span>
+    </div>
+  </div>
+</footer>
+<script src="../app.js" defer></script>
+</body>
+</html>

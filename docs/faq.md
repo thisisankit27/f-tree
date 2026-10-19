@@ -26,7 +26,7 @@ Every release publishes a SHA-256, shown on the website and in the GitHub releas
 installing:
 
 ```bash
-sha256sum f-tree-0.7.0.apk
+sha256sum f-tree-1.0.0.apk
 ```
 
 The APK is built and signed by [GitHub Actions from a
@@ -34,11 +34,13 @@ tag](../.github/workflows/release.yml), not uploaded from a laptop.
 
 ### What Android version do I need?
 
-Android 8.0 (Oreo, API 26) or newer. The app is about 2 MB.
+Android 8.0 (Oreo, API 26) or newer. The app is about 4 MB.
 
 ### Is there an iPhone, web or desktop version?
 
-No app, but there is a **[browser viewer](https://ftree.vibethroughcode.com/playground/)** that
+There are **Windows and Linux desktop apps**, which build and edit a tree from nothing: see the
+[download page](https://ftree.vibethroughcode.com/download/) and [the desktop guide](desktop.md). There
+is no iPhone or macOS app yet. There is also a **[browser viewer](https://ftree.vibethroughcode.com/playground/)** that
 opens an exported `.ftree` on any device with a browser and draws the whole family at once. It is
 read-only. The file is never uploaded — it is read in the tab.
 
@@ -220,8 +222,8 @@ touching a single fact in the book (see [gate presentation, never data](premium.
 
 The catalogue lists every template all year, but features whichever one is in season — currently
 just Diwali, for the weeks around it — by moving it to the front of the list and opening the book
-on it. Outside that window it is still there, just not first. The evergreen Heirloom template
-never leaves the list and is what a book opens on the rest of the year.
+on it. Outside that window it is still there, just not first. The Family chart template is built
+into every install and is what a book opens on the rest of the year.
 
 ### Does making a book send anything anywhere?
 

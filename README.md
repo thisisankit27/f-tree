@@ -6,10 +6,10 @@
 
 ### Your family tree — including the people nobody can name.
 
-**A free, offline, open-source family tree app for Android.**
+**A free, offline, open-source family tree app for Android, Windows and Linux.**
 Ask how any two people are related and it names the relationship, in English or Hindi, and draws the line between them.
 
-**No account. No server. No analytics. Nothing leaves your phone unless you send it.**
+**No account. No server. No analytics. Nothing leaves your device unless you send it.**
 
 <br>
 
@@ -31,7 +31,7 @@ Ask how any two people are related and it names the relationship, in English or 
 &nbsp;
 <a href="https://ftree.vibethroughcode.com/playground/"><img src="https://img.shields.io/badge/Try%20it%20in%20your%20browser-8a6420?style=for-the-badge&logo=googlechrome&logoColor=white" alt="Try it in your browser" height="34"></a>
 
-<a href="https://ftree.vibethroughcode.com/desktop/"><img src="https://img.shields.io/badge/Desktop%20app-1f3d2b?style=for-the-badge&logo=linux&logoColor=white" alt="Desktop app for Windows and Linux" height="34"></a>
+<a href="https://ftree.vibethroughcode.com/download/"><img src="https://img.shields.io/badge/Desktop%20app-1f3d2b?style=for-the-badge&logo=linux&logoColor=white" alt="Desktop app for Windows and Linux" height="34"></a>
 &nbsp;
 <a href="https://ftree.vibethroughcode.com/"><img src="https://img.shields.io/badge/Website-414942?style=for-the-badge&logo=safari&logoColor=white" alt="Website" height="34"></a>
 &nbsp;
@@ -39,9 +39,9 @@ Ask how any two people are related and it names the relationship, in English or 
 
 <br>
 
-<img src="site/shots/tree.webp" width="30%" alt="The family chart, showing an unknown grandmother as a dashed card">
-<img src="site/shots/compact.webp" width="30%" alt="The compact view — generations read down the page">
-<img src="site/shots/hindi.webp" width="30%" alt="A relationship named in Hindi">
+<img src="site/shots/phone-everyone.webp" width="30%" alt="The family in columns, with dashed cards for relatives whose names are not known">
+<img src="site/shots/phone-compact.webp" width="30%" alt="The compact view, reading one person's family">
+<img src="site/shots/phone-relation-hi.webp" width="30%" alt="A relationship named in Hindi: father's sister's son">
 
 <sub><i>Chart · Compact · Hindi kinship terms</i></sub>
 
@@ -68,12 +68,12 @@ f-tree is built around those gaps instead of around a form you have to fill in c
 | 📴 **No account, no cloud.** | No login, no backend, no sync, no analytics. Every permission the app declares exists only for the opt-in updater or for nearby sharing, and neither touches the network until you ask it to. |
 | 🤝 **Sharing that merges, never overwrites.** | Send one branch as a small file over WhatsApp. The recipient imports it and it *merges* into their tree. The worst an import can do is add a duplicate you can then merge. |
 | 📶 **Nearby sharing.** | Send a tree straight to a device you can see, over the Wi-Fi you are already on — no account, no server, nothing in between. Both screens show the same six digits, so you know it went to the right one. |
-| 📖 **A family book, made to send.** | A designed, printable PDF — a cover, everyone in the family, a page of facts, a generation at a time, and an index to find yourself in. Made on your own phone or laptop, in Heirloom or a Diwali edition. [Read more →](docs/family-book.md) |
+| 📖 **A family book, made to send.** | A designed, printable PDF — a cover, everyone in the family, a page of facts, a generation at a time, and an index to find yourself in. Made on your own phone or laptop. [Read more →](docs/family-book.md) |
 
 <br>
 
 <div align="center">
-<img src="site/shots/relation-card.webp" width="45%" alt="A shareable card naming a relationship">
+<img src="site/shots/phone-relation-en.webp" width="45%" alt="The relationship finder, listing the line between two people">
 &nbsp;&nbsp;
 <img src="site/shots/merge.webp" width="45%" alt="The merge screen, showing what an import will add">
 </div>
@@ -84,7 +84,7 @@ f-tree is built around those gaps instead of around a form you have to fill in c
 
 ## Install
 
-**[Download the latest APK](https://github.com/thisisankit27/f-tree/releases/latest)** — Android 8.0 (Oreo) or newer, about 2 MB.
+**[Download the latest APK](https://github.com/thisisankit27/f-tree/releases/latest)** — Android 8.0 (Oreo) or newer, about 4 MB. On Windows or Linux, take the [desktop app](https://ftree.vibethroughcode.com/download/).
 
 It is not on the Play Store, so Android will ask you to allow installing from your browser or file
 manager once. The [website](https://ftree.vibethroughcode.com/) walks through it with the exact
@@ -92,7 +92,7 @@ wording your phone shows, and publishes the SHA-256 of every release so you can 
 downloaded:
 
 ```bash
-sha256sum f-tree-0.7.0.apk
+sha256sum f-tree-1.0.0.apk
 ```
 
 Once installed, **updates can happen in place** — an opt-in setting checks GitHub for a newer
@@ -103,7 +103,7 @@ package name and signing certificate before it installs anything. See
 
 ### On a laptop — Windows and Ubuntu
 
-The **[desktop app](https://ftree.vibethroughcode.com/desktop/)**
+The **[desktop app](https://ftree.vibethroughcode.com/download/)**
 builds a family tree on a laptop, or opens a `.ftree` you already have: add people, connect them,
 edit and delete, undo, and save back to the same file. A generation is a row, ancestors at the top.
 Windows gets an installer; on Linux take the `.deb`. It does not need the Android app — a tree can
@@ -162,7 +162,7 @@ photograph. Photographs can be switched off on a very large tree without a singl
 
 A designed PDF — a cover built from the family's own shape, everyone in it, a page of facts, a
 generation at a time, and an index so anyone can find themselves. Made entirely on the device,
-in the evergreen Heirloom template or a Diwali edition. [Full design →](docs/family-book.md)
+as a single chart page or in a Diwali storybook edition. [Full design →](docs/family-book.md)
 
 </td><td width="50%" valign="top">
 
@@ -210,7 +210,7 @@ rather than painted, at any text size, spoken aloud, one tap per person.
 | Is there a server? | No. There is no backend to have one with. |
 | Analytics, crash reporting, ads? | None, in the app or on the website. |
 | Can it send my tree to another device? | Only nearby sharing, and only when you start it: to a device you can see, on the network you are already on, with a code both screens show, and no account or server in between. |
-| What permissions does it ask for? | Six. Two are for the opt-in updater — `INTERNET`, `REQUEST_INSTALL_PACKAGES`. Three are for nearby sharing — `ACCESS_WIFI_STATE`, `CHANGE_WIFI_MULTICAST_STATE`, `ACCESS_NETWORK_STATE` — and do nothing until you open its screen. None of those five ever prompts. The sixth, `CAMERA`, is the only one that does, and only if you choose to scan a nearby code; typing it works everywhere the camera would. |
+| What permissions does it ask for? | Eight, and every one is listed with its reason on the [privacy page](https://ftree.vibethroughcode.com/privacy/). Two are for the opt-in updater (`INTERNET`, `REQUEST_INSTALL_PACKAGES`), three for nearby sharing (`ACCESS_WIFI_STATE`, `CHANGE_WIFI_MULTICAST_STATE`, `ACCESS_NETWORK_STATE`), and one, `RECEIVE_BOOT_COMPLETED`, to re-arm birthday reminders after a restart. None of those prompts. Two are asked for at the moment you use the feature: `CAMERA`, to scan a nearby-sharing code, and `POST_NOTIFICATIONS`, for birthday reminders. |
 | Does the browser viewer upload my file? | No. It is read in the tab. |
 | Can I get my data out? | Any time, as a `.ftree` — a ZIP with plain JSON in it. [Documented here.](docs/ftree-format.md) |
 
