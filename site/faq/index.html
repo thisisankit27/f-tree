@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="en" data-root="../">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>f-tree FAQ: offline, free, Hindi, Windows and Linux</title>
+<meta name="description" content="Is f-tree free? Does it need an account? Does it work offline and in Hindi? Straight answers about privacy, platforms and moving your tree.">
+<meta name="theme-color" content="#f7f6f1" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#10150f" media="(prefers-color-scheme: dark)">
+<link rel="icon" href="../favicon.svg" type="image/svg+xml">
+<link rel="icon" href="../icons/icon-192.png" type="image/png" sizes="192x192">
+<link rel="apple-touch-icon" href="../icons/apple-touch-icon.png">
+<link rel="manifest" href="../manifest.webmanifest">
+<link rel="canonical" href="https://ftree.vibethroughcode.com/faq/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="f-tree">
+<meta property="og:url" content="https://ftree.vibethroughcode.com/faq/">
+<meta property="og:title" content="f-tree FAQ: offline, free, Hindi, Windows and Linux">
+<meta property="og:description" content="Is f-tree free? Does it need an account? Does it work offline and in Hindi? Straight answers about privacy, platforms and moving your tree.">
+<meta property="og:image" content="https://ftree.vibethroughcode.com/og/faq.png">
+<meta property="og:image:type" content="image/png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="f-tree frequently asked questions.">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="f-tree FAQ: offline, free, Hindi, Windows and Linux">
+<meta name="twitter:description" content="Is f-tree free? Does it need an account? Does it work offline and in Hindi? Straight answers about privacy, platforms and moving your tree.">
+<meta name="twitter:image" content="https://ftree.vibethroughcode.com/og/faq.png">
+<meta name="twitter:image:alt" content="f-tree frequently asked questions.">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"Is f-tree really free?","acceptedAnswer":{"@type":"Answer","text":"Yes. There is no subscription, no trial, no advertising and no paid tier today. f-tree is open source under the MIT licence, built and maintained by one person.Exporting and importing your own tree is designed to stay free, whatever else changes."}},{"@type":"Question","name":"Does f-tree need an account or an internet connection?","acceptedAnswer":{"@type":"Answer","text":"No account, ever, and no internet connection to use it. Three optional things touch a network, and each is off until you switch it on: the update check, the check for new book templates, and nearby sharing, which talks to a device on the same Wi-Fi."}},{"@type":"Question","name":"Where is my family tree stored?","acceptedAnswer":{"@type":"Answer","text":"On your own device. The Android app keeps it in a private database on the phone. The Windows and Linux apps keep it in a .ftree file that you choose, and write to it about a second after every change.Nothing is uploaded, because there is no server to upload to."}},{"@type":"Question","name":"Which devices does it run on?","acceptedAnswer":{"@type":"Answer","text":"Android 8.0 or newer, Windows 10 and 11 (64-bit), and Linux, with a .deb for Ubuntu, Debian and Mint plus a portable folder and an AppImage. There is no macOS or iPhone version yet."}},{"@type":"Question","name":"Can I add a relative whose name I don’t know?","acceptedAnswer":{"@type":"Answer","text":"Yes, and this is the reason f-tree exists. A person with no name is a valid person: record the great-grandmother nobody wrote down, place her in the family, and give her a name years later without disturbing anything around her."}},{"@type":"Question","name":"How does the relationship finder work?","acceptedAnswer":{"@type":"Answer","text":"Pick any two people and f-tree names how they are related, for example “first cousin once removed” or “mother-in-law”, and lists every person the line runs through. It walks marriages as well as blood relations, because “my wife’s mother” is what people actually ask."}},{"@type":"Question","name":"Does it support Hindi?","acceptedAnswer":{"@type":"Answer","text":"The interface is in English. The family words are in Hindi: switch Family words to हिन्दी and relationships are named with 65 Hindi kinship terms, such as मामा, चाचा, ताऊ and बुआ. See the complete Hindi relation chart."}},{"@type":"Question","name":"Can I import a GEDCOM file?","acceptedAnswer":{"@type":"Answer","text":"Not yet. f-tree uses its own documented .ftree format, a ZIP holding a plain tree.json and your photos, which you can read without the app. GEDCOM import and export has not been built."}},{"@type":"Question","name":"Can several people work on one tree?","acceptedAnswer":{"@type":"Answer","text":"Not at the same time, since there is no shared server. Instead you send one branch as a small file and the other person imports it. The import merges into their tree, never overwrites it, and shows the evidence for any possible duplicate before adding anyone."}},{"@type":"Question","name":"What does f-tree know about me?","acceptedAnswer":{"@type":"Answer","text":"Nothing. There is no analytics, crash reporting or advertising in the apps or on this website. The privacy page lists every Android permission and what can reach a network."}},{"@type":"Question","name":"Is my tree encrypted?","acceptedAnswer":{"@type":"Answer","text":"Not by f-tree itself. It relies on your device’s own protection, such as Android’s device encryption and your lock screen, and an exported .ftree is an ordinary ZIP on purpose. If your family history is sensitive, keep it on a device you lock."}},{"@type":"Question","name":"Why does Windows warn me when I install it?","acceptedAnswer":{"@type":"Answer","text":"The Windows installer is not code-signed, so Windows shows “Windows protected your PC” and lists the publisher as Unknown. Choose More info, then Run anyway. Every file is built in the open by GitHub Actions and has a SHA-256 checksum you can check."}},{"@type":"Question","name":"Why isn’t the Android app on the Play Store?","acceptedAnswer":{"@type":"Answer","text":"f-tree is installed from a signed APK for now. Your browser and Play Protect will each ask for a confirmation, and the install guide shows exactly what to tap. The APK is signed with a key that stays the same for every release, so an update signed by anyone else refuses to install."}},{"@type":"Question","name":"How do I move my tree between my phone and my laptop?","acceptedAnswer":{"@type":"Answer","text":"Export a .ftree file and open it on the other device, or use nearby sharing to send it over the Wi-Fi you are both on. Both screens show the same six digits so you know it reached the right device."}},{"@type":"Question","name":"What happens to my tree if the project stops?","acceptedAnswer":{"@type":"Answer","text":"Your tree is a file you already hold, in a format documented in the repository, and the apps are open source under the MIT licence. Nothing depends on a server staying up."}},{"@type":"Question","name":"Can I print my family tree?","acceptedAnswer":{"@type":"Answer","text":"Yes. f-tree makes a PDF family book on your own device, with a cover, everyone in the family, a generation at a time and an index. Living people show only a birth year unless you turn full dates on. See the family book."}}]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https://ftree.vibethroughcode.com/"},{"@type":"ListItem","position":2,"name":"FAQ","item":"https://ftree.vibethroughcode.com/faq/"}]}</script>
+<link rel="preload" href="../fonts/literata.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="../style.css">
+<script>
+(function () {
+  var root = document.documentElement;
+  root.setAttribute('data-js', '');
+  try {
+    var saved = localStorage.getItem('ftree.theme');
+    if (saved === 'dark' || saved === 'light') root.setAttribute('data-theme', saved);
+  } catch (e) { /* private windows and blocked storage land here; the system decides */ }
+})();
+</script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="masthead">
+  <div class="shell">
+    <a class="wordmark" href="../" aria-label="f-tree home">
+      <svg width="26" height="26" viewBox="0 0 32 32" aria-hidden="true">
+        <rect width="32" height="32" rx="7" fill="var(--mark-tile)"/>
+        <g fill="none" stroke="var(--mark-line)" stroke-width="1.7" stroke-linecap="round">
+          <circle cx="11" cy="9.5" r="3.1"/><circle cx="21" cy="9.5" r="3.1"/>
+          <path d="M14.1 9.5h3.8"/><path d="M16 12.6v3.4M9 16h14M9 16v2.6M23 16v2.6"/>
+          <circle cx="9" cy="22" r="3.1"/>
+          <circle cx="23" cy="22" r="3.1" stroke="var(--mark-dash)" stroke-dasharray="2.2 2"/>
+        </g>
+      </svg>
+      f-tree
+    </a>
+    <nav class="nav-links" id="nav-links" aria-label="Main">
+      <a href="../features/">Features</a>
+      <a href="../#how">How it works</a>
+      <a href="../privacy/">Privacy</a>
+      <a href="../faq/" aria-current="page">FAQ</a>
+      <a href="https://github.com/thisisankit27/f-tree">Open source</a>
+    </nav>
+    <div class="nav-tools">
+      <button type="button" class="theme-toggle" id="theme-toggle" aria-label="Switch theme">
+        <svg class="i-moon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.5 14.3A8.5 8.5 0 0 1 9.7 3.5a8.5 8.5 0 1 0 10.8 10.8z"/></svg>
+        <svg class="i-sun" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4.1"/><path d="M12 2.6v2.2M12 19.2v2.2M4.35 4.35l1.55 1.55M18.1 18.1l1.55 1.55M2.6 12h2.2M19.2 12h2.2M4.35 19.65 5.9 18.1M18.1 5.9l1.55-1.55"/></svg>
+      </button>
+      <div class="dl-menu" id="dl-menu">
+        <a class="nav-cta dl-fallback" href="../download/">Download</a>
+        <button type="button" class="nav-cta dl-toggle" id="dl-toggle" aria-expanded="false" aria-controls="dl-panel">
+          Download
+          <svg class="dl-chevron" width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 4.5 6 7.5l3-3"/></svg>
+        </button>
+        <div class="dl-panel" id="dl-panel" hidden>
+          <a class="dl-option" href="../thanks/" data-os="android">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.6 9.48l1.84-3.18a.63.63 0 0 0-.26-.85.64.64 0 0 0-.83.22l-1.88 3.24a11.43 11.43 0 0 0-8.94 0L5.65 5.67a.64.64 0 0 0-.87-.2.64.64 0 0 0-.22.83L6.4 9.48A10.78 10.78 0 0 0 1 18h22a10.78 10.78 0 0 0-5.4-8.52zM7 15.25a1.25 1.25 0 1 1 0-2.5 1.25 1.25 0 0 1 0 2.5zm10 0a1.25 1.25 0 1 1 0-2.5 1.25 1.25 0 0 1 0 2.5z"/></svg>
+            <span class="dl-text"><span class="dl-name">Android <span class="dl-yours" hidden>Your system</span></span><span class="dl-sub">For Android 8.0 or newer</span></span>
+            <span class="dl-meta" data-dl-meta="android"></span>
+          </a>
+          <a class="dl-option" href="../desktop/thanks/?f=win" data-os="windows">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3 5.6l7.4-1v7.1H3V5.6zm8.6-1.2L21 3v8.7h-9.4V4.4zM3 12.8h7.4v7.1L3 18.9v-6.1zm8.6 0H21V21l-9.4-1.3v-6.9z"/></svg>
+            <span class="dl-text"><span class="dl-name">Windows <span class="dl-yours" hidden>Your system</span></span><span class="dl-sub">Installer for Windows 10 and 11</span></span>
+            <span class="dl-meta" data-dl-meta="windows"></span>
+          </a>
+          <a class="dl-option" href="../desktop/thanks/?f=deb" data-os="linux">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2c-2.2 0-3.4 1.8-3.4 4 0 1.6.3 2.3-.5 3.6C7 11.4 5.6 13 5.6 15.4c0 .9.3 1.5-.3 2.3-.5.7-.4 1.5.4 1.8.9.3 1.6-.2 2.4.3 1 .6 2.3 1 3.9 1s2.9-.4 3.9-1c.8-.5 1.5 0 2.4-.3.8-.3.9-1.1.4-1.8-.6-.8-.3-1.4-.3-2.3 0-2.4-1.4-4-2.5-5.8-.8-1.3-.5-2-.5-3.6 0-2.2-1.2-4-3.4-4z"/></svg>
+            <span class="dl-text"><span class="dl-name">Linux <span class="dl-yours" hidden>Your system</span></span><span class="dl-sub">A <code>.deb</code> for Ubuntu, Debian and Mint</span></span>
+            <span class="dl-meta" data-dl-meta="linux"></span>
+          </a>
+          <div class="dl-foot">
+            <a href="../download/">All files and checksums</a>
+            <a href="../playground/">Open a tree in your browser</a>
+          </div>
+        </div>
+      </div>
+      <button type="button" class="nav-toggle" id="nav-toggle" aria-expanded="false" aria-controls="nav-links" aria-label="Menu">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+<main id="main">
+<section class="page-head"><div class="shell"><p class="crumbs"><a href="../">Home</a><span aria-hidden="true">/</span><span aria-current="page" style="margin:0">FAQ</span></p><h1>Frequently asked questions</h1><p class="lede">What f-tree is, what it costs, what it can reach, and how to move your family between devices.</p></div></section>
+<section class="section" style="padding-top:0"><div class="shell"><div style="max-width:46em"><h2 class="faq-group">The basics</h2><div class="faq"><details><summary>Is f-tree really free?</summary><div class="answer"><p>Yes. There is no subscription, no trial, no advertising and no paid tier today. f-tree is open source under the MIT licence, built and maintained by one person.</p><p>Exporting and importing your own tree is designed to stay free, whatever else changes.</p></div></details><details><summary>Does f-tree need an account or an internet connection?</summary><div class="answer"><p>No account, ever, and no internet connection to use it. Three optional things touch a network, and each is off until you switch it on: the update check, the check for new book templates, and nearby sharing, which talks to a device on the same Wi-Fi.</p></div></details><details><summary>Where is my family tree stored?</summary><div class="answer"><p>On your own device. The Android app keeps it in a private database on the phone. The Windows and Linux apps keep it in a <code>.ftree</code> file that you choose, and write to it about a second after every change.</p><p>Nothing is uploaded, because there is no server to upload to.</p></div></details><details><summary>Which devices does it run on?</summary><div class="answer"><p>Android 8.0 or newer, Windows 10 and 11 (64-bit), and Linux, with a <code>.deb</code> for Ubuntu, Debian and Mint plus a portable folder and an AppImage. There is no macOS or iPhone version yet.</p></div></details></div><h2 class="faq-group">Family trees and relationships</h2><div class="faq"><details><summary>Can I add a relative whose name I don’t know?</summary><div class="answer"><p>Yes, and this is the reason f-tree exists. A person with no name is a valid person: record the great-grandmother nobody wrote down, place her in the family, and give her a name years later without disturbing anything around her.</p></div></details><details><summary>How does the relationship finder work?</summary><div class="answer"><p>Pick any two people and f-tree names how they are related, for example “first cousin once removed” or “mother-in-law”, and lists every person the line runs through. It walks marriages as well as blood relations, because “my wife’s mother” is what people actually ask.</p></div></details><details><summary>Does it support Hindi?</summary><div class="answer"><p>The interface is in English. The family words are in Hindi: switch <b>Family words</b> to हिन्दी and relationships are named with 65 Hindi kinship terms, such as मामा, चाचा, ताऊ and बुआ. See the <a href="../hindi-kinship/">complete Hindi relation chart</a>.</p></div></details><details><summary>Can I import a GEDCOM file?</summary><div class="answer"><p>Not yet. f-tree uses its own documented <code>.ftree</code> format, a ZIP holding a plain <code>tree.json</code> and your photos, which you can read without the app. GEDCOM import and export has not been built.</p></div></details><details><summary>Can several people work on one tree?</summary><div class="answer"><p>Not at the same time, since there is no shared server. Instead you send one branch as a small file and the other person imports it. The import merges into their tree, never overwrites it, and shows the evidence for any possible duplicate before adding anyone.</p></div></details></div><h2 class="faq-group">Privacy and trust</h2><div class="faq"><details><summary>What does f-tree know about me?</summary><div class="answer"><p>Nothing. There is no analytics, crash reporting or advertising in the apps or on this website. The <a href="../privacy/">privacy page</a> lists every Android permission and what can reach a network.</p></div></details><details><summary>Is my tree encrypted?</summary><div class="answer"><p>Not by f-tree itself. It relies on your device’s own protection, such as Android’s device encryption and your lock screen, and an exported <code>.ftree</code> is an ordinary ZIP on purpose. If your family history is sensitive, keep it on a device you lock.</p></div></details><details><summary>Why does Windows warn me when I install it?</summary><div class="answer"><p>The Windows installer is not code-signed, so Windows shows “Windows protected your PC” and lists the publisher as Unknown. Choose <b>More info</b>, then <b>Run anyway</b>. Every file is built in the open by GitHub Actions and has a SHA-256 checksum you can check.</p></div></details><details><summary>Why isn’t the Android app on the Play Store?</summary><div class="answer"><p>f-tree is installed from a signed APK for now. Your browser and Play Protect will each ask for a confirmation, and the <a href="../thanks/">install guide</a> shows exactly what to tap. The APK is signed with a key that stays the same for every release, so an update signed by anyone else refuses to install.</p></div></details></div><h2 class="faq-group">Sharing and your data</h2><div class="faq"><details><summary>How do I move my tree between my phone and my laptop?</summary><div class="answer"><p>Export a <code>.ftree</code> file and open it on the other device, or use nearby sharing to send it over the Wi-Fi you are both on. Both screens show the same six digits so you know it reached the right device.</p></div></details><details><summary>What happens to my tree if the project stops?</summary><div class="answer"><p>Your tree is a file you already hold, in a format documented in the repository, and the apps are open source under the MIT licence. Nothing depends on a server staying up.</p></div></details><details><summary>Can I print my family tree?</summary><div class="answer"><p>Yes. f-tree makes a PDF family book on your own device, with a cover, everyone in the family, a generation at a time and an index. Living people show only a birth year unless you turn full dates on. See <a href="../family-book/">the family book</a>.</p></div></details></div>
+<p style="margin:40px 0 0">Not here? <a href="https://github.com/thisisankit27/f-tree/issues/new">Ask on GitHub</a>. Questions there get answered in public, so the next person can find the answer too.</p></div></div></section>
+<section class="section band-deep cta-band"><div class="shell"><h2>Still deciding?</h2><p>It’s free, it works offline, and there’s nothing to sign up for. Try it with a single name.</p><div class="cta-row"><a class="btn btn-primary js-os-cta" href="../download/"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12m0 0l-4.5-4.5M12 15l4.5-4.5M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg><span>Download f-tree</span></a><a class="btn btn-quiet" href="../features/">See all features</a></div></div></section>
+</main>
+
+<footer class="footer">
+  <div class="shell">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <a class="wordmark" href="../">
+          <svg width="26" height="26" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="7" fill="var(--mark-tile)"/><g fill="none" stroke="var(--mark-line)" stroke-width="1.7" stroke-linecap="round"><circle cx="11" cy="9.5" r="3.1"/><circle cx="21" cy="9.5" r="3.1"/><path d="M14.1 9.5h3.8"/><path d="M16 12.6v3.4M9 16h14M9 16v2.6M23 16v2.6"/><circle cx="9" cy="22" r="3.1"/><circle cx="23" cy="22" r="3.1" stroke="var(--mark-dash)" stroke-dasharray="2.2 2"/></g></svg>
+          f-tree
+        </a>
+        <p>A free, private family tree for Android, Windows and Linux. Built in the open by <a href="https://github.com/thisisankit27">Ankit Srivastava</a>.</p>
+      </div>
+      <div>
+        <h2>Product</h2>
+        <ul>
+          <li><a href="../features/">Features</a></li>
+          <li><a href="../download/">Download</a></li>
+          <li><a href="../privacy/">Privacy</a></li>
+          <li><a href="../faq/">FAQ</a></li>
+        </ul>
+      </div>
+      <div>
+        <h2>Learn</h2>
+        <ul>
+          <li><a href="../relationship-finder/">Relationship finder</a></li>
+          <li><a href="../hindi-kinship/">Hindi relation names</a></li>
+          <li><a href="../family-book/">Family book</a></li>
+          <li><a href="../playground/">Browser viewer</a></li>
+        </ul>
+      </div>
+      <div>
+        <h2>Open source</h2>
+        <ul>
+          <li><a href="https://github.com/thisisankit27/f-tree">Source on GitHub</a></li>
+          <li><a href="https://github.com/thisisankit27/f-tree/releases">Releases</a></li>
+          <li><a href="https://github.com/thisisankit27/f-tree/blob/main/CHANGELOG.md">Changelog</a></li>
+          <li><a href="https://github.com/thisisankit27/f-tree/security/policy">Security policy</a></li>
+          <li><a href="https://github.com/thisisankit27/f-tree/issues/new">Report a problem</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-base">
+      <span>MIT licensed. No analytics, no cookies, no tracking.</span>
+      <span>f-tree is not on any app store. Every download is built by GitHub Actions and has a published checksum.</span>
+    </div>
+  </div>
+</footer>
+<script src="../app.js" defer></script>
+</body>
+</html>

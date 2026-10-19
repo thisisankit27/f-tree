@@ -9,17 +9,46 @@ Neither page has an analytics script. The viewer never uploads the file you open
 
 ---
 
-## The landing page
+## The marketing site
 
-`site/` is the public landing page and install guide, deployed to GitHub Pages by
-`.github/workflows/pages.yml` on any push to `main` that touches it. There is no build step —
-edit the HTML and push.
+`site/` is the public site, deployed to GitHub Pages by `.github/workflows/pages.yml` on any push to
+`main` that touches it. There is no build step — each page is a plain HTML file, so edit it and push.
+
+| Page | What it is for |
+|---|---|
+| `/` | The home page: what f-tree is, who it is for, the platforms, privacy, free, FAQ teaser |
+| `/features/` | Every feature, with screenshots |
+| `/download/` | Android, Windows and Linux in one place, with live version, size and checksums |
+| `/privacy/` | What stays on the device, what can reach a network, every Android permission |
+| `/faq/` | The questions, grouped, with `FAQPage` structured data |
+| `/relationship-finder/`, `/hindi-kinship/`, `/family-book/` | One page each for the three things people search for |
+| `/thanks/`, `/desktop/thanks/` | Install guides. `noindex`; the download buttons and the in-app updater send people here |
+| `/desktop/` | A redirect to `/download/`, kept because older links point at it |
+| `/playground/` | The browser viewer (see below) |
+
+The header and footer are copied into every page rather than built, so `pages.yml` fails the
+deploy if any page's copy differs from the home page's. Change one, change all of them.
 
 It reads version, size, release date, SHA-256 and the download count from the GitHub Releases API
-at run time, so cutting a release updates the site with no edit here, and the download count is
-real asset downloads rather than a third-party tracker. There is no analytics script on either
-page. Asset paths are relative, so the site works both at `thisisankit27.github.io/f-tree/` and at
-a custom domain.
+at run time, so cutting a release updates the site with no edit here. There is no analytics script
+and no cookie. Fonts are self-hosted and subset (`site/fonts/`), so no page makes a third-party
+request except to `api.github.com`. Asset paths are relative, so the site works both at
+`thisisankit27.github.io/f-tree/` and at a custom domain; each page names its depth in
+`<html data-root>` so `app.js` can build links from any of them.
+
+**Keep these when editing.** `app.js` fills elements by id and by `data-spec` / `data-dl-meta`
+attributes (`#platforms`, `#files-windows`, `#dl-menu`, `[data-spec="size"]` and the rest), and the
+install guides' markup is written by script. `site/style-tokens.test.mjs` fails when a colour is
+used but not defined in both themes.
+
+### Screenshots
+
+Desktop pictures come from the app itself, so they cannot drift from it: the `FTREE_SMOKE_SHOT*`
+hooks in `desktop/main.js` (see [the desktop guide](desktop.md)) write the PNGs, and Playwright's
+Electron support can drive the real window for the rest (zoom with the `menu:command` IPC, switch
+theme with `#theme-btn`). Light and dark takes of a picture are two images, shown by the
+`.on-light` / `.on-dark` classes, which follow the theme toggle as well as the system setting. Encode
+as WebP at about quality 80; every picture on the site is under 40 KB.
 
 ## The viewer
 

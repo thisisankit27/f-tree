@@ -27,3 +27,6 @@ temp/
 # The desktop app's dependencies and installers
 /desktop/node_modules/
 /desktop/dist/
+
+# Written by the Pages deploy (see .github/workflows/pages.yml); never committed.
+/site/release.json

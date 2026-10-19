@@ -1,0 +1,245 @@
+<!doctype html>
+<html lang="en" data-root="../">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>f-tree features: unknown people, relationship finder</title>
+<meta name="description" content="Record relatives with no name, find how any two people are related in English or Hindi, merge shared branches, and print a family book. All offline.">
+<meta name="theme-color" content="#f7f6f1" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#10150f" media="(prefers-color-scheme: dark)">
+<link rel="icon" href="../favicon.svg" type="image/svg+xml">
+<link rel="icon" href="../icons/icon-192.png" type="image/png" sizes="192x192">
+<link rel="apple-touch-icon" href="../icons/apple-touch-icon.png">
+<link rel="manifest" href="../manifest.webmanifest">
+<link rel="canonical" href="https://ftree.vibethroughcode.com/features/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="f-tree">
+<meta property="og:url" content="https://ftree.vibethroughcode.com/features/">
+<meta property="og:title" content="f-tree features: unknown people, relationship finder">
+<meta property="og:description" content="Record relatives with no name, find how any two people are related in English or Hindi, merge shared branches, and print a family book. All offline.">
+<meta property="og:image" content="https://ftree.vibethroughcode.com/og/features.png">
+<meta property="og:image:type" content="image/png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="f-tree features: people nobody can name, a relationship finder and Hindi family words.">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="f-tree features: unknown people, relationship finder">
+<meta name="twitter:description" content="Record relatives with no name, find how any two people are related in English or Hindi, merge shared branches, and print a family book. All offline.">
+<meta name="twitter:image" content="https://ftree.vibethroughcode.com/og/features.png">
+<meta name="twitter:image:alt" content="f-tree features: people nobody can name, a relationship finder and Hindi family words.">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"f-tree","description":"A free, offline family tree app for Android, Windows and Linux. Records relatives whose names are not known, names the relationship between any two people in English or Hindi, and keeps everything on the device.","url":"https://ftree.vibethroughcode.com/","applicationCategory":"LifestyleApplication","operatingSystem":"Android 8.0+, Windows 10+, Linux","downloadUrl":"https://ftree.vibethroughcode.com/download/","installUrl":"https://ftree.vibethroughcode.com/thanks/","license":"https://opensource.org/licenses/MIT","isAccessibleForFree":true,"inLanguage":["en","hi"],"screenshot":["https://ftree.vibethroughcode.com/shots/desktop-chart.webp","https://ftree.vibethroughcode.com/shots/desktop-relate.webp"],"featureList":["Record relatives with no name","Relationship finder in English and Hindi","Merge shared branches without overwriting","Nearby sharing over Wi-Fi","Birthday reminders","PDF family book","Works fully offline","No account"],"offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"author":{"@type":"Person","name":"Ankit Srivastava","url":"https://github.com/thisisankit27"}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https://ftree.vibethroughcode.com/"},{"@type":"ListItem","position":2,"name":"Features","item":"https://ftree.vibethroughcode.com/features/"}]}</script>
+<link rel="preload" href="../fonts/literata.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="../style.css">
+<script>
+(function () {
+  var root = document.documentElement;
+  root.setAttribute('data-js', '');
+  try {
+    var saved = localStorage.getItem('ftree.theme');
+    if (saved === 'dark' || saved === 'light') root.setAttribute('data-theme', saved);
+  } catch (e) { /* private windows and blocked storage land here; the system decides */ }
+})();
+</script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="masthead">
+  <div class="shell">
+    <a class="wordmark" href="../" aria-label="f-tree home">
+      <svg width="26" height="26" viewBox="0 0 32 32" aria-hidden="true">
+        <rect width="32" height="32" rx="7" fill="var(--mark-tile)"/>
+        <g fill="none" stroke="var(--mark-line)" stroke-width="1.7" stroke-linecap="round">
+          <circle cx="11" cy="9.5" r="3.1"/><circle cx="21" cy="9.5" r="3.1"/>
+          <path d="M14.1 9.5h3.8"/><path d="M16 12.6v3.4M9 16h14M9 16v2.6M23 16v2.6"/>
+          <circle cx="9" cy="22" r="3.1"/>
+          <circle cx="23" cy="22" r="3.1" stroke="var(--mark-dash)" stroke-dasharray="2.2 2"/>
+        </g>
+      </svg>
+      f-tree
+    </a>
+    <nav class="nav-links" id="nav-links" aria-label="Main">
+      <a href="../features/" aria-current="page">Features</a>
+      <a href="../#how">How it works</a>
+      <a href="../privacy/">Privacy</a>
+      <a href="../faq/">FAQ</a>
+      <a href="https://github.com/thisisankit27/f-tree">Open source</a>
+    </nav>
+    <div class="nav-tools">
+      <button type="button" class="theme-toggle" id="theme-toggle" aria-label="Switch theme">
+        <svg class="i-moon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.5 14.3A8.5 8.5 0 0 1 9.7 3.5a8.5 8.5 0 1 0 10.8 10.8z"/></svg>
+        <svg class="i-sun" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4.1"/><path d="M12 2.6v2.2M12 19.2v2.2M4.35 4.35l1.55 1.55M18.1 18.1l1.55 1.55M2.6 12h2.2M19.2 12h2.2M4.35 19.65 5.9 18.1M18.1 5.9l1.55-1.55"/></svg>
+      </button>
+      <div class="dl-menu" id="dl-menu">
+        <a class="nav-cta dl-fallback" href="../download/">Download</a>
+        <button type="button" class="nav-cta dl-toggle" id="dl-toggle" aria-expanded="false" aria-controls="dl-panel">
+          Download
+          <svg class="dl-chevron" width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 4.5 6 7.5l3-3"/></svg>
+        </button>
+        <div class="dl-panel" id="dl-panel" hidden>
+          <a class="dl-option" href="../thanks/" data-os="android">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.6 9.48l1.84-3.18a.63.63 0 0 0-.26-.85.64.64 0 0 0-.83.22l-1.88 3.24a11.43 11.43 0 0 0-8.94 0L5.65 5.67a.64.64 0 0 0-.87-.2.64.64 0 0 0-.22.83L6.4 9.48A10.78 10.78 0 0 0 1 18h22a10.78 10.78 0 0 0-5.4-8.52zM7 15.25a1.25 1.25 0 1 1 0-2.5 1.25 1.25 0 0 1 0 2.5zm10 0a1.25 1.25 0 1 1 0-2.5 1.25 1.25 0 0 1 0 2.5z"/></svg>
+            <span class="dl-text"><span class="dl-name">Android <span class="dl-yours" hidden>Your system</span></span><span class="dl-sub">For Android 8.0 or newer</span></span>
+            <span class="dl-meta" data-dl-meta="android"></span>
+          </a>
+          <a class="dl-option" href="../desktop/thanks/?f=win" data-os="windows">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3 5.6l7.4-1v7.1H3V5.6zm8.6-1.2L21 3v8.7h-9.4V4.4zM3 12.8h7.4v7.1L3 18.9v-6.1zm8.6 0H21V21l-9.4-1.3v-6.9z"/></svg>
+            <span class="dl-text"><span class="dl-name">Windows <span class="dl-yours" hidden>Your system</span></span><span class="dl-sub">Installer for Windows 10 and 11</span></span>
+            <span class="dl-meta" data-dl-meta="windows"></span>
+          </a>
+          <a class="dl-option" href="../desktop/thanks/?f=deb" data-os="linux">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2c-2.2 0-3.4 1.8-3.4 4 0 1.6.3 2.3-.5 3.6C7 11.4 5.6 13 5.6 15.4c0 .9.3 1.5-.3 2.3-.5.7-.4 1.5.4 1.8.9.3 1.6-.2 2.4.3 1 .6 2.3 1 3.9 1s2.9-.4 3.9-1c.8-.5 1.5 0 2.4-.3.8-.3.9-1.1.4-1.8-.6-.8-.3-1.4-.3-2.3 0-2.4-1.4-4-2.5-5.8-.8-1.3-.5-2-.5-3.6 0-2.2-1.2-4-3.4-4z"/></svg>
+            <span class="dl-text"><span class="dl-name">Linux <span class="dl-yours" hidden>Your system</span></span><span class="dl-sub">A <code>.deb</code> for Ubuntu, Debian and Mint</span></span>
+            <span class="dl-meta" data-dl-meta="linux"></span>
+          </a>
+          <div class="dl-foot">
+            <a href="../download/">All files and checksums</a>
+            <a href="../playground/">Open a tree in your browser</a>
+          </div>
+        </div>
+      </div>
+      <button type="button" class="nav-toggle" id="nav-toggle" aria-expanded="false" aria-controls="nav-links" aria-label="Menu">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+<main id="main">
+<section class="page-head"><div class="shell"><p class="crumbs"><a href="../">Home</a><span aria-hidden="true">/</span><span aria-current="page" style="margin:0">Features</span></p><h1>Everything f-tree does</h1><p class="lede">A family tree app built around the gaps in real families: relatives nobody can name, marriages that cross branches, and words English doesn’t have.</p></div></section>
+<section class="section" style="padding-top:clamp(20px,3vw,40px)">
+  <div class="shell">
+    <div class="split">
+      <div>
+        <h2>People nobody can name</h2>
+        <p>Every family has someone whose name nobody wrote down. In most apps you have to invent one or leave them out. In f-tree a person with no name is a valid person, drawn with a dashed brass edge so you can see where the record has holes.</p>
+        <ul class="ticks">
+          <li><span>Name them years later without disturbing a single relationship.</span></li>
+          <li><span>Multiple spouses, half-siblings, adoption, step-relations and unknown ancestors all work without special cases.</span></li>
+          <li><span>People with no recorded relatives still appear, grouped under “Not connected to anyone”.</span></li>
+        </ul>
+      </div>
+      <figure class="shot-frame"><img class="on-light" src="../shots/desktop-chart.webp" width="1400" height="867" alt="The f-tree chart showing a tree with one unknown relative drawn as a dashed card, and four unconnected people below." loading="lazy"><img class="on-dark" src="../shots/desktop-chart-dark.webp" width="1400" height="867" alt="The f-tree chart showing a tree with one unknown relative drawn as a dashed card, and four unconnected people below." loading="lazy"></figure>
+    </div>
+
+    <div class="split is-flip" id="relationship">
+      <div>
+        <h2>Ask how any two people are related</h2>
+        <p>Choose two people and f-tree names the relationship, such as “first cousin once removed” or “mother-in-law”, and lists every person the line runs through. It walks marriages as well as blood relations, because “my wife’s mother” is what people actually ask.</p>
+        <p>If the file doesn’t connect two people it says exactly that, rather than inventing a link.</p>
+        <p><a href="../relationship-finder/">How the relationship finder works</a></p>
+      </div>
+      <figure class="shot-frame"><img class="on-light" src="../shots/desktop-relate.webp" width="1280" height="658" alt="The relationship finder in f-tree naming Anita Kumar as Aarav Kumar’s grandmother, with each step of the chain listed." loading="lazy"><img class="on-dark" src="../shots/desktop-relate-dark.webp" width="1280" height="658" alt="The relationship finder in f-tree naming Anita Kumar as Aarav Kumar’s grandmother, with each step of the chain listed." loading="lazy"></figure>
+    </div>
+
+    <div class="split" id="hindi">
+      <div>
+        <h2>Family words in Hindi</h2>
+        <p>English has one word where Hindi has five. “Uncle” is चाचा, ताऊ, मामा, फूफा or मौसा depending on facts English throws away. Switch <b>Family words</b> to हिन्दी and f-tree chooses the right one from the side of the family, who links the two people, and who was born first.</p>
+        <p>When the record can’t say, it says पिता के भाई (father’s brother), which is true, rather than guessing between चाचा and ताऊ.</p>
+        <p><a href="../hindi-kinship/">See the complete Hindi relation chart</a></p>
+      </div>
+      <figure class="shot-frame"><img class="on-light" src="../shots/desktop-hindi.webp" width="1280" height="658" alt="The relationship finder showing the Hindi word दादी with the gloss father’s mother." loading="lazy"><img class="on-dark" src="../shots/desktop-hindi-dark.webp" width="1280" height="658" alt="The relationship finder showing the Hindi word दादी with the gloss father’s mother." loading="lazy"></figure>
+    </div>
+
+    <div class="split is-flip" id="views">
+      <div>
+        <h2>Three ways to read a tree</h2>
+        <p><b>Chart</b> draws the whole tree with generations as rows. <b>People</b> lists everybody by name, including the people no relationship reaches. <b>Compact</b> reads one person’s family as generation bands you can follow at any size, and a screen reader can read it too.</p>
+        <p>On Android the chart focuses on one person and their line, which suits a phone screen.</p>
+      </div>
+      <figure class="shot-frame"><img class="on-light" src="../shots/desktop-compact.webp" width="1280" height="658" alt="The compact view in f-tree, reading one person’s family as generation bands." loading="lazy"><img class="on-dark" src="../shots/desktop-compact-dark.webp" width="1280" height="658" alt="The compact view in f-tree, reading one person’s family as generation bands." loading="lazy"></figure>
+    </div>
+  </div>
+</section>
+
+<section class="section band-sunk" id="more">
+  <div class="shell">
+    <div class="section-head"><h2>And the rest</h2><p>The details that make a tree something you can keep for years.</p></div>
+    <div class="bento">
+      <article class="tile is-half" id="sharing">
+        <h3>Sharing that merges, never overwrites</h3>
+        <p>Send one person’s household as a small <code>.ftree</code> file over any chat app. The recipient’s import merges it in: it matches people rather than duplicating them, shows the evidence for each possible duplicate, writes a backup first, and importing the same file twice adds nobody.</p>
+      </article>
+      <article class="tile is-half">
+        <h3>Nearby sharing</h3>
+        <p>Send a tree to a device you can see, over the Wi-Fi you’re both on, with no account and no server. Both screens show the same six digits so you know it reached the right one. It works between Android, Windows and Linux, and is off until you switch it on.</p>
+      </article>
+      <article class="tile">
+        <h3>Birthdays</h3>
+        <p>A “Coming up” list for the next 30 days with the age they turn, and a separate, quieter place to remember the departed. Reminders are off by default, and a locked screen shows only “A birthday today”.</p>
+      </article>
+      <article class="tile">
+        <h3>A family book</h3>
+        <p>A designed, printable PDF with a cover, everyone in the family and an index to find yourself in, made on your own device. Living people show only a birth year unless you say otherwise.</p>
+        <a class="more" href="../family-book/">About the family book</a>
+      </article>
+      <article class="tile">
+        <h3>Photos</h3>
+        <p>Add a photograph to anyone and frame it, rather than crop it. Click or tap to see the whole picture. Photos on the chart can be switched off.</p>
+      </article>
+      <article class="tile">
+        <h3>Saved as you go</h3>
+        <p>On desktop every change reaches your file about a second later, written through a temporary file so a crash can’t leave half a tree. The last five versions are kept in the app’s own folder.</p>
+      </article>
+      <article class="tile">
+        <h3>An open file format</h3>
+        <p>A <code>.ftree</code> is a ZIP holding a plain <code>tree.json</code> and your photos, documented in the repository. You can read your family without the app, and nobody can lock it away.</p>
+      </article>
+      <article class="tile">
+        <h3>Light and dark</h3>
+        <p>Follows your system, or switch it yourself. The same palette runs across Android, Windows, Linux and this site.</p>
+      </article>
+    </div>
+  </div>
+</section>
+<section class="section band-deep cta-band"><div class="shell"><h2>Try it on your own family</h2><p>It’s free, it works offline, and you can start with a single name.</p><div class="cta-row"><a class="btn btn-primary js-os-cta" href="../download/"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12m0 0l-4.5-4.5M12 15l4.5-4.5M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg><span>Download f-tree</span></a><a class="btn btn-quiet" href="../features/">See all features</a></div></div></section>
+</main>
+
+<footer class="footer">
+  <div class="shell">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <a class="wordmark" href="../">
+          <svg width="26" height="26" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="7" fill="var(--mark-tile)"/><g fill="none" stroke="var(--mark-line)" stroke-width="1.7" stroke-linecap="round"><circle cx="11" cy="9.5" r="3.1"/><circle cx="21" cy="9.5" r="3.1"/><path d="M14.1 9.5h3.8"/><path d="M16 12.6v3.4M9 16h14M9 16v2.6M23 16v2.6"/><circle cx="9" cy="22" r="3.1"/><circle cx="23" cy="22" r="3.1" stroke="var(--mark-dash)" stroke-dasharray="2.2 2"/></g></svg>
+          f-tree
+        </a>
+        <p>A free, private family tree for Android, Windows and Linux. Built in the open by <a href="https://github.com/thisisankit27">Ankit Srivastava</a>.</p>
+      </div>
+      <div>
+        <h2>Product</h2>
+        <ul>
+          <li><a href="../features/">Features</a></li>
+          <li><a href="../download/">Download</a></li>
+          <li><a href="../privacy/">Privacy</a></li>
+          <li><a href="../faq/">FAQ</a></li>
+        </ul>
+      </div>
+      <div>
+        <h2>Learn</h2>
+        <ul>
+          <li><a href="../relationship-finder/">Relationship finder</a></li>
+          <li><a href="../hindi-kinship/">Hindi relation names</a></li>
+          <li><a href="../family-book/">Family book</a></li>
+          <li><a href="../playground/">Browser viewer</a></li>
+        </ul>
+      </div>
+      <div>
+        <h2>Open source</h2>
+        <ul>
+          <li><a href="https://github.com/thisisankit27/f-tree">Source on GitHub</a></li>
+          <li><a href="https://github.com/thisisankit27/f-tree/releases">Releases</a></li>
+          <li><a href="https://github.com/thisisankit27/f-tree/blob/main/CHANGELOG.md">Changelog</a></li>
+          <li><a href="https://github.com/thisisankit27/f-tree/security/policy">Security policy</a></li>
+          <li><a href="https://github.com/thisisankit27/f-tree/issues/new">Report a problem</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-base">
+      <span>MIT licensed. No analytics, no cookies, no tracking.</span>
+      <span>f-tree is not on any app store. Every download is built by GitHub Actions and has a published checksum.</span>
+    </div>
+  </div>
+</footer>
+<script src="../app.js" defer></script>
+</body>
+</html>

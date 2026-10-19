@@ -18,6 +18,9 @@
 
   var reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
+  // Every page names its own depth in <html data-root>, so links built here work from any of them.
+  var ROOT = document.documentElement.getAttribute('data-root') || '';
+
   /* ------------------------------------------------------------ release data */
 
   function summarise(releases) {
@@ -105,10 +108,24 @@
       if (hit && Date.now() - hit.at < CACHE_TTL) return Promise.resolve(hit.data);
     } catch (e) { /* storage blocked or corrupt — just fetch */ }
 
-    return fetch(API, { headers: { Accept: 'application/vnd.github+json' } })
+    // The site's own snapshot first (release.json, written when the site is deployed): a few
+    // kilobytes from the same origin, and no GitHub rate limit to run into. The live API is the
+    // fallback, for a local preview or a deploy that could not take a snapshot.
+    return fetch(ROOT + 'release.json')
       .then(function (r) {
-        if (!r.ok) throw new Error('GitHub API returned ' + r.status);
+        if (!r.ok) throw new Error('no snapshot');
         return r.json();
+      })
+      .then(function (list) {
+        if (!Array.isArray(list) || !list.length) throw new Error('empty snapshot');
+        return list;
+      })
+      .catch(function () {
+        return fetch(API + '?per_page=20', { headers: { Accept: 'application/vnd.github+json' } })
+          .then(function (r) {
+            if (!r.ok) throw new Error('GitHub API returned ' + r.status);
+            return r.json();
+          });
       })
       .then(function (json) {
         var data = summarise(json);
@@ -145,64 +162,15 @@
     document.querySelectorAll('[data-spec="desktop-version"]').forEach(function (el) {
       if (data.desktop) el.textContent = data.desktop.version;
     });
-  }
-
-  function countUp(el, target) {
-    if (reduceMotion || target > 100000) {
-      el.textContent = target.toLocaleString();
-      return;
-    }
-    var started = null;
-    var duration = 900;
-    function frame(now) {
-      if (started === null) started = now;
-      var t = Math.min(1, (now - started) / duration);
-      var eased = 1 - Math.pow(1 - t, 3);
-      el.textContent = Math.round(target * eased).toLocaleString();
-      if (t < 1) requestAnimationFrame(frame);
-    }
-    requestAnimationFrame(frame);
-  }
-
-  /* --------------------------------------------------------- download count */
-  /*
-   * Kept, but nothing on the page carries #counter at the moment. The total was in the hero
-   * and, while it is honestly counted, a small number is the first thing a stranger reads
-   * about a sideloaded APK. GitHub keeps counting per release asset regardless of what this
-   * page shows, so restoring the counter is a matter of putting the markup back.
-   */
-
-  function showCounter(data) {
-    var box = document.getElementById('counter');
-    var value = document.getElementById('counter-value');
-    var label = document.getElementById('counter-label');
-    if (!box || !value) return;
-
-    var n = data.downloads;
-    box.setAttribute('data-state', 'ready');
-    label.textContent = (n === 1 ? 'download' : 'downloads') +
-      ' so far · counted by GitHub, not by us';
-
-    var seen = false;
-    var reveal = function () {
-      if (seen) return;
-      seen = true;
-      countUp(value, n);
-    };
-
-    if ('IntersectionObserver' in window) {
-      var io = new IntersectionObserver(function (entries) {
-        entries.forEach(function (e) { if (e.isIntersecting) { reveal(); io.disconnect(); } });
+    if (data.desktop) {
+      var assets = filesFrom(data.desktop);
+      [['windows-size', 'win'], ['linux-size', 'deb']].forEach(function (pair) {
+        var asset = assets[pair[1]];
+        document.querySelectorAll('[data-spec="' + pair[0] + '"]').forEach(function (el) {
+          if (asset) el.textContent = megabytes(asset.size);
+        });
       });
-      io.observe(box);
-    } else {
-      reveal();
     }
-  }
-
-  function hideCounter() {
-    var box = document.getElementById('counter');
-    if (box) box.hidden = true;
   }
 
   /* ------------------------------------------------------------------ theme */
@@ -573,7 +541,7 @@
 
   function fileRow(id, asset, recommended) {
     var spec = FILES[id];
-    return '<a class="file' + (recommended ? ' primary' : '') + '" href="thanks/?f=' + id + '">'
+    return '<a class="file' + (recommended ? ' primary' : '') + '" href="' + ROOT + 'desktop/thanks/?f=' + id + '">'
       + '<span class="what">' + spec.what + '</span>'
       + '<span class="meta">' + spec.kind + '  ·  ' + megabytes(asset.size) + '</span></a>';
   }
@@ -616,7 +584,7 @@
 
     if (platform === 'android' || platform === 'ios') {
       assurance.innerHTML = 'This page is for a laptop. On a phone, '
-        + '<a href="../thanks/">f-tree is an Android app</a>.';
+        + '<a href="' + ROOT + 'thanks/">f-tree is an Android app</a>.';
     } else if (platform === 'mac') {
       assurance.textContent = 'There is no macOS build yet — these are the Windows and Linux files.';
     }
@@ -678,7 +646,7 @@
             + '<code>.ftree</code> you already have with <b>File → Open tree</b>.']
         ],
         caution: '<strong>If you would rather not type any of that,</strong> the '
-          + '<a href="../">.deb</a> does the same thing for you and needs no follow-up.'
+          + '<a href="' + ROOT + 'download/#windows-linux">.deb</a> does the same thing for you and needs no follow-up.'
       };
     }
     return {
@@ -773,6 +741,47 @@
     });
   }
 
+  /* ------------------------------------------------- the page's own download buttons */
+  /*
+   * The hero and closing buttons name the system the reader is most likely on and go straight to
+   * its install page. Like the menu's "your system" mark it is a guess, and a harmless one: the
+   * menu beside it and the download page still list all three, and with no JavaScript the button
+   * is a plain link to the download page.
+   */
+  function wireOsButtons() {
+    var buttons = document.querySelectorAll('.js-os-cta, #hero-cta');
+    if (!buttons.length) return;
+    var targets = {
+      android: ['Download for Android', 'thanks/'],
+      windows: ['Download for Windows', 'desktop/thanks/?f=win'],
+      linux: ['Download for Linux', 'desktop/thanks/?f=deb']
+    };
+    var hit = targets[guessPlatform()];
+    if (!hit) return;
+    buttons.forEach(function (button) {
+      var label = button.querySelector('span');
+      if (label) label.textContent = hit[0];
+      button.setAttribute('href', ROOT + hit[1]);
+    });
+  }
+
+  /* ---------------------------------------------------------- the small-screen menu */
+
+  function wireNavToggle() {
+    var toggle = document.getElementById('nav-toggle');
+    var links = document.getElementById('nav-links');
+    if (!toggle || !links) return;
+    var set = function (open) {
+      links.classList.toggle('is-open', open);
+      toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+    };
+    toggle.addEventListener('click', function () { set(!links.classList.contains('is-open')); });
+    links.addEventListener('click', function (e) { if (e.target.closest('a')) set(false); });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && links.classList.contains('is-open')) { set(false); toggle.focus(); }
+    });
+  }
+
   /* -------------------------------------------------------------------- init */
 
   var onDownloads = !!document.getElementById('platforms');
@@ -783,6 +792,8 @@
   wireNamingSlot();
   wireDemo();
   wireDownloadMenu();
+  wireOsButtons();
+  wireNavToggle();
 
   loadRelease().then(function (data) {
     if (!data) throw new Error('no releases published');
@@ -791,12 +802,10 @@
     if (onDesktopThanks) wireThanksDesktop(data.desktop);
     else if (onDownloads) wireDownloads(data.desktop);
     else if (onThanks) wireThanks(data);
-    else showCounter(data);
   }).catch(function (err) {
     if (window.console) console.warn('f-tree: release data unavailable —', err.message);
     if (onDesktopThanks) wireThanksDesktop(null);
     else if (onDownloads) wireDownloads(null);
     else if (onThanks) wireThanks(null);
-    else hideCounter();
   });
 })();

@@ -9,6 +9,12 @@ on:
     paths:
       - 'site/**'
       - '.github/workflows/pages.yml'
+  # The release snapshot below is taken at deploy time, so a new release reaches the site on the
+  # next run. Releases published by another workflow do not trigger this one, hence the schedule.
+  release:
+    types: [published]
+  schedule:
+    - cron: '23 */3 * * *'
   workflow_dispatch:
 
 permissions:
@@ -33,7 +39,11 @@ jobs:
       - name: Check the pages are intact
         run: |
           set -euo pipefail
-          for f in site/index.html site/thanks/index.html site/style.css site/app.js; do
+          for f in site/index.html site/thanks/index.html site/style.css site/app.js \
+                   site/features/index.html site/download/index.html site/privacy/index.html \
+                   site/faq/index.html site/relationship-finder/index.html \
+                   site/hindi-kinship/index.html site/family-book/index.html site/404.html \
+                   site/sitemap.xml site/manifest.webmanifest site/fonts/literata.woff2; do
             test -s "$f" || { echo "missing or empty: $f"; exit 1; }
           done
           # Every local asset referenced by the HTML must actually exist, so a renamed
@@ -46,6 +56,38 @@ jobs:
           done < <(grep -oE '(src|href)="[^"]+"' -r site --include='*.html' \
                    | sed -E 's/:(src|href)="/ /; s/"$//')
           test "$missing" -eq 0
+
+      # The marketing pages are plain HTML with no build step, so the header and footer are copied
+      # into each one. This is what stops the copies drifting: the navigation and the footer must be
+      # identical on every page once the relative prefix (and the current-page marker) is ignored.
+      - name: Every marketing page carries the same header and footer
+        run: |
+          python3 - <<'PY'
+          import re, sys, pathlib
+          pages = ['index.html', 'features/index.html', 'download/index.html', 'privacy/index.html',
+                   'faq/index.html', 'relationship-finder/index.html', 'hindi-kinship/index.html',
+                   'family-book/index.html', 'thanks/index.html', 'desktop/index.html',
+                   'desktop/thanks/index.html', '404.html']
+          def chrome(text):
+              parts = []
+              for pattern in (r'<nav class="nav-links".*?</nav>', r'<div class="dl-menu".*?</div>\s*</div>\s*<button', r'<footer class="footer">.*?</footer>'):
+                  m = re.search(pattern, text, re.S)
+                  if not m: return None
+                  parts.append(m.group(0))
+              joined = '\n'.join(parts)
+              joined = re.sub(r'href="(?:\.\./|\./)*/?', 'href="', joined)
+              joined = joined.replace(' aria-current="page"', '')
+              return joined
+          base = None
+          bad = []
+          for page in pages:
+              got = chrome(pathlib.Path('site', page).read_text())
+              if got is None: bad.append(page + ' (header or footer missing)'); continue
+              if base is None: base = got
+              elif got != base: bad.append(page)
+          if bad:
+              print('header/footer differ from site/index.html on: ' + ', '.join(bad)); sys.exit(1)
+          PY
 
       # Every colour the pages ask for is defined, with no fallback to hide it when it is not, and
       # the two copies of the night palette agree. Four tokens were missing until 0.6.0 shipped.
@@ -125,6 +167,25 @@ jobs:
                    | while read -r s; do echo "site/playground/x $s"; done)
           test "$missing" -eq 0
           test -s site/playground/sample-family.ftree
+
+      # The version, sizes and checksums the pages show come from the releases list. Fetching that from
+      # the browser meant a 300 KB response on every visit and GitHub's 60-an-hour limit per visitor,
+      # so the deploy takes a trimmed copy of it (about 4 KB) and serves it from the site itself.
+      # Same shape as the API, so app.js reads either; if GitHub is unreachable the page falls back to
+      # the live API rather than the deploy failing.
+      - name: Snapshot the releases the pages describe
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh api "repos/${{ github.repository }}/releases?per_page=20" \
+               --jq '[.[] | {tag_name, draft, prerelease, published_at, html_url,
+                             assets: [.assets[] | {name, size, digest, browser_download_url}]}]' \
+               > site/release.json && [ "$(jq length site/release.json)" -gt 0 ]; then
+            echo "snapshot: $(wc -c < site/release.json) bytes"
+          else
+            rm -f site/release.json
+            echo "no snapshot taken; pages will use the live API"
+          fi
 
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v4

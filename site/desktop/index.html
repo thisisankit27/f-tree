@@ -1,27 +1,20 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-root="../">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>f-tree for Windows and Linux</title>
-<meta name="description" content="Download f-tree for Windows or Ubuntu, with the SmartScreen and AppImage warnings explained, the install steps for each system, and the checksum to verify what you downloaded.">
+<meta name="description" content="Download f-tree for Windows and Linux from the downloads page.">
+<meta name="robots" content="noindex">
 <meta name="theme-color" content="#f7f6f1" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#10150f" media="(prefers-color-scheme: dark)">
 <link rel="icon" href="../favicon.svg" type="image/svg+xml">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,600;0,7..72,700;1,7..72,400&family=JetBrains+Mono:wght@400;500&display=swap">
+<link rel="icon" href="../icons/icon-192.png" type="image/png" sizes="192x192">
+<link rel="apple-touch-icon" href="../icons/apple-touch-icon.png">
+<meta http-equiv="refresh" content="0; url=../download/#windows-linux">
+<link rel="manifest" href="../manifest.webmanifest">
+<link rel="preload" href="../fonts/literata.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="../style.css">
-
-<!--
-  The theme, decided before the first paint.
-
-  This runs where it sits, in the head, so the ground is already the right colour when the page
-  first draws — pushed to the end of the body it would flash bone at a reader who chose dark.
-  Nothing is stamped when there is no stored choice: the absence of the attribute is what lets
-  the prefers-color-scheme rule in style.css keep following the system, including live, while
-  data-js is what reveals the toggle (see style.css).
--->
 <script>
 (function () {
   var root = document.documentElement;
@@ -29,16 +22,15 @@
   try {
     var saved = localStorage.getItem('ftree.theme');
     if (saved === 'dark' || saved === 'light') root.setAttribute('data-theme', saved);
-  } catch (e) { /* private windows and blocked storage both land here; the system decides */ }
+  } catch (e) { /* private windows and blocked storage land here; the system decides */ }
 })();
 </script>
-
 </head>
 <body>
-
+<a class="skip" href="#main">Skip to content</a>
 <header class="masthead">
   <div class="shell">
-    <a class="wordmark" href="../">
+    <a class="wordmark" href="../" aria-label="f-tree home">
       <svg width="26" height="26" viewBox="0 0 32 32" aria-hidden="true">
         <rect width="32" height="32" rx="7" fill="var(--mark-tile)"/>
         <g fill="none" stroke="var(--mark-line)" stroke-width="1.7" stroke-linecap="round">
@@ -50,205 +42,106 @@
       </svg>
       f-tree
     </a>
-    <nav>
-      <a class="nav-link" href="../">Back to the start</a>
-      <button type="button" class="theme-toggle" id="theme-toggle" aria-label="Switch theme">
-        <svg class="i-moon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <path d="M20.5 14.3A8.5 8.5 0 0 1 9.7 3.5a8.5 8.5 0 1 0 10.8 10.8z"/>
-        </svg>
-        <svg class="i-sun" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <circle cx="12" cy="12" r="4.1"/>
-          <path d="M12 2.6v2.2M12 19.2v2.2M4.35 4.35l1.55 1.55M18.1 18.1l1.55 1.55M2.6 12h2.2M19.2 12h2.2M4.35 19.65 5.9 18.1M18.1 5.9l1.55-1.55"/>
-        </svg>
-      </button>
+    <nav class="nav-links" id="nav-links" aria-label="Main">
+      <a href="../features/">Features</a>
+      <a href="../#how">How it works</a>
+      <a href="../privacy/">Privacy</a>
+      <a href="../faq/">FAQ</a>
+      <a href="https://github.com/thisisankit27/f-tree">Open source</a>
     </nav>
+    <div class="nav-tools">
+      <button type="button" class="theme-toggle" id="theme-toggle" aria-label="Switch theme">
+        <svg class="i-moon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.5 14.3A8.5 8.5 0 0 1 9.7 3.5a8.5 8.5 0 1 0 10.8 10.8z"/></svg>
+        <svg class="i-sun" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4.1"/><path d="M12 2.6v2.2M12 19.2v2.2M4.35 4.35l1.55 1.55M18.1 18.1l1.55 1.55M2.6 12h2.2M19.2 12h2.2M4.35 19.65 5.9 18.1M18.1 5.9l1.55-1.55"/></svg>
+      </button>
+      <div class="dl-menu" id="dl-menu">
+        <a class="nav-cta dl-fallback" href="../download/">Download</a>
+        <button type="button" class="nav-cta dl-toggle" id="dl-toggle" aria-expanded="false" aria-controls="dl-panel">
+          Download
+          <svg class="dl-chevron" width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 4.5 6 7.5l3-3"/></svg>
+        </button>
+        <div class="dl-panel" id="dl-panel" hidden>
+          <a class="dl-option" href="../thanks/" data-os="android">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.6 9.48l1.84-3.18a.63.63 0 0 0-.26-.85.64.64 0 0 0-.83.22l-1.88 3.24a11.43 11.43 0 0 0-8.94 0L5.65 5.67a.64.64 0 0 0-.87-.2.64.64 0 0 0-.22.83L6.4 9.48A10.78 10.78 0 0 0 1 18h22a10.78 10.78 0 0 0-5.4-8.52zM7 15.25a1.25 1.25 0 1 1 0-2.5 1.25 1.25 0 0 1 0 2.5zm10 0a1.25 1.25 0 1 1 0-2.5 1.25 1.25 0 0 1 0 2.5z"/></svg>
+            <span class="dl-text"><span class="dl-name">Android <span class="dl-yours" hidden>Your system</span></span><span class="dl-sub">For Android 8.0 or newer</span></span>
+            <span class="dl-meta" data-dl-meta="android"></span>
+          </a>
+          <a class="dl-option" href="../desktop/thanks/?f=win" data-os="windows">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3 5.6l7.4-1v7.1H3V5.6zm8.6-1.2L21 3v8.7h-9.4V4.4zM3 12.8h7.4v7.1L3 18.9v-6.1zm8.6 0H21V21l-9.4-1.3v-6.9z"/></svg>
+            <span class="dl-text"><span class="dl-name">Windows <span class="dl-yours" hidden>Your system</span></span><span class="dl-sub">Installer for Windows 10 and 11</span></span>
+            <span class="dl-meta" data-dl-meta="windows"></span>
+          </a>
+          <a class="dl-option" href="../desktop/thanks/?f=deb" data-os="linux">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2c-2.2 0-3.4 1.8-3.4 4 0 1.6.3 2.3-.5 3.6C7 11.4 5.6 13 5.6 15.4c0 .9.3 1.5-.3 2.3-.5.7-.4 1.5.4 1.8.9.3 1.6-.2 2.4.3 1 .6 2.3 1 3.9 1s2.9-.4 3.9-1c.8-.5 1.5 0 2.4-.3.8-.3.9-1.1.4-1.8-.6-.8-.3-1.4-.3-2.3 0-2.4-1.4-4-2.5-5.8-.8-1.3-.5-2-.5-3.6 0-2.2-1.2-4-3.4-4z"/></svg>
+            <span class="dl-text"><span class="dl-name">Linux <span class="dl-yours" hidden>Your system</span></span><span class="dl-sub">A <code>.deb</code> for Ubuntu, Debian and Mint</span></span>
+            <span class="dl-meta" data-dl-meta="linux"></span>
+          </a>
+          <div class="dl-foot">
+            <a href="../download/">All files and checksums</a>
+            <a href="../playground/">Open a tree in your browser</a>
+          </div>
+        </div>
+      </div>
+      <button type="button" class="nav-toggle" id="nav-toggle" aria-expanded="false" aria-controls="nav-links" aria-label="Menu">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+      </button>
+    </div>
   </div>
 </header>
+<main id="main">
 
-
-<main>
-
-<section class="band" style="padding-bottom:0">
-  <div class="shell" style="max-width:900px">
-    <p class="eyebrow">For your laptop</p>
-    <h1 style="font-size:clamp(32px,4.6vw,48px);line-height:1.1;font-weight:600;letter-spacing:-0.02em;margin:0 0 18px">
-      f-tree on Windows and Ubuntu.
-    </h1>
-    <p class="lede" style="max-width:38em">
-      Build a family tree on your laptop, or open a <code>.ftree</code> you already have.
-      Generations run as rows, ancestors at the top, the tree across the width. Free, open
-      source, no account, and it works with the network off.
-    </p>
-
-    <!--
-      One card per system, every file a row of its own.
-      Detection marks a recommendation and nothing more: a reader on a machine the page guessed
-      wrong still sees every file, at the same size, one click away.
-    -->
-    <div class="platforms" id="platforms">
-      <div class="platform" id="card-windows">
-        <h3>
-          <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3 5.6l7.4-1v7.1H3V5.6zm8.6-1.2L21 3v8.7h-9.4V4.4zM3 12.8h7.4v7.1L3 18.9v-6.1zm8.6 0H21V21l-9.4-1.3v-6.9z"/></svg>
-          Windows
-          <span class="tag" id="tag-windows" hidden>Your system</span>
-        </h3>
-        <p>Windows 10 or 11, 64-bit. Installs for your account, so it never asks for an administrator password.</p>
-        <div id="files-windows"></div>
-      </div>
-
-      <div class="platform" id="card-linux">
-        <h3>
-          <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2c-2.2 0-3.4 1.8-3.4 4 0 1.6.3 2.3-.5 3.6C7 11.4 5.6 13 5.6 15.4c0 .9.3 1.5-.3 2.3-.5.7-.4 1.5.4 1.8.9.3 1.6-.2 2.4.3 1 .6 2.3 1 3.9 1s2.9-.4 3.9-1c.8-.5 1.5 0 2.4-.3.8-.3.9-1.1.4-1.8-.6-.8-.3-1.4-.3-2.3 0-2.4-1.4-4-2.5-5.8-.8-1.3-.5-2-.5-3.6 0-2.2-1.2-4-3.4-4z"/></svg>
-          Ubuntu &amp; Linux
-          <span class="tag" id="tag-linux" hidden>Your system</span>
-        </h3>
-        <p>Take the <code>.deb</code> on Ubuntu, Debian or Mint — it is the one that needs nothing from you afterwards. The other two ask for a command first.</p>
-        <div id="files-linux"></div>
-      </div>
-    </div>
-
-    <p class="assurance" id="assurance">Finding the latest build…</p>
-  </div>
-</section>
-
-<section class="band band-sunk">
-  <div class="shell" style="max-width:900px">
-    <p class="expect">
-      <strong>One thing to expect on Windows.</strong> The installer is not code-signed — there is
-      no certificate behind it — so Defender will stop it with <b>“Windows protected your PC”</b>
-      and the publisher will read <b>Unknown</b>. Choose <b>More info</b>, then <b>Run anyway</b>.
-      Every file here is built in the open by GitHub Actions, and each has a checksum you can
-      check on the page that follows your download.
-    </p>
-  </div>
-</section>
-
-<section class="band">
-  <div class="shell" style="max-width:900px">
-    <p class="rule-label">Good to know</p>
-
-    <details class="folded">
-      <summary>Which Linux file should I take?</summary>
-      <p style="margin:14px 0 0;max-width:40em">
-        The <b>.deb</b>, unless you have a reason not to. It puts f-tree in your applications menu
-        like anything else, updates cleanly, and — the part that matters on current Ubuntu — it is
-        the only one of the three that can set up Chromium’s sandbox helper for you.
-      </p>
-      <p style="margin:12px 0 0;max-width:40em">
-        That caveat applies to both of the other formats, so it is worth understanding once.
-        <b>Ubuntu 24.04 and newer</b> stop an ordinary program from using the sandbox Chromium
-        prefers, so it falls back to a small helper that has to be owned by <code>root</code>. A
-        package installer can arrange that; an archive you unpacked yourself cannot. Start one of
-        those builds without arranging it and the app exits on the spot, complaining about
-        <code>chrome-sandbox</code>. The <b>portable folder</b> is still perfectly usable — it needs
-        one <code>sudo chmod</code>, printed on its download page — but it is no longer the answer
-        for a machine you do not administer, and we would rather say so than let you find out.
-      </p>
-      <p style="margin:12px 0 0;max-width:40em">
-        The <b>AppImage</b> is the one to avoid on those releases. It has a second, unrelated
-        problem: they replaced the FUSE 2 helper it needs with <code>fusermount3</code>, so it will
-        not start by double-clicking, and installing <code>libfuse2</code> does <em>not</em> fix it,
-        whatever the internet says. Running it as
-        <code>./f-tree-*.AppImage --appimage-extract-and-run</code> gets past that and walks
-        straight into the sandbox problem above — which cannot be solved for a folder that is
-        unpacked fresh into a temporary directory every time it runs.
-      </p>
-    </details>
-
-    <details class="folded">
-      <summary>How is my tree kept safe?</summary>
-      <p style="margin:14px 0 0;max-width:40em">
-        Save a new tree once, choosing where it lives, and from then on <b>every change is saved as
-        you make it</b> — there is no Save button to forget, and closing the window finishes any save
-        still under way first. Each save is written to a temporary file first and only then swapped in for yours, so
-        a crash or a full disk mid-save leaves the last good version in place, not half a tree. If a
-        save does fail, the bar says so and offers to try again.
-      </p>
-      <p style="margin:12px 0 0;max-width:40em">
-        The app also keeps the <b>last five versions</b> of every tree in its own folder: one from
-        before the first save each time the app starts, then at most one every ten minutes.
-        <b>File › Show backups</b> opens that folder. Your own copy somewhere else is still worth
-        having for anything you care about — a second disk, a USB stick, or the phone.
-      </p>
-    </details>
-
-    <details class="folded">
-      <summary>Why does GitHub call it a pre-release?</summary>
-      <p style="margin:14px 0 0;max-width:40em">
-        Because the Android app looks for its updates in the same list of releases, and it reads
-        whichever one GitHub calls the latest. Every desktop release is filed as a pre-release so
-        that the latest is always an Android one, and no phone is ever offered a desktop installer.
-        It is a filing rule, not a verdict: the builds offered on this page are the stable ones.
-      </p>
-    </details>
-
-    <details class="folded">
-      <summary>Is there a macOS build?</summary>
-      <p style="margin:14px 0 0;max-width:40em">
-        Not yet. Windows and Linux are what is built and tested today.
-      </p>
-    </details>
-
-    <details class="folded">
-      <summary>What can the app reach?</summary>
-      <p style="margin:14px 0 0;max-width:40em">
-        It reads the file you open and writes one small note of which file that was, so it can
-        reopen it next time. No account, no server, no telemetry. The window itself is
-        <em>refused</em> the network outright — which is why its typefaces are read from disk rather
-        than fetched from Google. The only request the app can make is the update check, and that
-        is off until you switch it on in <b>Settings</b>.
-      </p>
-    </details>
-
-    <details class="folded">
-      <summary>How do updates work?</summary>
-      <p style="margin:14px 0 0;max-width:40em">
-        Two switches under <b>Settings</b>, both off when you install: <b>check automatically</b>,
-        which looks once at startup and stays quiet unless there is something to say, and
-        <b>offer me betas</b>, which asks before it turns on. Anything downloaded is checked against
-        the SHA-256 GitHub published for it before you are offered it to run; if they disagree the
-        file is deleted and nothing is installed.
-      </p>
-    </details>
-
-    <details class="folded">
-      <summary>What does it do today?</summary>
-      <p style="margin:14px 0 0;max-width:40em">
-        Everything the phone app does with a tree. It <b>reads</b> one — the chart, a compact
-        reading you can follow at any size, the people index and the search — and it <b>builds and
-        edits</b> one: add a person, add a relative, correct a fact, remove a relationship, and undo
-        any of it, with every change saved as you make it. It <b>imports</b> a relative’s file into the tree you have, matching people rather
-        than duplicating them. It answers <b>how two people are related</b>, in English and in
-        <span lang="hi">हिन्दी</span>. It adds and frames <b>photographs</b>. Updates are checked
-        against a SHA-256 if you ask for them.
-      </p>
-      <p style="margin:12px 0 0;max-width:40em">
-        One thing the phone has that this deliberately does not: a <b>focused chart</b> — the drawn
-        tree narrowed to one person’s line, with everybody else hidden. A phone screen needs that.
-        A laptop’s does not, and <b>Compact</b> answers the same want better here: one person’s
-        family as generation bands, readable without zooming and reachable by a screen reader, which
-        a canvas never is. <a href="https://github.com/thisisankit27/f-tree/issues/89">#89</a> has
-        the checklist and the reasoning.
-      </p>
-    </details>
-  </div>
-</section>
-
+<section class="section"><div class="shell" style="max-width:720px">
+  <h1 style="font-size:clamp(30px,4vw,44px);line-height:1.12;font-weight:600;letter-spacing:-0.02em;margin:0 0 16px">f-tree for Windows and Linux</h1>
+  <p class="lede">The desktop downloads now live with the Android one, so every platform is in the same place.</p>
+  <div class="cta-row"><a class="btn btn-primary" href="../download/#windows-linux">Go to the downloads</a></div>
+</div></section>
 </main>
-
 
 <footer class="footer">
   <div class="shell">
-    <span>f-tree — built by <a href="https://github.com/thisisankit27">thisisankit27</a>. MIT licensed.</span>
-    <nav>
-      <a href="../">Home</a>
-      <a href="../playground/">Viewer</a>
-      <a href="https://github.com/thisisankit27/f-tree">Source</a>
-      <a href="https://github.com/thisisankit27/f-tree/releases">Releases</a>
-    </nav>
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <a class="wordmark" href="../">
+          <svg width="26" height="26" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="7" fill="var(--mark-tile)"/><g fill="none" stroke="var(--mark-line)" stroke-width="1.7" stroke-linecap="round"><circle cx="11" cy="9.5" r="3.1"/><circle cx="21" cy="9.5" r="3.1"/><path d="M14.1 9.5h3.8"/><path d="M16 12.6v3.4M9 16h14M9 16v2.6M23 16v2.6"/><circle cx="9" cy="22" r="3.1"/><circle cx="23" cy="22" r="3.1" stroke="var(--mark-dash)" stroke-dasharray="2.2 2"/></g></svg>
+          f-tree
+        </a>
+        <p>A free, private family tree for Android, Windows and Linux. Built in the open by <a href="https://github.com/thisisankit27">Ankit Srivastava</a>.</p>
+      </div>
+      <div>
+        <h2>Product</h2>
+        <ul>
+          <li><a href="../features/">Features</a></li>
+          <li><a href="../download/">Download</a></li>
+          <li><a href="../privacy/">Privacy</a></li>
+          <li><a href="../faq/">FAQ</a></li>
+        </ul>
+      </div>
+      <div>
+        <h2>Learn</h2>
+        <ul>
+          <li><a href="../relationship-finder/">Relationship finder</a></li>
+          <li><a href="../hindi-kinship/">Hindi relation names</a></li>
+          <li><a href="../family-book/">Family book</a></li>
+          <li><a href="../playground/">Browser viewer</a></li>
+        </ul>
+      </div>
+      <div>
+        <h2>Open source</h2>
+        <ul>
+          <li><a href="https://github.com/thisisankit27/f-tree">Source on GitHub</a></li>
+          <li><a href="https://github.com/thisisankit27/f-tree/releases">Releases</a></li>
+          <li><a href="https://github.com/thisisankit27/f-tree/blob/main/CHANGELOG.md">Changelog</a></li>
+          <li><a href="https://github.com/thisisankit27/f-tree/security/policy">Security policy</a></li>
+          <li><a href="https://github.com/thisisankit27/f-tree/issues/new">Report a problem</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-base">
+      <span>MIT licensed. No analytics, no cookies, no tracking.</span>
+      <span>f-tree is not on any app store. Every download is built by GitHub Actions and has a published checksum.</span>
+    </div>
   </div>
 </footer>
-
-<script src="../app.js"></script>
+<script src="../app.js" defer></script>
 </body>
 </html>

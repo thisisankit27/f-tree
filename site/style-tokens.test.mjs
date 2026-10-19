@@ -21,7 +21,9 @@ const read = (file) => readFileSync(path.join(here, file), 'utf8');
 const CSS = read('style.css');
 // The pages set a few colours inline, and app.js writes markup that carries them too.
 const USERS = ['style.css', 'index.html', 'thanks/index.html', 'desktop/index.html',
-  'desktop/thanks/index.html', 'app.js'].map(read);
+  'desktop/thanks/index.html', 'features/index.html', 'download/index.html', 'privacy/index.html',
+  'faq/index.html', 'relationship-finder/index.html', 'hindi-kinship/index.html',
+  'family-book/index.html', '404.html', 'app.js'].map(read);
 
 /** The declarations in the first rule whose selector line is exactly `selector {`. */
 function block(selector) {
