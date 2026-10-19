@@ -39,11 +39,17 @@ Ask how any two people are related and it names the relationship, in English or 
 
 <br>
 
-<img src="site/shots/phone-everyone.webp" width="30%" alt="The family in columns, with dashed cards for relatives whose names are not known">
-<img src="site/shots/phone-compact.webp" width="30%" alt="The compact view, reading one person's family">
-<img src="site/shots/phone-relation-hi.webp" width="30%" alt="A relationship named in Hindi: father's sister's son">
+<picture><source media="(prefers-color-scheme: dark)" srcset="site/shots/phone-everyone-dark.webp"><img src="site/shots/phone-everyone.webp" width="30%" alt="The family in columns, with dashed cards for relatives whose names are not known"></picture>
+<picture><source media="(prefers-color-scheme: dark)" srcset="site/shots/phone-compact-dark.webp"><img src="site/shots/phone-compact.webp" width="30%" alt="The compact view, reading one person's family"></picture>
+<picture><source media="(prefers-color-scheme: dark)" srcset="site/shots/phone-relation-hi-dark.webp"><img src="site/shots/phone-relation-hi.webp" width="30%" alt="A relationship named in Hindi: father's sister's son"></picture>
 
-<sub><i>Chart · Compact · Hindi kinship terms</i></sub>
+<sub><i>Everyone, including the people with no name · Compact · Hindi kinship terms</i></sub>
+
+<br>
+
+<picture><source media="(prefers-color-scheme: dark)" srcset="site/shots/desktop-chart-dark.webp"><img src="site/shots/desktop-chart.webp" width="88%" alt="The Windows and Linux app showing a family tree with generations as rows"></picture>
+
+<sub><i>The same family on Windows and Linux</i></sub>
 
 </div>
 
@@ -73,9 +79,9 @@ f-tree is built around those gaps instead of around a form you have to fill in c
 <br>
 
 <div align="center">
-<img src="site/shots/phone-relation-en.webp" width="45%" alt="The relationship finder, listing the line between two people">
+<picture><source media="(prefers-color-scheme: dark)" srcset="site/shots/phone-relation-en-dark.webp"><img src="site/shots/phone-relation-en.webp" width="45%" alt="The relationship finder, listing the line between two people"></picture>
 &nbsp;&nbsp;
-<img src="site/shots/merge.webp" width="45%" alt="The merge screen, showing what an import will add">
+<picture><source media="(prefers-color-scheme: dark)" srcset="site/shots/phone-merge-dark.webp"><img src="site/shots/phone-merge.webp" width="45%" alt="The merge screen: 2 people added, 22 merged into people already in the tree, and a possible duplicate to confirm"></picture>
 </div>
 
 <br>

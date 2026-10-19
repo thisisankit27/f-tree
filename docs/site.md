@@ -22,6 +22,8 @@ Neither page has an analytics script. The viewer never uploads the file you open
 | `/privacy/` | What stays on the device, what can reach a network, every Android permission |
 | `/faq/` | The questions, grouped, with `FAQPage` structured data |
 | `/relationship-finder/`, `/hindi-kinship/`, `/family-book/` | One page each for the three things people search for |
+| `/guides/`, `/guides/unknown-ancestors/`, `/guides/merge-family-trees/` | Plain-language how-to articles, each with a visible author and date |
+| `/about/` | Why f-tree exists, who makes it, and what is next |
 | `/thanks/`, `/desktop/thanks/` | Install guides. `noindex`; the download buttons and the in-app updater send people here |
 | `/desktop/` | A redirect to `/download/`, kept because older links point at it |
 | `/playground/` | The browser viewer (see below) |

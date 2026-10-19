@@ -1351,3 +1351,29 @@ main:has(#tpl-chart:checked) .tpl-stage .tpl-chart { display: block; }
   box-shadow: var(--shadow-cast), var(--shadow-soft);
 }
 .phone figcaption { margin-top: 12px; font-family: var(--sans); font-size: 14px; line-height: 1.45; color: var(--ink-soft); text-align: center; }
+
+/* ------------------------------------------------------------- about, guides, founder note */
+
+.founder-note {
+  max-width: 46em;
+  margin: 0 auto;
+  padding: clamp(24px, 4vw, 44px) clamp(22px, 4vw, 48px);
+  border: 1px solid var(--notice-line);
+  border-left: 4px solid var(--brass);
+  border-radius: var(--radius-lg);
+  background: var(--brass-surface);
+}
+.founder-note blockquote { margin: 0; }
+.founder-note p { margin: 0 0 1em; font-size: clamp(19px, 2.2vw, 24px); line-height: 1.55; color: var(--ink); text-wrap: pretty; }
+.founder-note p:last-child { margin-bottom: 0; }
+.founder-note figcaption { margin-top: 20px; font-family: var(--sans); font-size: 14.5px; color: var(--notice-ink); }
+
+.byline { margin: 0; font-family: var(--sans); font-size: 14px; color: var(--ink-faint); }
+.byline a { color: var(--ink-soft); }
+
+.bento.is-links { grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); }
+.bento.is-links .tile { grid-column: auto; }
+a.link-tile { text-decoration: none; color: inherit; transition: border-color .15s ease, background-color .15s ease; }
+a.link-tile:hover { border-color: var(--forest); background: var(--bone); }
+a.link-tile .tpl-title { display: block; margin: 0 0 8px; font-size: 20px; font-weight: 600; letter-spacing: -0.01em; line-height: 1.25; }
+a.link-tile .tpl-body { display: block; font-size: 16px; color: var(--ink-soft); }

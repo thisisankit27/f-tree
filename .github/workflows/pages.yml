@@ -43,6 +43,8 @@ jobs:
                    site/features/index.html site/download/index.html site/privacy/index.html \
                    site/faq/index.html site/relationship-finder/index.html \
                    site/hindi-kinship/index.html site/family-book/index.html site/404.html \
+                   site/about/index.html site/guides/index.html site/guides/unknown-ancestors/index.html \
+                   site/guides/merge-family-trees/index.html site/llms.txt \
                    site/sitemap.xml site/manifest.webmanifest site/fonts/literata.woff2; do
             test -s "$f" || { echo "missing or empty: $f"; exit 1; }
           done
@@ -66,7 +68,9 @@ jobs:
           import re, sys, pathlib
           pages = ['index.html', 'features/index.html', 'download/index.html', 'privacy/index.html',
                    'faq/index.html', 'relationship-finder/index.html', 'hindi-kinship/index.html',
-                   'family-book/index.html', 'thanks/index.html', 'desktop/index.html',
+                   'family-book/index.html', 'about/index.html', 'guides/index.html',
+                   'guides/unknown-ancestors/index.html', 'guides/merge-family-trees/index.html',
+                   'thanks/index.html', 'desktop/index.html',
                    'desktop/thanks/index.html', '404.html']
           def chrome(text):
               parts = []

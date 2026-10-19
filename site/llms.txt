@@ -1,0 +1,21 @@
+# f-tree
+
+> A free, open-source family tree app for Android, Windows and Linux. It works offline with no account, records relatives whose names are not known, names the relationship between any two people in English or Hindi, and merges a shared branch into a tree without overwriting anything. There is no limit on the number of people.
+
+## Product
+- [Features](https://ftree.vibethroughcode.com/features/): everything the app does
+- [Download](https://ftree.vibethroughcode.com/download/): Android APK, Windows installer, Linux .deb, with checksums
+- [Privacy](https://ftree.vibethroughcode.com/privacy/): what stays on the device, what can reach a network, every Android permission
+- [FAQ](https://ftree.vibethroughcode.com/faq/): cost, accounts, Hindi, GEDCOM, platforms
+
+## Guides and references
+- [How to add a relative whose name you don't know](https://ftree.vibethroughcode.com/guides/unknown-ancestors/)
+- [How to merge two family trees without losing anything](https://ftree.vibethroughcode.com/guides/merge-family-trees/)
+- [Relationship finder, and what "first cousin once removed" means](https://ftree.vibethroughcode.com/relationship-finder/)
+- [Hindi relation names: tau, chacha, mama, bua and more](https://ftree.vibethroughcode.com/hindi-kinship/)
+- [The family book PDF](https://ftree.vibethroughcode.com/family-book/)
+
+## About
+- [Why I built f-tree](https://ftree.vibethroughcode.com/about/)
+- Source code, MIT licence: https://github.com/thisisankit27/f-tree
+- The .ftree file format: https://github.com/thisisankit27/f-tree/blob/main/docs/ftree-format.md
