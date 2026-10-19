@@ -108,30 +108,41 @@
 <section class="page-head"><div class="shell"><p class="crumbs"><a href="../">Home</a><span aria-hidden="true">/</span><span aria-current="page" style="margin:0">Family book</span></p><h1>A book of your family, made to send</h1><p class="lede">Turn your tree into a printable PDF: a cover, everyone in the family, a generation at a time, and an index to find yourself in. Made on your own device.</p></div></section>
 <section class="section" style="padding-top:clamp(20px,3vw,40px)">
   <div class="shell">
-    <div class="split">
+    <div class="split tpl-split">
       <div>
-        <h2>One tap from tree to PDF</h2>
-        <p>The family book is a designed document you can print, send on WhatsApp or keep. It is made on your phone or laptop from the tree you already have. Nothing is uploaded to make it.</p>
-        <ul class="ticks">
-          <li><span><b>Living people are protected.</b> They show only a birth year unless you turn full dates on, and notes are left out unless you include them.</span></li>
-          <li><span><b>Choose whose story it is.</b> The book can be told around one person.</span></li>
-          <li><span><b>Hindi titles print correctly.</b> Devanagari is set with its own typefaces.</span></li>
-          <li><span><b>It tells you the size first.</b> A file budget keeps the PDF easy to send.</span></li>
-        </ul>
+        <h2>Choose a template</h2>
+        <p>Each one is a different way to lay out the same family. Pick one and the page beside it changes.</p>
+        <fieldset class="tpl-pick">
+          <legend class="visually-hidden">Template to preview</legend>
+          <input class="visually-hidden" type="radio" name="tpl" id="tpl-diwali" checked>
+          <label class="tile" for="tpl-diwali"><span class="tpl-title">Diwali storybook</span><span class="tpl-body">A paper-cut storybook told around one person, with a <span lang="hi">शुभ दीपावली</span> greeting. It is offered as a download: switch on <b>Look for new book templates</b> in Settings and fetch it once. It is featured around the festival and stays available all year.</span></label>
+          <input class="visually-hidden" type="radio" name="tpl" id="tpl-chart">
+          <label class="tile" for="tpl-chart"><span class="tpl-title">Family chart</span><span class="tpl-body">Built into every install, so the book works with no network. It draws the whole tree on a single page sized to fit it: a family of eight is a small sheet, and a tree of 50 is a big one.</span></label>
+        </fieldset>
+        <p class="tpl-note">Downloaded templates are checked against a signed catalogue before they are used, and you can remove a copy any time to free the space.</p>
       </div>
-      <figure class="shot-frame"><img src="../shots/book-diwali.webp" width="619" height="876" alt="A page of the Diwali family book template, in marigold and paper-cut style, with a Hindi greeting." loading="lazy"><figcaption>The Diwali storybook template</figcaption></figure>
+      <div class="tpl-stage" aria-live="polite">
+        <figure class="shot-frame tpl-diwali">
+          <img src="../shots/book-diwali.webp" width="619" height="876" alt="A page of the Diwali family book template, in marigold and paper-cut style, with a Hindi greeting." loading="lazy">
+          <figcaption>The Diwali storybook template</figcaption>
+        </figure>
+        <figure class="shot-frame tpl-chart">
+          <a href="../shots/book-chart-large.webp" aria-label="Open the Family chart page at full size"><img src="../shots/book-chart.webp" width="720" height="969" alt="A section of a page made with the Family chart template: generations of the Kumar family in columns, linked by lines, with one relative marked Name not recorded." loading="lazy"></a>
+          <figcaption>A section of the Family chart page the Android app exports for a 53-person family. Select it to see it larger.</figcaption>
+        </figure>
+      </div>
     </div>
   </div>
 </section>
 
 <section class="section band-sunk">
   <div class="shell">
-    <div class="section-head"><h2>Templates</h2><p>Each template is a different way to lay out the same family.</p></div>
-    <div class="bento">
-      <article class="tile is-half"><h3>Family chart</h3><p>Built into every install, so the book works with no network. It draws the whole tree on a single page sized to fit it: a family of eight is a small sheet, and a tree of 200 people is a long one.</p></article>
-      <article class="tile is-half is-brass"><h3>Diwali storybook</h3><p>A paper-cut storybook told around one person, with a <span lang="hi">शुभ दीपावली</span> greeting. It is offered as a download: switch on <b>Look for new book templates</b> in Settings and fetch it once. It is featured around the festival and stays available all year.</p></article>
+    <div class="section-head"><h2>One tap from tree to PDF</h2><p>The family book is a designed document you can print, send on WhatsApp or keep. It is made on your phone or laptop from the tree you already have. Nothing is uploaded to make it.</p></div>
+    <div class="values">
+      <div><h3>Living people are protected</h3><p>They show only a birth year unless you turn full dates on, and notes are left out unless you include them.</p></div>
+      <div><h3>Choose whose story it is</h3><p>The book can be told around one person, and Hindi titles print correctly because Devanagari is set with its own typefaces.</p></div>
+      <div><h3>It tells you the size first</h3><p>A file budget keeps the PDF easy to send, and the estimate is shown before you make it.</p></div>
     </div>
-    <p style="margin:24px 0 0;font-family:var(--sans);font-size:14.5px;color:var(--ink-soft)">Downloaded templates are checked against a signed catalogue before they are used, and you can remove a copy any time to free the space.</p>
   </div>
 </section>
 <section class="section band-deep cta-band"><div class="shell"><h2>Make a book for your family</h2><p>Free on Android, Windows and Linux.</p><div class="cta-row"><a class="btn btn-primary js-os-cta" href="../download/"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12m0 0l-4.5-4.5M12 15l4.5-4.5M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg><span>Download f-tree</span></a><a class="btn btn-quiet" href="../features/">See all features</a></div></div></section>

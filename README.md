@@ -39,9 +39,9 @@ Ask how any two people are related and it names the relationship, in English or 
 
 <br>
 
-<img src="site/shots/tree.webp" width="30%" alt="The family chart, showing an unknown grandmother as a dashed card">
-<img src="site/shots/compact.webp" width="30%" alt="The compact view — generations read down the page">
-<img src="site/shots/hindi.webp" width="30%" alt="A relationship named in Hindi">
+<img src="site/shots/phone-everyone.webp" width="30%" alt="The family in columns, with dashed cards for relatives whose names are not known">
+<img src="site/shots/phone-compact.webp" width="30%" alt="The compact view, reading one person's family">
+<img src="site/shots/phone-relation-hi.webp" width="30%" alt="A relationship named in Hindi: father's sister's son">
 
 <sub><i>Chart · Compact · Hindi kinship terms</i></sub>
 
@@ -73,7 +73,7 @@ f-tree is built around those gaps instead of around a form you have to fill in c
 <br>
 
 <div align="center">
-<img src="site/shots/relation-card.webp" width="45%" alt="A shareable card naming a relationship">
+<img src="site/shots/phone-relation-en.webp" width="45%" alt="The relationship finder, listing the line between two people">
 &nbsp;&nbsp;
 <img src="site/shots/merge.webp" width="45%" alt="The merge screen, showing what an import will add">
 </div>
